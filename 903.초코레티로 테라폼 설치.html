@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terraform Installation with Chocolatey</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* CORE RESET & LAYOUT */
+        * { box-sizing: border-box; }
+        body {
+            background-color: #1a202c;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            margin: 0;
+            padding: 40px 0;
+            align-items: center;
+            font-family: 'Noto Sans KR', sans-serif;
+            color: #e2e8f0;
+        }
+
+        /* SLIDE CONTAINER SHARED STYLES */
+        .slide-container {
+            background-color: #0f172a; /* Dark Slate */
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+            width: 1000px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #334155;
+            flex-shrink: 0;
+            scroll-snap-align: center;
+        }
+
+        /* SLIDE HEADER & FOOTER */
+        .slide-header {
+            padding: 30px 40px;
+            border-bottom: 2px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.95);
+        }
+        .slide-logo { font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 10px; }
+        .slide-logo i { color: #5C4EE5; } /* Terraform Purple */
+        .slide-number { font-family: 'Roboto Mono', monospace; color: #64748b; }
+
+        .slide-content {
+            padding: 40px 60px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* TYPOGRAPHY */
+        h1 { font-size: 48px; margin: 0 0 20px 0; background: linear-gradient(to right, #5C4EE5, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h2 { font-size: 36px; margin: 0 0 30px 0; color: #fff; border-left: 5px solid #FF9900; padding-left: 20px; }
+        p { font-size: 20px; line-height: 1.6; color: #cbd5e1; margin-bottom: 20px; }
+        
+        /* CODE BLOCKS */
+        .code-block {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 16px;
+            color: #a5b4fc;
+            border: 1px solid #475569;
+            margin: 20px 0;
+            position: relative;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .code-block::before {
+            content: '$';
+            color: #FF9900;
+            margin-right: 10px;
+            user-select: none;
+        }
+        .code-label {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 5px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        /* LISTS */
+        ul { padding-left: 20px; margin: 0; }
+        li { font-size: 20px; margin-bottom: 15px; color: #cbd5e1; list-style-type: none; position: relative; padding-left: 30px; }
+        li::before {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            color: #FF9900;
+        }
+
+        /* WARNING/NOTE BOX */
+        .note-box {
+            background: rgba(255, 153, 0, 0.1);
+            border-left: 4px solid #FF9900;
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #fbbf24;
+        }
+
+        /* TITLE SLIDE SPECIFIC */
+        .title-slide {
+            text-align: center;
+            align-items: center;
+            background: radial-gradient(circle at center, rgba(92, 78, 229, 0.15) 0%, rgba(15, 23, 42, 0) 70%);
+        }
+        .title-slide h1 { font-size: 64px; margin-bottom: 10px; }
+        .title-slide p { font-size: 24px; color: #94a3b8; }
+        .big-icon { font-size: 80px; color: #5C4EE5; margin-bottom: 30px; animation: float 3s ease-in-out infinite; }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Slide 1: Title -->
+    <div class="slide-container">
+        <div class="slide-content title-slide">
+            <i class="fa-solid fa-download big-icon"></i>
+            <h1>Terraform Installation</h1>
+            <p>Windows 환경 (Git Bash & Chocolatey)</p>
+            <div style="margin-top: 40px; padding: 10px 20px; border: 1px solid #334155; border-radius: 50px; color: #64748b; font-size: 16px;">
+                Module 130: AWS Automation & Terraform
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2: Prerequisites -->
+    <div class="slide-container">
+        <div class="slide-header">
+            <div class="slide-logo"><i class="fa-brands fa-aws"></i> AWS & Terraform</div>
+            <div class="slide-number">01 / 05</div>
+        </div>
+        <div class="slide-content">
+            <h2>사전 준비 사항 (Prerequisites)</h2>
+            <p>Terraform 설치를 위해 다음 환경이 준비되어야 합니다.</p>
+            <ul>
+                <li><strong>운영체제:</strong> Windows 10 이상</li>
+                <li><strong>터미널:</strong> Git Bash (설치됨) 및 PowerShell (관리자 권한)</li>
+                <li><strong>관리자 권한:</strong> 패키지 설치를 위해 필수</li>
+            </ul>
+            <div class="note-box">
+                <i class="fa-solid fa-circle-exclamation"></i> 
+                <strong>참고:</strong> Chocolatey(패키지 매니저)를 먼저 설치하면, 이후 Terraform 등 다양한 도구를 명령어 한 줄로 쉽게 관리할 수 있습니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Install Chocolatey -->
+    <div class="slide-container">
+        <div class="slide-header">
+            <div class="slide-logo"><i class="fa-solid fa-cookie-bite"></i> Chocolatey Setup</div>
+            <div class="slide-number">02 / 05</div>
+        </div>
+        <div class="slide-content">
+            <h2>Step 1. Chocolatey 설치</h2>
+            <p>Git Bash가 아닌 <strong>PowerShell(관리자 권한)</strong>에서 실행해야 합니다.</p>
+            
+            <div class="code-label">PowerShell (Admin)</div>
+            <div class="code-block" style="font-size: 14px;">Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))</div>
+
+            <div class="note-box">
+                설치가 완료되면 PowerShell을 닫고, <strong>Git Bash를 관리자 권한으로 새로 실행</strong>하세요.
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Verify Chocolatey -->
+    <div class="slide-container">
+        <div class="slide-header">
+            <div class="slide-logo"><i class="fa-solid fa-check"></i> Verification</div>
+            <div class="slide-number">03 / 05</div>
+        </div>
+        <div class="slide-content">
+            <h2>Step 2. Chocolatey 설치 확인</h2>
+            <p>Git Bash 창에서 아래 명령어로 설치 버전을 확인합니다.</p>
+            
+            <div class="code-label">Git Bash</div>
+            <div class="code-block">choco --version</div>
+            
+            <p>버전 넘버(예: 2.x.x)가 출력되면 정상적으로 설치된 것입니다.</p>
+        </div>
+    </div>
+
+    <!-- Slide 5: Install Terraform -->
+    <div class="slide-container">
+        <div class="slide-header">
+            <div class="slide-logo"><i class="fa-solid fa-code-branch"></i> Terraform Setup</div>
+            <div class="slide-number">04 / 05</div>
+        </div>
+        <div class="slide-content">
+            <h2>Step 3. Terraform 설치</h2>
+            <p>이제 Chocolatey를 이용해 Terraform을 간단하게 설치합니다.</p>
+            
+            <div class="code-label">Git Bash (Admin 권한 권장)</div>
+            <div class="code-block">choco install terraform -y</div>
+            
+            <p style="margin-top: 20px; font-size: 16px; color: #94a3b8;">
+                * <code>-y</code> 옵션은 설치 중간 확인 질문에 자동으로 'Yes'라고 응답합니다.
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 6: Final Verification -->
+    <div class="slide-container">
+        <div class="slide-header">
+            <div class="slide-logo"><i class="fa-solid fa-flag-checkered"></i> Complete</div>
+            <div class="slide-number">05 / 05</div>
+        </div>
+        <div class="slide-content">
+            <h2>Step 4. 설치 검증</h2>
+            <p>Terraform 명령어가 정상적으로 실행되는지 최종 확인합니다.</p>
+            
+            <div class="code-label">Git Bash</div>
+            <div class="code-block">terraform -version</div>
+
+            <div class="code-block" style="border: 1px dashed #475569; background: transparent; color: #cbd5e1; margin-top: 10px;">
+# 출력 예시
+Terraform v1.9.0
+on windows_amd64
+            </div>
+            
+            <div class="note-box" style="border-left-color: #5C4EE5; color: #a5b4fc; background: rgba(92, 78, 229, 0.1);">
+                <i class="fa-solid fa-thumbs-up"></i> 
+                <strong>축하합니다!</strong> 이제 인프라 코드를 작성할 준비가 되었습니다.
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
