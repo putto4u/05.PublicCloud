@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS & Terraform Curriculum Infographic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* CORE RESET & LAYOUT */
+        * { box-sizing: border-box; }
+        body {
+            background-color: #0f172a; /* Deep Dark Blue Background */
+            color: #e2e8f0;
+            margin: 0;
+            padding: 40px 0;
+            font-family: 'Noto Sans KR', sans-serif;
+            display: flex;
+            justify-content: center;
+            background-image: 
+                linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)),
+                url('https://www.transparenttextures.com/patterns/cubes.png');
+        }
+
+        /* INFOGRAPHIC WRAPPER */
+        .infographic-wrapper {
+            width: 1000px;
+            background: #1e293b;
+            box-shadow: 0 0 80px rgba(0,0,0,0.6);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #334155;
+        }
+
+        /* CONNECTING LINE (The Spine) */
+        .spine {
+            position: absolute;
+            left: 50%;
+            top: 350px;
+            bottom: 100px;
+            width: 4px;
+            background: linear-gradient(180deg, #FF9900 0%, #5C4EE5 50%, #FF9900 100%);
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+
+        /* HEADER SECTION */
+        .header-section {
+            background: linear-gradient(135deg, #1a202c 0%, #0f172a 100%);
+            padding: 80px 40px;
+            text-align: center;
+            position: relative;
+            border-bottom: 4px solid #FF9900;
+            z-index: 1;
+        }
+        .header-section::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 20px solid #FF9900;
+        }
+
+        h1 {
+            font-size: 56px;
+            margin: 0 0 20px 0;
+            font-weight: 900;
+            background: linear-gradient(to right, #FF9900, #ffc400);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+            line-height: 1.2;
+        }
+        .subtitle {
+            font-size: 24px;
+            color: #94a3b8;
+            font-weight: 300;
+            font-family: 'Roboto Mono', monospace;
+        }
+        .meta-tag {
+            display: inline-block;
+            background: rgba(92, 78, 229, 0.2);
+            color: #a5b4fc;
+            padding: 8px 16px;
+            border-radius: 50px;
+            margin-top: 20px;
+            border: 1px solid rgba(92, 78, 229, 0.5);
+            font-size: 14px;
+        }
+
+        /* CONTENT SECTIONS */
+        .section-block {
+            padding: 60px 40px;
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 2 Columns */
+            gap: 60px;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        /* Alternating Layout Logic */
+        .section-block:nth-child(even) {
+            direction: rtl; /* Switch visual order */
+        }
+        .section-block:nth-child(even) .content-group {
+            direction: ltr; /* Reset text direction */
+            text-align: left;
+        }
+        .section-block:nth-child(even) .image-group {
+            direction: ltr; /* Reset image direction */
+        }
+
+        /* CENTER NODE ON SPINE */
+        .node-marker {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: #0f172a;
+            border: 4px solid #e2e8f0;
+            border-radius: 50%;
+            z-index: 2;
+            box-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #fff;
+            font-weight: bold;
+        }
+        .section-block:nth-child(odd) .node-marker { border-color: #FF9900; }
+        .section-block:nth-child(even) .node-marker { border-color: #5C4EE5; }
+
+        /* CONTENT STYLING */
+        .content-group {
+            background: rgba(30, 41, 59, 0.4);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+            backdrop-filter: blur(5px);
+            transition: transform 0.3s ease;
+        }
+        .content-group:hover {
+            transform: translateY(-5px);
+            background: rgba(30, 41, 59, 0.7);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        h2.part-title {
+            font-size: 28px;
+            margin: 0 0 25px 0;
+            color: #fff;
+            border-left: 5px solid #FF9900;
+            padding-left: 15px;
+        }
+        .part-title.terraform { border-color: #5C4EE5; }
+
+        /* LIST STYLING */
+        .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        .toc-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 12px; 
+            border-radius: 8px; 
+            transition: all 0.2s ease;
+            background: rgba(15, 23, 42, 0.5);
+        }
+        .toc-item:hover {
+            background: rgba(255, 153, 0, 0.15);
+            padding-left: 18px; /* Slide effect */
+        }
+        .toc-item.tf:hover { background: rgba(92, 78, 229, 0.15); }
+
+        .toc-item a {
+            text-decoration: none;
+            color: #cbd5e1;
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .toc-icon { color: #FF9900; width: 24px; text-align: center; }
+        .toc-icon.tf { color: #5C4EE5; }
+        
+        .module-id {
+            font-family: 'Roboto Mono', monospace;
+            color: #64748b;
+            font-size: 13px;
+            min-width: 35px;
+        }
+
+        /* IMAGE STYLING */
+        .image-group {
+            height: 300px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            border: 1px solid #334155;
+            position: relative;
+        }
+        .image-group img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        .image-group:hover img { opacity: 1; }
+        .image-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(15, 23, 42, 0.9), transparent);
+        }
+
+        /* FOOTER */
+        .footer-section {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+            font-size: 14px;
+            border-top: 1px solid #334155;
+            background: #0f172a;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="infographic-wrapper">
+        <!-- HEADER -->
+        <header class="header-section">
+            <h1>AWS Cloud & Terraform<br>Automation Roadmap</h1>
+            <div class="subtitle">From Fundamentals to Advanced IaC</div>
+            <div class="meta-tag">Master Course Curriculum</div>
+        </header>
+
+        <!-- CENTRAL SPINE LINE -->
+        <div class="spine"></div>
+
+        <!-- PART 1 -->
+        <div class="section-block">
+            <div class="node-marker"><i class="fa-solid fa-server"></i></div>
+            
+            <div class="content-group">
+                <h2 class="part-title">Part 1: AWS Core Fundamentals</h2>
+                <ul class="toc-list">
+                    <li class="toc-item"><a href="./010_AWS_Intro.html"><span class="module-id">010</span><i class="fa-brands fa-aws toc-icon"></i> AWS 소개 및 서비스 유형</a></li>
+                    <li class="toc-item"><a href="./020_IAM.html"><span class="module-id">020</span><i class="fa-solid fa-id-card toc-icon"></i> IAM 자격증명 & 엑세스 관리</a></li>
+                    <li class="toc-item"><a href="./030_Instances.html"><span class="module-id">030</span><i class="fa-solid fa-server toc-icon"></i> 인스턴스 (EC2, VPC, S3, RDS)</a></li>
+                    <li class="toc-item"><a href="./040_HighAvailability.html"><span class="module-id">040</span><i class="fa-solid fa-layer-group toc-icon"></i> 인스턴스 고가용성 구현</a></li>
+                    <li class="toc-item"><a href="./050_CoreOps.html"><span class="module-id">050</span><i class="fa-solid fa-gears toc-icon"></i> 인스턴스 코어 서비스 운영</a></li>
+                </ul>
+            </div>
+
+            <div class="image-group">
+                <div class="image-overlay"></div>
+                <img src="http://googleusercontent.com/image_collection/image_retrieval/1882703087589938525" alt="Data Center">
+            </div>
+        </div>
+
+        <!-- PART 2 -->
+        <div class="section-block">
+            <div class="node-marker"><i class="fa-solid fa-network-wired"></i></div>
+
+            <div class="content-group">
+                <h2 class="part-title">Part 2: Network & Delivery</h2>
+                <ul class="toc-list">
+                    <li class="toc-item"><a href="./060_CloudFormation.html"><span class="module-id">060</span><i class="fa-solid fa-code toc-icon"></i> CloudFormation 인프라</a></li>
+                    <li class="toc-item"><a href="./070_VPC_Details.html"><span class="module-id">070</span><i class="fa-solid fa-network-wired toc-icon"></i> VPC, NAT, LoadBalancer, Peering</a></li>
+                    <li class="toc-item"><a href="./080_VPN_Transit.html"><span class="module-id">080</span><i class="fa-solid fa-route toc-icon"></i> Site-to-Site VPN, Transit Gateway</a></li>
+                    <li class="toc-item"><a href="./090_CloudFront.html"><span class="module-id">090</span><i class="fa-solid fa-globe toc-icon"></i> CloudFront CDN</a></li>
+                    <li class="toc-item"><a href="./100_Route53.html"><span class="module-id">100</span><i class="fa-solid fa-map-signs toc-icon"></i> Route53 DNS</a></li>
+                </ul>
+            </div>
+
+            <div class="image-group">
+                <div class="image-overlay"></div>
+                <img src="http://googleusercontent.com/image_collection/image_retrieval/4300216349638777287" alt="Networking">
+            </div>
+        </div>
+
+        <!-- PART 3 -->
+        <div class="section-block">
+            <div class="node-marker"><i class="fa-solid fa-shield-halved"></i></div>
+
+            <div class="content-group">
+                <h2 class="part-title terraform">Part 3: Security & Terraform</h2>
+                <ul class="toc-list">
+                    <li class="toc-item"><a href="./110_SecurityGroups.html"><span class="module-id">110</span><i class="fa-solid fa-shield-halved toc-icon"></i> 보안그룹 & NACL</a></li>
+                    <li class="toc-item"><a href="./120_SecurityPolicy.html"><span class="module-id">120</span><i class="fa-solid fa-lock toc-icon"></i> 보안정책 및 보안솔루션 (DDoS)</a></li>
+                    <li class="toc-item tf"><a href="./130_TerraformInstall.html"><span class="module-id">130</span><i class="fa-solid fa-download toc-icon tf"></i> AWS 자동화와 테라폼 설치</a></li>
+                    <li class="toc-item tf"><a href="./140_TerraformSyntax.html"><span class="module-id">140</span><i class="fa-solid fa-code-branch toc-icon tf"></i> 테라폼 동작방식 & 문법</a></li>
+                </ul>
+            </div>
+
+            <div class="image-group">
+                <div class="image-overlay"></div>
+                <img src="http://googleusercontent.com/image_collection/image_retrieval/11811971907304208880" alt="Security">
+            </div>
+        </div>
+
+        <!-- PART 4 -->
+        <div class="section-block">
+            <div class="node-marker"><i class="fa-brands fa-aws"></i></div>
+
+            <div class="content-group">
+                <h2 class="part-title terraform">Part 4: Applied IaC & Ops</h2>
+                <ul class="toc-list">
+                    <li class="toc-item tf"><a href="./150_TerraformDeploy.html"><span class="module-id">150</span><i class="fa-solid fa-cloud-upload-alt toc-icon tf"></i> 테라폼 AWS 리소스 배포</a></li>
+                    <li class="toc-item tf"><a href="./160_TerraformCloud.html"><span class="module-id">160</span><i class="fa-brands fa-aws toc-icon tf"></i> 테라폼 퍼블릭 클라우드 운영사례</a></li>
+                    <li class="toc-item tf"><a href="./170_RemoteState.html"><span class="module-id">170</span><i class="fa-solid fa-database toc-icon tf"></i> 테라폼 원격 데이터 소스</a></li>
+                    <li class="toc-item" style="border: 1px dashed #FF9900; background: rgba(255,153,0,0.05);"><a href="./300_Advanced.html"><span class="module-id">300</span><i class="fa-solid fa-rocket toc-icon"></i> Advanced: Auto Scaling & EKS</a></li>
+                </ul>
+            </div>
+
+            <div class="image-group">
+                <div class="image-overlay"></div>
+                <img src="http://googleusercontent.com/image_collection/image_retrieval/13373711783976927193" alt="Infrastructure">
+            </div>
+        </div>
+
+        <footer class="footer-section">
+            &copy; 2026 AWS Cloud Infrastructure & Terraform Automation Course. All rights reserved.
+        </footer>
+    </div>
+
+</body>
+</html>
