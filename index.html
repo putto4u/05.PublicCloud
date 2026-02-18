@@ -1,22 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Putto's Lectures - 학습 콘텐츠 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
+        .hero-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        }
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+    <header class="hero-gradient text-white py-12 px-6 shadow-lg mb-10">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex items-center space-x-4 mb-4">
+                <i class="fas fa-graduation-cap text-4xl text-blue-400"></i>
+                <h1 class="text-4xl font-bold tracking-tight">Putto's Lectures</h1>
+            </div>
+            <p class="text-slate-300 text-lg">공용 클라우드 및 IT 기술 교육 자료 저장소</p>
+            <div class="mt-6 flex items-center text-sm text-slate-400">
+                <i class="far fa-clock mr-2"></i>
+                <span>마지막 업데이트: 2026-02-18 19:59</span>
+            </div>
+        </div>
+    </header>
 
-    <!DOCTYPE html>
-    <html lang="ko">
-    <head>
-        <meta charset="UTF-8">
-        <title>학습 자료 콘텐츠 목록</title>
-        <style>
-            body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
-            ul { list-style-type: none; }
-            .folder { font-weight: bold; color: #2c3e50; margin-top: 15px; }
-            .file { margin-left: 20px; }
-            a { text-decoration: none; color: #3498db; }
-            a:hover { text-decoration: underline; }
-        </style>
-    </head>
-    <body>
-        <h1>저장소 HTML 콘텐츠 목록</h1>
-        <hr>
-    <ul><li class="file">📄 <a href="0010. 아마존 핵심 개념.html" target="_blank">0010. 아마존 핵심 개념.html</a></li><li class="file">📄 <a href="0011.구글GCP핵심개념.html" target="_blank">0011.구글GCP핵심개념.html</a></li><li class="file">📄 <a href="0012. Azure 핵심 개념.html" target="_blank">0012. Azure 핵심 개념.html</a></li><li class="file">📄 <a href="130. AWS 자동화와 테라폼.html" target="_blank">130. AWS 자동화와 테라폼.html</a></li><li class="file">📄 <a href="902.테라폼아키텍처.html" target="_blank">902.테라폼아키텍처.html</a></li><li class="file">📄 <a href="903.초코레티로 테라폼 설치.html" target="_blank">903.초코레티로 테라폼 설치.html</a></li><li class="file">📄 <a href="index01.html" target="_blank">index01.html</a></li></ul><div class="folder">📂 020. IAM 자격증명 엑세스관리</div><ul><li class="file">📄 <a href="020. IAM 자격증명 엑세스관리/0020. 유저관리와 IAM.html" target="_blank">0020. 유저관리와 IAM.html</a></li></ul>
-    </body>
-    </html>
-    
+    <main class="max-w-5xl mx-auto px-6 pb-20">
+
+        <section class="mb-12">
+            <div class="flex items-center space-x-3 mb-6 border-b border-slate-200 pb-2">
+                <i class="fas fa-house text-blue-500"></i>
+                <h2 class="text-2xl font-bold text-slate-700">루트 디렉터리</h2>
+                <span class="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-1 rounded-full">7개 파일</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+                <a href="0010. 아마존 핵심 개념.html" target="_blank" class="card-hover bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-start space-x-4">
+                    <div class="bg-blue-50 p-3 rounded-lg text-blue-600">
+                        <i class="far fa-file-code text-xl"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="font-semibold text-slate-800 truncate" title="0010. 아마존 핵심 개념">0010. 아마존 핵심 개념</h3>
+                        <p class="text-xs text-slate-400 mt-1 truncate">0010. 아마존 핵심 개념.html</p>
+                    </div>
+                </a>
+            
+                <a href="0011.구글GCP핵심개념.html" target="_blank" class="card-hover bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-start space-x-4">
+                    <div class="bg-blue-50 p-3 rounded-lg text-blue-600">
+                        <i class="far fa-file-code text-xl"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="font-semibold text-slate-800 truncate" title="0011.구글GCP핵심개념">0011.구글GCP핵심개념</h3>
+                        <p class="text-xs text-slate-400 mt-1 truncate">0011.구글GCP핵심개념.html</p>
+                    </div>
+                </a>
+            
+                <a href="0012. Azure 핵심 개념.html" target="_blank" class="card-hover bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-start space-x-4">
+                    <div class="bg-blue-50 p-3 rounded-lg text-blue-600">
+                        <i class="far fa-file-code text-xl"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="font-semibold text-slate-800 truncate" title="0012. Azure 핵심 개념">0012. Azure 핵심 개념</h3>
+                        <p class="text-xs text-slate-400 mt-1 truncate">0012. Azure 핵심 개념.html</p>
+                    </div>
+                </a>
+            
+                <a href="130. AWS 자동화와 테라폼.html" target="_blank" class="card-hover bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-start space-x-4">
+                    <div class="bg-blue-50 p-3 rounded-lg text-blue-600">
+                        <i class="far fa-file-code text-xl"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="font-semibold text-slate-800 truncate" title="130. AWS 자동화와 테라폼">130. AWS 자동화와 테라폼</h3>
+                        <p class="text-xs text-slate-400 mt-1 truncate">130. AWS 자동화와 테라폼.html</p>
+                    </div>
+                </a>
+            
+                <a href="902.테라폼아키텍처.html" target="_blank" class="card-hover bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-start space-x-4">
+                    <div class="bg-blue-50 p-3 rounded-lg text-blue-600">
+                        <i class="far fa-file-code text-xl"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="font-semibold text-slate-800 truncate" title="902.테라폼아키텍처">902.테라폼아키텍처</h3>
+                        <p class="text-xs text-slate-400 mt-1 truncate">902.테라폼아키텍처.html</p>
+                    </div>
+                </a>
+            
+                <a href="903.초코레티로 테라폼 설치.html" target="_blank" class="card-hover bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-start space-x-4">
+                    <div class="bg-blue-50 p-3 rounded-lg text-blue-600">
+                        <i class="far fa-file-code text-xl"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="font-semibold text-slate-800 truncate" title="903.초코레티로 테라폼 설치">903.초코레티로 테라폼 설치</h3>
+                        <p class="text-xs text-slate-400 mt-1 truncate">903.초코레티로 테라폼 설치.html</p>
+                    </div>
+                </a>
+            
+                <a href="index01.html" target="_blank" class="card-hover bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-start space-x-4">
+                    <div class="bg-blue-50 p-3 rounded-lg text-blue-600">
+                        <i class="far fa-file-code text-xl"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="font-semibold text-slate-800 truncate" title="index01">index01</h3>
+                        <p class="text-xs text-slate-400 mt-1 truncate">index01.html</p>
+                    </div>
+                </a>
+            
+            </div>
+        </section>
+        
+        <section class="mb-12">
+            <div class="flex items-center space-x-3 mb-6 border-b border-slate-200 pb-2">
+                <i class="fas fa-folder-open text-blue-500"></i>
+                <h2 class="text-2xl font-bold text-slate-700">020. IAM 자격증명 엑세스관리</h2>
+                <span class="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-1 rounded-full">1개 파일</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+                <a href="020. IAM 자격증명 엑세스관리/0020. 유저관리와 IAM.html" target="_blank" class="card-hover bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-start space-x-4">
+                    <div class="bg-blue-50 p-3 rounded-lg text-blue-600">
+                        <i class="far fa-file-code text-xl"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="font-semibold text-slate-800 truncate" title="0020. 유저관리와 IAM">0020. 유저관리와 IAM</h3>
+                        <p class="text-xs text-slate-400 mt-1 truncate">0020. 유저관리와 IAM.html</p>
+                    </div>
+                </a>
+            
+            </div>
+        </section>
+        
+    </main>
+    <footer class="border-t border-slate-200 py-10 text-center text-slate-500 text-sm">
+        <p>&copy; 2026 Putto's Lectures. 모든 권리 보유.</p>
+    </footer>
+</body>
+</html>
