@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Cloud Computing Infographic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --aws-navy: #232f3e;
+            --aws-blue: #0073bb;
+            --aws-orange: #ff9900;
+            --aws-light-blue: #f2faff;
+            --bg-grey: #f8f9fa;
+            --text-main: #333333;
+            --text-sub: #666666;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', 'Roboto', sans-serif;
+            background-color: var(--bg-grey);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        /* Container */
+        .infographic-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #ffffff;
+            box-shadow: 0 0 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        /* 1. Header Section */
+        header {
+            background: linear-gradient(135deg, var(--aws-navy) 0%, #1a232e 100%);
+            color: #ffffff;
+            padding: 80px 40px;
+            text-align: center;
+            position: relative;
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);
+        }
+
+        header h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+        }
+
+        header h1 span {
+            color: var(--aws-orange);
+        }
+
+        header p {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: #dddddd;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header .logo-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: var(--aws-orange);
+        }
+
+        /* Common Section Styles */
+        section {
+            padding: 80px 60px;
+            position: relative;
+        }
+
+        section:nth-child(even) {
+            background-color: #ffffff;
+        }
+
+        section:nth-child(odd) {
+            background-color: var(--aws-light-blue);
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 60px;
+            color: var(--aws-navy);
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 4px;
+            background: var(--aws-orange);
+            margin: 15px auto 0;
+            border-radius: 2px;
+        }
+
+        /* 2. On-Premise vs Cloud */
+        .comparison-wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            align-items: stretch;
+        }
+
+        .comparison-card {
+            flex: 1;
+            background: #fff;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+            border: 1px solid #eee;
+        }
+
+        .comparison-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .comparison-card.vs-cloud {
+            border-top: 6px solid var(--aws-orange);
+        }
+
+        .comparison-card.vs-onprem {
+            border-top: 6px solid var(--text-sub);
+            background: #f4f4f4;
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .vs-cloud .card-icon { color: var(--aws-orange); }
+        .vs-onprem .card-icon { color: var(--text-sub); }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .card-list {
+            text-align: left;
+            padding-left: 20px;
+            list-style: none;
+        }
+
+        .card-list li {
+            margin-bottom: 10px;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .card-list li::before {
+            content: '✔';
+            position: absolute;
+            left: 0;
+            color: var(--aws-blue);
+            font-weight: bold;
+        }
+
+        .vs-onprem .card-list li::before {
+            content: '✖';
+            color: #d1d5db;
+        }
+
+        /* 3. Global Infrastructure */
+        .map-section {
+            background-color: var(--aws-navy) !important;
+            color: white;
+            text-align: center;
+        }
+
+        .map-section .section-title {
+            color: white;
+        }
+
+        .map-image-container {
+            position: relative;
+            margin: 40px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .map-image-container img {
+            width: 100%;
+            display: block;
+            opacity: 0.8;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-top: 40px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            display: block;
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--aws-orange);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #cccccc;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 4. Core Services Hex Grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .service-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            border-bottom: 4px solid transparent;
+            transition: 0.3s;
+        }
+
+        .service-card:hover {
+            border-bottom-color: var(--aws-blue);
+            transform: translateY(-3px);
+        }
+
+        .service-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            display: inline-block;
+            padding: 15px;
+            border-radius: 50%;
+            background: var(--aws-light-blue);
+        }
+
+        .s-compute .service-icon { color: #e16b18; background: #fff0e6; } /* EC2 Orange */
+        .s-storage .service-icon { color: #208740; background: #eafbf0; } /* S3 Greenish */
+        .s-db .service-icon { color: #3b4dca; background: #eaecfb; } /* RDS Blue */
+        .s-network .service-icon { color: #8c4fff; background: #f2ebff; } /* VPC Purple */
+
+        .service-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--aws-navy);
+        }
+
+        .service-desc {
+            font-size: 0.95rem;
+            color: var(--text-sub);
+        }
+
+        /* 5. Security - Shared Responsibility */
+        .security-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .security-graphic {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .shield-icon {
+            font-size: 10rem;
+            color: var(--aws-navy);
+            opacity: 0.1;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .security-content {
+            flex: 1.2;
+            padding-left: 40px;
+        }
+
+        .responsibility-box {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .resp-aws {
+            background-color: #fff3e0;
+            border-left: 5px solid var(--aws-orange);
+        }
+
+        .resp-customer {
+            background-color: #e3f2fd;
+            border-left: 5px solid var(--aws-blue);
+        }
+
+        .resp-title {
+            font-weight: 800;
+            margin-bottom: 5px;
+            display: block;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .resp-aws .resp-title { color: #d37e00; }
+        .resp-customer .resp-title { color: #1565c0; }
+
+        /* 6. Cost & Market Share (Charts) */
+        .charts-wrapper {
+            display: flex;
+            gap: 40px;
+        }
+
+        .chart-box {
+            flex: 1;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        .chart-header {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--aws-navy);
+        }
+
+        /* Simple CSS Bar Chart */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .bar-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .bar-label {
+            width: 100px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-align: right;
+            margin-right: 15px;
+        }
+
+        .bar-track {
+            flex: 1;
+            background: #eee;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .fill-cost { background: #999; width: 100%; }
+        .fill-save { background: #28a745; width: 60%; }
+
+        /* Donut Chart CSS */
+        .donut-wrapper {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+
+        .donut {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--aws-navy) 0% 32%,
+                #e0e0e0 32% 100%
+            );
+        }
+
+        .donut-hole {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .donut-num {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--aws-navy);
+        }
+
+        .donut-label {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--aws-navy);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-size: 2rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+        }
+
+        .footer-logo span { color: var(--aws-orange); }
+
+        .call-to-action {
+            background: var(--aws-orange);
+            color: var(--aws-navy);
+            padding: 15px 40px;
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: 30px;
+            display: inline-block;
+            margin-top: 20px;
+            transition: 0.3s;
+        }
+
+        .call-to-action:hover {
+            background: #ffb84d;
+            transform: scale(1.05);
+        }
+
+        /* Warning Note */
+        .warning-note {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="infographic-container">
+        <!-- 1. Intro Header -->
+        <header>
+            <div class="logo-icon"><i class="fa-brands fa-aws"></i></div>
+            <h1>Amazon<br><span>Web Services</span></h1>
+            <p>글로벌 클라우드 인프라스트럭처의 표준<br>핵심 개념 완벽 정리</p>
+        </header>
+
+        <!-- 2. What is Cloud? -->
+        <section id="cloud-concept">
+            <h2 class="section-title">Why Cloud Computing?</h2>
+            <div class="comparison-wrapper">
+                <!-- On-Premise Card -->
+                <div class="comparison-card vs-onprem">
+                    <div class="card-icon"><i class="fa-solid fa-server"></i></div>
+                    <h3 class="card-title">On-Premise (기존)</h3>
+                    <ul class="card-list">
+                        <li>높은 초기 구축 비용 (CAPEX)</li>
+                        <li>하드웨어 유지보수 부담</li>
+                        <li>확장의 어려움 (수동 증설)</li>
+                        <li>데이터센터 물리적 보안 필요</li>
+                    </ul>
+                </div>
+                <!-- AWS Cloud Card -->
+                <div class="comparison-card vs-cloud">
+                    <div class="card-icon"><i class="fa-solid fa-cloud"></i></div>
+                    <h3 class="card-title">AWS Cloud</h3>
+                    <ul class="card-list">
+                        <li>사용한 만큼만 지불 (OPEX)</li>
+                        <li>즉각적인 인프라 생성</li>
+                        <li>무한에 가까운 탄력적 확장</li>
+                        <li>글로벌 배포 용이</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Global Infrastructure -->
+        <section class="map-section">
+            <h2 class="section-title">Global Infrastructure</h2>
+            <p style="opacity: 0.8; margin-bottom: 30px;">전 세계에서 가장 광범위하고 신뢰할 수 있는 클라우드 플랫폼</p>
+            
+            <div class="map-image-container">
+                <img src="http://googleusercontent.com/image_collection/image_retrieval/6758915049280384643" alt="AWS Global Map">
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-item">
+                    <span class="stat-number">33</span>
+                    <div class="stat-label">Regions (리전)</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">105</span>
+                    <div class="stat-label">Availability Zones (AZ)</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">245+</span>
+                    <div class="stat-label">Countries & Territories</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Core Services -->
+        <section id="core-services">
+            <h2 class="section-title">Core Services Ecosystem</h2>
+            <div class="services-grid">
+                <!-- Compute -->
+                <div class="service-card s-compute">
+                    <div class="service-icon"><i class="fa-solid fa-microchip"></i></div>
+                    <h3 class="service-name">Amazon EC2</h3>
+                    <p class="service-desc">크기 조절이 가능한 클라우드 상의 가상 서버</p>
+                </div>
+                
+                <!-- Compute (Serverless) -->
+                <div class="service-card s-compute">
+                    <div class="service-icon"><i class="fa-solid fa-bolt"></i></div>
+                    <h3 class="service-name">AWS Lambda</h3>
+                    <p class="service-desc">서버 관리 없이 코드를 실행하는 이벤트 중심 컴퓨팅</p>
+                </div>
+
+                <!-- Storage -->
+                <div class="service-card s-storage">
+                    <div class="service-icon"><i class="fa-solid fa-bucket"></i></div>
+                    <h3 class="service-name">Amazon S3</h3>
+                    <p class="service-desc">확장성, 데이터 가용성 및 보안을 제공하는 객체 스토리지</p>
+                </div>
+
+                <!-- Network -->
+                <div class="service-card s-network">
+                    <div class="service-icon"><i class="fa-solid fa-network-wired"></i></div>
+                    <h3 class="service-name">Amazon VPC</h3>
+                    <p class="service-desc">AWS 클라우드 내 논리적으로 격리된 가상 네트워크</p>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 30px; font-size: 0.9rem; color: #666;">
+                * 주의: 각 서비스는 사용량(시간, 용량, 요청 수)에 따라 별도의 요금이 부과됩니다.
+            </div>
+        </section>
+
+        <!-- 5. Security -->
+        <section id="security">
+            <h2 class="section-title">Security & Compliance</h2>
+            <div class="security-container">
+                <div class="security-graphic">
+                    <i class="fa-solid fa-shield-halved shield-icon"></i>
+                    <i class="fa-solid fa-lock" style="font-size: 5rem; color: var(--aws-navy);"></i>
+                    <h3 style="margin-top: 20px; font-weight: 800; color: var(--aws-navy);">책임 공유 모델</h3>
+                </div>
+                <div class="security-content">
+                    <div class="responsibility-box resp-aws">
+                        <span class="resp-title">AWS의 책임 (Security 'OF' the Cloud)</span>
+                        <p>물리적 시설, 하드웨어, 네트워크, 하이퍼바이저 등 글로벌 인프라 자체의 보안</p>
+                    </div>
+                    <div class="responsibility-box resp-customer">
+                        <span class="resp-title">고객의 책임 (Security 'IN' the Cloud)</span>
+                        <p>데이터 암호화, OS 패치, 방화벽 설정, 계정 및 권한 관리 (IAM)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Cost & Market Share -->
+        <section id="stats">
+            <h2 class="section-title">Market & Cost Efficiency</h2>
+            <div class="charts-wrapper">
+                <!-- Cost Chart -->
+                <div class="chart-box">
+                    <h3 class="chart-header">TCO (총 소유 비용) 절감</h3>
+                    <div class="bar-chart">
+                        <div class="bar-group">
+                            <div class="bar-label">On-Premise</div>
+                            <div class="bar-track">
+                                <div class="bar-fill fill-cost">고정 비용 (100%)</div>
+                            </div>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar-label">AWS</div>
+                            <div class="bar-track">
+                                <div class="bar-fill fill-save">절감 효과 (40%↓)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="warning-note" style="text-align: center; margin-top: 20px;">
+                        * 탄력적 운영 및 예약 인스턴스(RI) 등을 활용한 최적화 기준
+                    </p>
+                </div>
+
+                <!-- Market Share -->
+                <div class="chart-box" style="display: flex; flex-direction: column; align-items: center;">
+                    <h3 class="chart-header">Global Market Share</h3>
+                    <div class="donut-wrapper">
+                        <div class="donut"></div>
+                        <div class="donut-hole">
+                            <span class="donut-num">32%</span>
+                            <span class="donut-label">Market Leader</span>
+                        </div>
+                    </div>
+                    <p style="margin-top: 20px; text-align: center; color: var(--text-sub);">
+                        압도적인 서비스 성숙도와 <br>가장 넓은 생태계 보유
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Footer -->
+        <footer>
+            <div class="footer-logo">aws <span>infographic</span></div>
+            <p>혁신의 시작, AWS 클라우드로 여정을 시작하세요.</p>
+            <div style="margin-top: 30px; font-size: 0.9rem; color: #8899a6;">
+                Created for Educational Purpose
+            </div>
+        </footer>
+    </div>
+
+</body>
+</html>
