@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS EC2 & EBS Architecture: Expert Selection Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        /* Chart Container Strict Styling */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px; /* Base height */
+            max-height: 500px;
+        }
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        /* Custom flowchart connectors using CSS borders since SVG is banned */
+        .connector-v {
+            width: 2px;
+            background-color: #cbd5e1;
+            margin: 0 auto;
+        }
+        .connector-h {
+            height: 2px;
+            background-color: #cbd5e1;
+            width: 100%;
+        }
+    </style>
+    <!-- 
+        Source Material Integration Plan:
+        1. Theme: Professional Cloud Architecture.
+        2. Narrative: Start with the problem (Over-provisioning) -> Solution (Smart Selection) -> Proof (Case Studies).
+        3. Color Palette: Vibrant Tech (Indigo #4F46E5, Cyan #06B6D4, Amber #F59E0B, Rose #E11D48).
+        4. NO SVG / NO MERMAID: All diagrams built with CSS Flex/Grid.
+    -->
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur shadow-sm border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex-shrink-0 flex items-center">
+                    <span class="font-black text-2xl tracking-tighter text-indigo-600">CLOUD<span class="text-cyan-500">ARCH</span></span>
+                </div>
+                <div class="hidden md:flex space-x-8 text-sm font-medium">
+                    <a href="#intro" class="text-slate-500 hover:text-indigo-600 transition-colors">Intro</a>
+                    <a href="#ec2-strategy" class="text-slate-500 hover:text-indigo-600 transition-colors">EC2 Strategy</a>
+                    <a href="#ebs-strategy" class="text-slate-500 hover:text-indigo-600 transition-colors">EBS Strategy</a>
+                    <a href="#case-studies" class="text-slate-500 hover:text-indigo-600 transition-colors">Case Studies</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header / Hero -->
+    <header id="intro" class="relative bg-gradient-to-r from-indigo-600 to-cyan-500 text-white py-20 px-4">
+        <div class="max-w-5xl mx-auto text-center">
+            <h1 class="text-4xl md:text-6xl font-black mb-6 leading-tight">
+                EC2 & EBS <br/>설계 마스터 가이드
+            </h1>
+            <p class="text-xl md:text-2xl font-light text-indigo-100 max-w-3xl mx-auto">
+                "무조건 고사양"은 정답이 아닙니다. 실무 전문가의 선택 기준을 통해 비용은 줄이고 성능은 극대화하는 아키텍처 전략을 알아보세요.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-12 space-y-24">
+
+        <!-- SECTION 1: EC2 Instance Strategy -->
+        <section id="ec2-strategy">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">EC2 인스턴스 선택 전략</h2>
+                <p class="text-lg text-slate-600 max-w-3xl mx-auto">
+                    워크로드의 성격에 따라 최적의 인스턴스 패밀리가 다릅니다. 잘못된 선택은 불필요한 비용 낭비(Over-provisioning)나 치명적인 성능 저하를 초래합니다.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                
+                <!-- Chart Column: Radar Chart -->
+                <div class="bg-white rounded-2xl shadow-xl p-6 border border-slate-100">
+                    <h3 class="text-xl font-bold mb-4 text-indigo-600 flex items-center gap-2">
+                        <span>📊</span> 인스턴스 패밀리 특성 비교
+                    </h3>
+                    <p class="text-sm text-slate-500 mb-6">
+                        각 인스턴스 패밀리(T, M, C, R)가 가진 강점을 시각화했습니다. 
+                        <strong>T 시리즈</strong>는 버스트 기능, <strong>R 시리즈</strong>는 메모리 용량에 특화되어 있음을 확인할 수 있습니다.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="instanceRadarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Content Column: Flowchart / Cards -->
+                <div class="space-y-6">
+                    <!-- Flowchart Replacement (CSS Grid/Flex) -->
+                    <div class="bg-indigo-50 rounded-xl p-6 border border-indigo-100">
+                        <h3 class="text-lg font-bold text-indigo-800 mb-4 text-center">서비스 유형별 추천 로직</h3>
+                        
+                        <div class="flex flex-col items-center space-y-4">
+                            <!-- Step 1 -->
+                            <div class="bg-white px-6 py-3 rounded-lg shadow-sm border border-indigo-200 font-bold text-indigo-600">
+                                어떤 서비스를 운영하시나요?
+                            </div>
+                            <div class="h-6 w-0.5 bg-indigo-300"></div>
+                            
+                            <!-- Branches -->
+                            <div class="grid grid-cols-2 gap-4 w-full">
+                                <!-- Branch Left -->
+                                <div class="flex flex-col items-center space-y-2">
+                                    <div class="bg-cyan-100 px-4 py-2 rounded text-sm font-semibold text-cyan-800 w-full text-center">웹/프론트엔드</div>
+                                    <div class="h-4 w-0.5 bg-cyan-300"></div>
+                                    <div class="bg-white p-4 rounded shadow-sm w-full border-l-4 border-cyan-500">
+                                        <div class="font-bold text-lg text-slate-800">T3 / T4g</div>
+                                        <div class="text-xs text-slate-500">트래픽 변동 대응 (Burstable)</div>
+                                        <div class="mt-2 text-xs font-semibold text-rose-500">Tip: Graviton(T4g)으로 20% 절감</div>
+                                    </div>
+                                </div>
+                                <!-- Branch Right -->
+                                <div class="flex flex-col items-center space-y-2">
+                                    <div class="bg-amber-100 px-4 py-2 rounded text-sm font-semibold text-amber-800 w-full text-center">DB/메모리 캐시</div>
+                                    <div class="h-4 w-0.5 bg-amber-300"></div>
+                                    <div class="bg-white p-4 rounded shadow-sm w-full border-l-4 border-amber-500">
+                                        <div class="font-bold text-lg text-slate-800">R5 / R6g</div>
+                                        <div class="text-xs text-slate-500">메모리 최적화 (Cache Hit 중요)</div>
+                                        <div class="mt-2 text-xs font-semibold text-slate-500">비중요 DB도 메모리는 중요</div>
+                                    </div>
+                                </div>
+                                 <!-- Branch Left 2 -->
+                                 <div class="flex flex-col items-center space-y-2 mt-4">
+                                    <div class="bg-purple-100 px-4 py-2 rounded text-sm font-semibold text-purple-800 w-full text-center">백엔드/API</div>
+                                    <div class="h-4 w-0.5 bg-purple-300"></div>
+                                    <div class="bg-white p-4 rounded shadow-sm w-full border-l-4 border-purple-500">
+                                        <div class="font-bold text-lg text-slate-800">M5 / M6i</div>
+                                        <div class="text-xs text-slate-500">안정적 성능 (범용)</div>
+                                    </div>
+                                </div>
+                                <!-- Branch Right 2 -->
+                                <div class="flex flex-col items-center space-y-2 mt-4">
+                                    <div class="bg-emerald-100 px-4 py-2 rounded text-sm font-semibold text-emerald-800 w-full text-center">임시 파일/로그</div>
+                                    <div class="h-4 w-0.5 bg-emerald-300"></div>
+                                    <div class="bg-white p-4 rounded shadow-sm w-full border-l-4 border-emerald-500">
+                                        <div class="font-bold text-lg text-slate-800">T3 / C5</div>
+                                        <div class="text-xs text-slate-500">목적에 따라 소형 or 연산형</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: EBS Volume Strategy -->
+        <section id="ebs-strategy" class="bg-slate-900 text-white -mx-4 px-4 py-16 sm:rounded-3xl">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-12">
+                    <span class="inline-block py-1 px-3 rounded-full bg-amber-500 text-slate-900 font-bold text-sm mb-4">Storage Choice</span>
+                    <h2 class="text-3xl font-bold mb-4">EBS 볼륨 최적화 가이드</h2>
+                    <p class="text-slate-400 max-w-2xl mx-auto">
+                        EBS는 EC2의 하드디스크입니다. 데이터의 중요도와 I/O 패턴에 따라 올바른 타입을 선택해야 비용 폭탄을 막을 수 있습니다.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                    <!-- Card 1: gp3 -->
+                    <div class="bg-slate-800 rounded-xl p-6 border-t-4 border-cyan-400 hover:-translate-y-1 transition-transform">
+                        <div class="text-2xl font-bold text-cyan-400 mb-2">gp3</div>
+                        <div class="text-sm font-semibold text-slate-300 mb-4">General Purpose SSD</div>
+                        <p class="text-slate-400 text-sm mb-4">대부분의 워크로드에 적합한 기본값. IOPS와 Throughput을 용량과 별개로 설정 가능.</p>
+                        <div class="bg-slate-900/50 p-3 rounded text-xs text-cyan-200">
+                            ⭐ 전문가 추천: 무조건 1순위 고려
+                        </div>
+                    </div>
+                    <!-- Card 2: io2 -->
+                    <div class="bg-slate-800 rounded-xl p-6 border-t-4 border-rose-500 hover:-translate-y-1 transition-transform">
+                        <div class="text-2xl font-bold text-rose-500 mb-2">io2</div>
+                        <div class="text-sm font-semibold text-slate-300 mb-4">Provisioned IOPS SSD</div>
+                        <p class="text-slate-400 text-sm mb-4">지연 시간에 매우 민감한 미션 크리티컬 DB용. 고성능이지만 비용이 높음.</p>
+                        <div class="bg-slate-900/50 p-3 rounded text-xs text-rose-200">
+                            ⚠️ 정말 필요한 경우에만 사용
+                        </div>
+                    </div>
+                    <!-- Card 3: st1 -->
+                    <div class="bg-slate-800 rounded-xl p-6 border-t-4 border-emerald-500 hover:-translate-y-1 transition-transform">
+                        <div class="text-2xl font-bold text-emerald-500 mb-2">st1</div>
+                        <div class="text-sm font-semibold text-slate-300 mb-4">Throughput Optimized HDD</div>
+                        <p class="text-slate-400 text-sm mb-4">빅데이터, 로그 분석 등 순차적 읽기/쓰기가 많은 대용량 처리에 최적.</p>
+                        <div class="bg-slate-900/50 p-3 rounded text-xs text-emerald-200">
+                            💡 1TB 이상 임시 파일에 효과적
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                    <h3 class="text-xl font-bold mb-6 text-white text-center">EBS 성능 vs 비용 포지셔닝 맵</h3>
+                    <p class="text-center text-slate-400 text-sm mb-6">
+                        X축은 비용(Cost), Y축은 최대 IOPS 성능을 나타냅니다. 
+                        <strong>gp3</strong>가 가장 균형 잡힌 위치에 있음을 알 수 있습니다.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="ebsBubbleChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Case Studies & Impact -->
+        <section id="case-studies">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-900 mb-6">실무 현장 사례 (Case Studies)</h2>
+                    <p class="text-lg text-slate-600 mb-6">
+                        단순히 인스턴스 타입만 변경해도 비용 절감과 성능 향상이라는 두 마리 토끼를 잡을 수 있습니다. 실제 변경 전/후 데이터를 비교해 보세요.
+                    </p>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-white p-4 rounded-lg shadow border-l-4 border-indigo-500">
+                            <h4 class="font-bold text-slate-800">Case 1: 쇼핑몰 프론트엔드</h4>
+                            <p class="text-sm text-slate-600 mt-1">M5.large (고정) → <strong>T4g.medium (Auto Scaling)</strong></p>
+                            <p class="text-sm font-bold text-indigo-600 mt-2">결과: 비용 40% 절감</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow border-l-4 border-amber-500">
+                            <h4 class="font-bold text-slate-800">Case 2: 개발팀 테스트 DB</h4>
+                            <p class="text-sm text-slate-600 mt-1">T3.medium (메모리 부족) → <strong>R6g.medium (메모리 최적)</strong></p>
+                            <p class="text-sm font-bold text-amber-600 mt-2">결과: 잦은 다운 현상 해결, 개발 생산성 증대</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-xl p-6 border border-slate-100">
+                    <h3 class="text-xl font-bold mb-4 text-slate-800 text-center">쇼핑몰 사례 비용 절감 효과</h3>
+                    <div class="chart-container">
+                        <canvas id="caseStudyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: Cost & Billing Checklist -->
+        <section class="bg-rose-50 rounded-3xl p-8 md:p-12 border border-rose-100">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl md:text-3xl font-bold text-rose-800">⚠️ 과금 주의사항 및 체크리스트</h2>
+                <p class="text-rose-600 mt-2">이것만 지켜도 월말 청구서의 공포를 피할 수 있습니다.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-rose-100 flex flex-col items-center text-center">
+                    <div class="text-4xl mb-4">🛑</div>
+                    <h3 class="font-bold text-slate-800 mb-2">Stop vs Terminate</h3>
+                    <p class="text-sm text-slate-600">인스턴스를 "중지(Stop)"해도 EBS 비용은 계속 나갑니다. 안 쓴다면 반드시 "종료(Terminate)"하세요.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-rose-100 flex flex-col items-center text-center">
+                    <div class="text-4xl mb-4">🗑️</div>
+                    <h3 class="font-bold text-slate-800 mb-2">EBS 잔존물 확인</h3>
+                    <p class="text-sm text-slate-600">인스턴스 종료 시 EBS가 같이 삭제되도록 'Delete on Termination' 옵션을 꼭 체크하세요.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-rose-100 flex flex-col items-center text-center">
+                    <div class="text-4xl mb-4">💸</div>
+                    <h3 class="font-bold text-slate-800 mb-2">데이터 전송료</h3>
+                    <p class="text-sm text-slate-600">AWS 외부로 나가는 데이터(Outbound)는 유료입니다. 대용량 파일 서버 운영 시 주의하세요.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-12 text-center">
+        <p class="mb-4">© 2024 AWS Architecture Infographic Guide.</p>
+        <p class="text-sm">Based on professional practices for EC2 & EBS selection.</p>
+    </footer>
+
+    <!-- Script for Charts -->
+    <script>
+        // --- UTILITIES ---
+
+        // Label Wrapping Logic (16 char limit)
+        function wrapLabel(label) {
+            if (label.length <= 16) return label;
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                if (currentLine.length + 1 + words[i].length <= 16) {
+                    currentLine += ' ' + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        // Common Tooltip Plugin Config
+        const commonTooltipConfig = {
+            callbacks: {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    if (Array.isArray(label)) {
+                        return label.join(' ');
+                    } else {
+                        return label;
+                    }
+                }
+            }
+        };
+
+        // Common Chart Options
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        font: { family: "'Noto Sans KR', sans-serif", size: 12 }
+                    }
+                },
+                tooltip: commonTooltipConfig
+            }
+        };
+
+        // --- CHART 1: INSTANCE RADAR CHART ---
+        const ctxRadar = document.getElementById('instanceRadarChart').getContext('2d');
+        const labelsRadar = ['CPU 성능', '메모리 용량', '순간 버스트(Burst)', '비용 효율성'];
+        // Wrap labels just in case
+        const wrappedLabelsRadar = labelsRadar.map(wrapLabel);
+
+        new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: wrappedLabelsRadar,
+                datasets: [
+                    {
+                        label: 'T 시리즈 (프론트)',
+                        data: [4, 4, 10, 9], // High Burst, Good Cost
+                        backgroundColor: 'rgba(6, 182, 212, 0.2)', // Cyan
+                        borderColor: 'rgba(6, 182, 212, 1)',
+                        pointBackgroundColor: 'rgba(6, 182, 212, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'M 시리즈 (백엔드)',
+                        data: [7, 7, 5, 7], // Balanced
+                        backgroundColor: 'rgba(79, 70, 229, 0.2)', // Indigo
+                        borderColor: 'rgba(79, 70, 229, 1)',
+                        pointBackgroundColor: 'rgba(79, 70, 229, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'R 시리즈 (DB)',
+                        data: [6, 10, 4, 6], // High Memory
+                        backgroundColor: 'rgba(245, 158, 11, 0.2)', // Amber
+                        borderColor: 'rgba(245, 158, 11, 1)',
+                        pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    r: {
+                        angleLines: { color: '#e2e8f0' },
+                        grid: { color: '#e2e8f0' },
+                        pointLabels: {
+                            font: { family: "'Noto Sans KR', sans-serif", size: 12, weight: 'bold' },
+                            color: '#475569'
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 10,
+                        ticks: { display: false } // Hide numbers for cleaner look
+                    }
+                }
+            }
+        });
+
+        // --- CHART 2: EBS BUBBLE CHART ---
+        const ctxBubble = document.getElementById('ebsBubbleChart').getContext('2d');
+        // No string labels for bubble chart X/Y, but we need tooltips to handle dataset labels correctly
+        
+        new Chart(ctxBubble, {
+            type: 'bubble',
+            data: {
+                datasets: [
+                    {
+                        label: 'gp3 (범용 SSD)',
+                        data: [{ x: 3, y: 7, r: 25 }], // x: Cost(Low=Good?), Let's say x:Price Index, y:Perf Index
+                        backgroundColor: 'rgba(6, 182, 212, 0.7)', // Cyan
+                        borderColor: 'rgba(6, 182, 212, 1)'
+                    },
+                    {
+                        label: 'io2 (고성능 SSD)',
+                        data: [{ x: 9, y: 10, r: 15 }], // Expensive, High Perf
+                        backgroundColor: 'rgba(225, 29, 72, 0.7)', // Rose
+                        borderColor: 'rgba(225, 29, 72, 1)'
+                    },
+                    {
+                        label: 'st1 (HDD)',
+                        data: [{ x: 2, y: 4, r: 35 }], // Cheap, Low IOPS, High Capacity (r)
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)', // Emerald
+                        borderColor: 'rgba(16, 185, 129, 1)'
+                    }
+                ]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    x: {
+                        title: { display: true, text: '비용 (Cost Index) →', color: '#94a3b8' },
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' },
+                        min: 0, max: 10
+                    },
+                    y: {
+                        title: { display: true, text: '최대 IOPS 성능 →', color: '#94a3b8' },
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' },
+                        min: 0, max: 12
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': 비용 ' + context.raw.x + ', 성능 ' + context.raw.y;
+                            }
+                        }
+                    },
+                    legend: {
+                        labels: { color: '#e2e8f0' }
+                    }
+                }
+            }
+        });
+
+        // --- CHART 3: CASE STUDY BAR CHART ---
+        const ctxBar = document.getElementById('caseStudyChart').getContext('2d');
+        const labelsBar = ['기존 M5 인스턴스', '변경 후 T4g (오토스케일링)'];
+        const wrappedLabelsBar = labelsBar.map(wrapLabel);
+
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: wrappedLabelsBar,
+                datasets: [{
+                    label: '월 예상 비용 (가상 단위)',
+                    data: [100, 60],
+                    backgroundColor: [
+                        'rgba(148, 163, 184, 0.5)', // Slate (Old)
+                        'rgba(79, 70, 229, 0.8)'   // Indigo (New)
+                    ],
+                    borderColor: [
+                        'rgba(148, 163, 184, 1)',
+                        'rgba(79, 70, 229, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...commonOptions,
+                plugins: {
+                    ...commonOptions.plugins,
+                    legend: { display: false },
+                    annotation: {
+                        // If we had annotation plugin, we'd use it. 
+                        // Instead we rely on the title text above the chart.
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: '비용 지수' }
+                    }
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
