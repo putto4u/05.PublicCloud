@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테라폼 AWS EC2 Nginx 배포 가이드 인포그래픽</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Palette: Vibrant Tech (Indigo, Sky Blue, Amber) */
+        :root {
+            --primary: #4f46e5;
+            --secondary: #0ea5e9;
+            --accent: #f59e0b;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Pretendard', system-ui, -apple-system, sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        .card {
+            background: var(--surface);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 1.5rem;
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-2px); }
+        .step-node {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            position: relative;
+            z-index: 10;
+        }
+        .step-line {
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<!-- 
+  [Source Material Integration Analysis]
+  - Topic: Terraform Infrastructure as Code (IaC) for AWS Nginx deployment.
+  - Narrative: The flow starts from project setup, moves to security architecture, configuration balance, and ends with lifecycle management.
+  - Visualization Choices:
+    1. Port Configuration (Bar Chart): Visualizes the open ingress ports.
+    2. Configuration Distribution (Doughnut): Shows the logic split across .tf files.
+    3. Architecture Hierarchy: Built with CSS Grid/Flex (NO SVG).
+    4. Workflow: Vertical CSS Timeline (NO MERMAID).
+  - Confirmed: NO SVG or Mermaid JS used. All graphics are Canvas or HTML/CSS.
+-->
+
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <header class="text-center mb-12">
+        <h1 class="text-4xl font-extrabold text-slate-900 mb-4">
+            Infrastructure as Code (IaC - 코드형 인프라) 실무 가이드
+        </h1>
+        <p class="text-lg text-slate-600">Terraform(테라폼)을 이용한 AWS EC2 Nginx 3중 배포 프로세스 분석</p>
+    </header>
+
+    <!-- Section 1: Introduction & Architecture -->
+    <section class="mb-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-indigo-600 pl-4">시스템 아키텍처 개요</h2>
+                <p class="mb-4 text-slate-700 leading-relaxed">
+                    본 인포그래픽은 Amazon Web Services (AWS - 아마존 웹 서비스) 환경에 하나의 Elastic Compute Cloud (EC2 - 가상 서버 서비스)를 생성하고, Docker(도커)를 통해 3개의 독립적인 Nginx(엔진엑스) 서버를 구동하는 과정을 시각화합니다.
+                </p>
+                <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                    <h3 class="font-bold text-indigo-900 mb-2 text-sm">핵심 구성 요소</h3>
+                    <ul class="text-sm space-y-1 text-indigo-800">
+                        <li>• VPC (Virtual Private Cloud - 가상 프라이빗 클라우드)</li>
+                        <li>• SG (Security Group - 보안 그룹/방화벽)</li>
+                        <li>• AMI (Amazon Machine Image - 아마존 머신 이미지/OS 템플릿)</li>
+                        <li>• User Data (사용자 데이터/초기화 스크립트)</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- CSS-based Architecture Diagram -->
+            <div class="bg-slate-100 p-6 rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center">
+                <div class="w-full bg-blue-200 p-4 rounded-lg text-center mb-4 font-bold border border-blue-300">
+                    VPC (가상 프라이빗 클라우드)
+                    <div class="mt-4 bg-white p-4 rounded border border-slate-200 shadow-sm">
+                        EC2 Instance (가상 서버)
+                        <div class="grid grid-cols-3 gap-2 mt-4">
+                            <div class="bg-amber-100 p-2 rounded text-xs border border-amber-300">Nginx 1<br>(Port 80)</div>
+                            <div class="bg-amber-100 p-2 rounded text-xs border border-amber-300">Nginx 2<br>(Port 8081)</div>
+                            <div class="bg-amber-100 p-2 rounded text-xs border border-amber-300">Nginx 3<br>(Port 8082)</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">※ 위 다이어그램은 HTML/CSS 레이아웃으로 구현되었습니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Security & Port Mapping -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <div class="card">
+            <h3 class="text-xl font-bold mb-4">인바운드 보안 그룹 포트 맵</h3>
+            <p class="text-sm text-slate-600 mb-6">Security Group (SG - 보안 그룹)에 정의된 허용 포트 분포입니다. 관리용 SSH와 서비스용 HTTP 포트를 분리하여 관리합니다.</p>
+            <div class="chart-container">
+                <canvas id="portChart"></canvas>
+            </div>
+            <p class="mt-4 text-xs text-slate-400">※ 22번 포트는 SSH(Secure Shell) 접속용, 나머지는 웹 서비스용입니다.</p>
+        </div>
+
+        <div class="card">
+            <h3 class="text-xl font-bold mb-4">테라폼 파일별 코드 비중</h3>
+            <p class="text-sm text-slate-600 mb-6">전체 인프라 코드 중 각 설정 파일이 차지하는 역할 비중입니다. 리소스 정의(main.tf)가 가장 핵심적인 역할을 수행합니다.</p>
+            <div class="chart-container">
+                <canvas id="fileDistChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Workflow Timeline -->
+    <section class="mb-12">
+        <div class="card">
+            <h2 class="text-2xl font-bold mb-8 text-center">Terraform Lifecycle (테라폼 생명 주기)</h2>
+            <div class="relative">
+                <div class="step-line hidden md:block"></div>
+                <div class="space-y-12">
+                    <div class="flex flex-col md:flex-row items-center md:items-start gap-4">
+                        <div class="step-node">1</div>
+                        <div class="flex-1 text-center md:text-left">
+                            <h4 class="font-bold text-lg text-indigo-600">init (초기화)</h4>
+                            <p class="text-slate-600 text-sm">Provider (공급자) 라이브러리를 다운로드하고 작업 공간을 준비합니다.</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col md:flex-row items-center md:items-start gap-4">
+                        <div class="step-node">2</div>
+                        <div class="flex-1 text-center md:text-left">
+                            <h4 class="font-bold text-lg text-indigo-600">plan (실행 계획 수립)</h4>
+                            <p class="text-slate-600 text-sm">실제 배포 전 리소스 생성, 수정, 삭제 내역을 미리 확인합니다.</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col md:flex-row items-center md:items-start gap-4">
+                        <div class="step-node">3</div>
+                        <div class="flex-1 text-center md:text-left">
+                            <h4 class="font-bold text-lg text-indigo-600">apply (적용)</h4>
+                            <p class="text-slate-600 text-sm">설계된 코드를 기반으로 실제 AWS에 인프라를 프로비저닝합니다.</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col md:flex-row items-center md:items-start gap-4">
+                        <div class="step-node">4</div>
+                        <div class="flex-1 text-center md:text-left">
+                            <h4 class="font-bold text-lg text-red-500">destroy (삭제)</h4>
+                            <p class="text-slate-600 text-sm">생성된 모든 리소스를 안전하게 제거하여 과금을 방지합니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Warning / Footer -->
+    <footer class="bg-amber-50 border border-amber-200 p-6 rounded-xl text-center">
+        <h4 class="font-bold text-amber-800 mb-2">⚠️ 과금 및 보안 주의사항</h4>
+        <p class="text-sm text-amber-700">
+            실습에 사용되는 t2.micro 인스턴스는 AWS 프리티어(Free Tier) 범위 내에서 무료로 제공되지만, 월 750시간을 초과하거나 다른 유료 서비스를 추가할 경우 비용이 발생할 수 있습니다. <br>
+            또한, 실무에서는 보안 그룹의 CIDR 블록을 '0.0.0.0/0'으로 설정하지 말고 특정 IP 대역으로 제한해야 합니다.
+        </p>
+        <p class="mt-6 text-xs text-slate-400">© 2026 Terraform Infrastructure Training Center. No SVG/Mermaid used.</p>
+    </footer>
+</div>
+
+<script>
+    // Label Wrapping Utility
+    function wrapLabels(labels) {
+        return labels.map(label => {
+            if (label.length <= 16) return label;
+            const words = label.split(' ');
+            let lines = [];
+            let currentLine = words[0];
+            for (let i = 1; i < words.length; i++) {
+                if ((currentLine.length + words[i].length + 1) <= 16) {
+                    currentLine += " " + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        });
+    }
+
+    // Common Tooltip Config
+    const commonTooltip = {
+        callbacks: {
+            title: function(tooltipItems) {
+                const item = tooltipItems[0];
+                let label = item.chart.data.labels[item.dataIndex];
+                return Array.isArray(label) ? label.join(' ') : label;
+            }
+        }
+    };
+
+    // 1. Port Chart (Bar)
+    const portCtx = document.getElementById('portChart').getContext('2d');
+    new Chart(portCtx, {
+        type: 'bar',
+        data: {
+            labels: wrapLabels(['SSH 관리 포트', '기본 웹 서비스', 'Nginx 2번 포트', 'Nginx 3번 포트']),
+            datasets: [{
+                label: 'Port Number (포트 번호)',
+                data: [22, 80, 8081, 8082],
+                backgroundColor: ['#4f46e5', '#0ea5e9', '#0ea5e9', '#0ea5e9'],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { tooltip: commonTooltip, legend: { display: false } },
+            scales: { y: { beginAtZero: true, title: { display: true, text: '포트 번호' } } }
+        }
+    });
+
+    // 2. File Distribution Chart (Doughnut)
+    const fileCtx = document.getElementById('fileDistChart').getContext('2d');
+    new Chart(fileCtx, {
+        type: 'doughnut',
+        data: {
+            labels: wrapLabels(['main.tf (핵심 리소스 정의)', 'provider.tf (공급자 설정)', 'security.tf (보안 설정)', 'outputs.tf (결과 출력)']),
+            datasets: [{
+                data: [50, 15, 25, 10],
+                backgroundColor: ['#4f46e5', '#38bdf8', '#fbbf24', '#f87171'],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: { tooltip: commonTooltip, legend: { position: 'bottom' } }
+        }
+    });
+</script>
+
+</body>
+</html>
