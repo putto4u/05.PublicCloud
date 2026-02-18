@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon S3 & Static Hosting Master Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Lato:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* CORE DESIGN */
+        * { box-sizing: border-box; }
+        body {
+            background-color: #f1f5f9;
+            display: grid;
+            gap: 40px;
+            grid-template-columns: 1fr;
+            margin: 0;
+            padding: 40px 0;
+            place-items: center;
+            font-family: 'Lato', 'Noto Sans KR', sans-serif;
+        }
+
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 60px 80px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        /* AWS Branding */
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 350px;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(35, 47, 62, 0.03) 0%, rgba(255, 153, 0, 0.08) 100%);
+            z-index: 0;
+            clip-path: polygon(30% 0%, 100% 0%, 100% 100%, 0% 100%);
+        }
+
+        .slide-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #232f3e 0%, #ff9900 100%);
+            z-index: 2;
+        }
+
+        h1, h2, h3 { font-family: 'Poppins', 'Noto Sans KR', sans-serif; color: #232f3e; margin: 0; position: relative; z-index: 1; }
+        p, li, td, th { color: #475569; font-size: 20px; line-height: 1.5; position: relative; z-index: 1; }
+
+        .slide-title {
+            font-size: 46px;
+            font-weight: 700;
+            margin-bottom: 35px;
+            border-left: 10px solid #ff9900;
+            padding-left: 25px;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; }
+
+        /* LAYOUTS */
+        .title-layout { text-align: center; justify-content: center; height: 100%; }
+        .title-layout h1 { font-size: 72px; margin-bottom: 20px; color: #232f3e; }
+        .subtitle { font-size: 32px; color: #ff9900; font-weight: 400; }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
+
+        .tiled-content { display: flex; gap: 25px; justify-content: center; width: 100%; }
+        .tile {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 12px;
+            flex: 1;
+            border-top: 4px solid #232f3e;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .tile .icon { font-size: 40px; color: #ff9900; margin-bottom: 15px; }
+        .tile h3 { font-size: 24px; margin-bottom: 12px; }
+
+        /* TABLE */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background-color: #232f3e; color: white; padding: 15px; text-align: left; }
+        td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 18px; }
+        tr:nth-child(even) td { background-color: #f8fafc; }
+
+        /* ALERT/BILLING BOX */
+        .billing-box {
+            background-color: #fff7ed;
+            border: 2px dashed #ff9900;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .billing-box h4 { color: #9a3412; margin: 0 0 8px 0; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+
+        /* FOOTNOTE */
+        .footnote {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-top: auto;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 10px;
+        }
+
+        .bullet-list { list-style: none; padding: 0; }
+        .bullet-list li { position: relative; padding-left: 35px; margin-bottom: 15px; font-size: 20px; }
+        .bullet-list li::before { content: "\f058"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; color: #ff9900; }
+    </style>
+</head>
+<body>
+
+    <!-- Slide 1: 표지 -->
+    <div class="slide-container">
+        <div class="title-layout">
+            <h1>Amazon S3 실무 가이드</h1>
+            <p class="subtitle">객체 스토리지 기초부터 정적 호스팅 심화까지</p>
+            <div style="margin-top: 50px; font-size: 20px; color: #64748b;">
+                Infrastructure & Cloud Architecture Series
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2: S3 핵심 개념 -->
+    <div class="slide-container">
+        <h2 class="slide-title">S3 객체 스토리지의 이해</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div>
+                    <ul class="bullet-list">
+                        <li><strong>Bucket(버킷, 바구니):</strong> 객체를 저장하는 최상위 컨테이너. 전역적으로 유일한 이름을 가져야 함.</li>
+                        <li><strong>Object(객체):</strong> 데이터와 메타데이터의 결합체.</li>
+                        <li><strong>Key(키):</strong> 객체의 고유 식별자. 경로 형태를 띠지만 실제로는 평면 구조.</li>
+                        <li><strong>Durability(내구성):</strong> 99.999999999% (11-9s) 설계로 데이터 소실 방지.</li>
+                    </ul>
+                </div>
+                <div style="text-align: center; background: #f8fafc; padding: 30px; border-radius: 20px;">
+                    [객체 스토리지와 블록 스토리지의 구조 차이 이미지]
+                    <p style="font-size: 16px; margin-top: 15px; color: #94a3b8;">S3는 API 기반의 HTTP/HTTPS 통신을 사용하여 데이터에 접근합니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: 스토리지 클래스 비교 -->
+    <div class="slide-container">
+        <h2 class="slide-title">용도별 스토리지 클래스 전략</h2>
+        <div class="content-area">
+            <table>
+                <thead>
+                    <tr>
+                        <th>클래스</th>
+                        <th>특징</th>
+                        <th>주요 용도</th>
+                        <th>과금 핵심</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Standard</strong></td>
+                        <td>자주 사용하는 데이터</td>
+                        <td>웹 사이트 이미지, 실시간 서비스</td>
+                        <td>높은 저장 비용</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Standard-IA</strong></td>
+                        <td>가끔 접근 (Infrequent Access)</td>
+                        <td>지난달 보고서, 재해 복구용</td>
+                        <td>인출 비용 발생*</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Intelligent-Tiering</strong></td>
+                        <td>패턴 자동 분석</td>
+                        <td>사용 빈도를 모르는 데이터</td>
+                        <td>자동 이동 수수료</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Glacier Flexible</strong></td>
+                        <td>장기 보관 (아카이브)</td>
+                        <td>세무 기록, 규정 준수 백업</td>
+                        <td>매우 낮은 저장 비용</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="billing-box">
+                <h4><i class="fa-solid fa-triangle-exclamation"></i> 유료 과금 주의 사항</h4>
+                <p>IA 및 Glacier 클래스는 저장 비용은 저렴하지만, 데이터를 읽을 때 <strong>Retrieval Fee(인출 비용)</strong>가 발생하며 최소 보관 기간 미준수 시 위약금이 청구될 수 있습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: 핵심 관리 기능 -->
+    <div class="slide-container">
+        <h2 class="slide-title">효율적 관리를 위한 핵심 기능</h2>
+        <div class="content-area">
+            <div class="tiled-content">
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <h3>Versioning (버전 관리)</h3>
+                    <p>실수 인한 삭제 복구 가능. 객체의 모든 수정 이력을 보관합니다.</p>
+                </div>
+                <div class="tile" style="border-top-color: #ff9900;">
+                    <div class="icon"><i class="fa-solid fa-recycle"></i></div>
+                    <h3>Lifecycle (수명 주기)</h3>
+                    <p>특정 기간 후 클래스 변경이나 삭제를 자동화하여 비용을 절감합니다.</p>
+                </div>
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-copy"></i></div>
+                    <h3>Replication (복제)</h3>
+                    <p>동일/타 리전으로 데이터를 자동 복제하여 가용성을 확보합니다.</p>
+                </div>
+            </div>
+            <div class="footnote">
+                * 주석: 버전 관리를 활성화하면 삭제된 파일도 실제로는 스토리지에 남아있으므로, 삭제 마커(Delete Marker)를 관리하지 않으면 지속적으로 과금될 수 있습니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: 정적 웹 호스팅 개요 -->
+    <div class="slide-container">
+        <h2 class="slide-title">S3 Static Web Hosting (정적 웹 호스팅)</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div>
+                    <h3 style="color: #ff9900; margin-bottom: 20px;">서버리스 웹 서비스의 시작</h3>
+                    <p>HTML, CSS, JavaScript와 같은 정적 자산을 별도의 웹 서버(EC2 등) 없이 S3 버킷을 통해 직접 호스팅하는 기능입니다.</p>
+                    <ul class="bullet-list" style="margin-top: 20px;">
+                        <li><strong>고가용성:</strong> 서버 다운 우려 없는 안정적 서비스</li>
+                        <li><strong>확장성:</strong> 무제한에 가까운 동시 접속 처리</li>
+                        <li><strong>저비용:</strong> 사용한 스토리지 및 전송량만큼만 과금</li>
+                    </ul>
+                </div>
+                <div style="background: #232f3e; padding: 30px; border-radius: 12px; color: white;">
+                    <h4 style="color: #ff9900; margin-bottom: 15px;">설정 핵심 요소</h4>
+                    <p>1. 정적 웹 호스팅 활성화<br>
+                       2. Index Document(인덱스 문서) 지정<br>
+                       3. Error Document(에러 문서) 지정<br>
+                       4. Bucket Policy(버킷 정책) 퍼블릭 읽기 허용</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: 정적 호스팅 사례 1 - SPA -->
+    <div class="slide-container">
+        <h2 class="slide-title">사례 1: Single Page Application (SPA)</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div>
+                    <p>React, Vue, Angular 기반의 현대적 웹 앱 배포에 최적화된 방식입니다.</p>
+                    <ul class="bullet-list" style="margin-top: 15px;">
+                        <li><strong>CI/CD(지속적 통합/배포) 연동:</strong> 빌드된 파일을 S3에 자동 동기화.</li>
+                        <li><strong>Client-Side Routing(클라이언트 사이드 라우팅):</strong> 404 에러 시 <code>index.html</code>로 리다이렉트 처리.</li>
+                        <li><strong>글로벌 배포:</strong> CloudFront와 결합하여 전 세계 초고속 전송.</li>
+                    </ul>
+                </div>
+                <div class="billing-box">
+                    <h4><i class="fa-solid fa-money-bill-transfer"></i> 전송 비용 주의</h4>
+                    <p>S3에서 인터넷으로 나가는 <strong>Data Transfer Out(데이터 전송 비용)</strong>이 주된 과금 요소입니다. 트래픽이 많을 경우 <strong>CloudFront(클라우드프론트)</strong>를 통한 전송 최적화가 필수입니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: 정적 호스팅 사례 2 - 기술 문서 & SSG -->
+    <div class="slide-container">
+        <h2 class="slide-title">사례 2: 기술 문서 및 SSG 활용</h2>
+        <div class="content-area">
+            <div class="tiled-content">
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-book-open"></i></div>
+                    <h3>SSG (정적 사이트 생성기)</h3>
+                    <p>Hugo, Jekyll, Docusaurus 등을 활용한 사내 기술 블로그나 제품 사용 설명서 구축.</p>
+                </div>
+                <div class="tile" style="border-top-color: #ff9900;">
+                    <div class="icon"><i class="fa-solid fa-bullhorn"></i></div>
+                    <h3>마케팅 랜딩 페이지</h3>
+                    <p>이벤트성 단발 페이지 배포 시 서버 관리 부담 없이 즉시 론칭 가능.</p>
+                </div>
+            </div>
+            <p style="margin-top: 30px; text-align: center;">[S3와 Route 53을 연동한 커스텀 도메인 적용 이미지]</p>
+        </div>
+    </div>
+
+    <!-- Slide 8: 보안 및 접근 제어 -->
+    <div class="slide-container">
+        <h2 class="slide-title">S3 보안 아키텍처 실무</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <ul class="bullet-list">
+                    <li><strong>IAM Policy(식별 및 액세스 관리 정책):</strong> 특정 사용자나 역할에 권한 부여.</li>
+                    <li><strong>Bucket Policy(버킷 정책):</strong> 버킷 단위의 세부 접근 제어.</li>
+                    <li><strong>Block Public Access(퍼블릭 액세스 차단):</strong> 실수로 인한 데이터 유출 방지 계층.</li>
+                    <li><strong>SSE(Server-Side Encryption, 서버 측 암호화):</strong> 저장 데이터 자동 암호화.</li>
+                </ul>
+                <div style="background: #fff1f2; padding: 25px; border-radius: 12px; border: 1px solid #fecaca;">
+                    <h4 style="color: #991b1b;"><i class="fa-solid fa-user-shield"></i> 전문가 팁</h4>
+                    <p style="font-size: 18px; color: #b91c1c;">정적 호스팅을 위해 버킷을 퍼블릭으로 열 경우, 반드시 <strong>민감한 데이터가 포함되지 않았는지</strong> 확인하십시오. 중요 데이터는 별도의 비공개 버킷에 관리해야 합니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: CloudFront와 전송 최적화 -->
+    <div class="slide-container">
+        <h2 class="slide-title">CloudFront 연동 및 HTTPS 보안</h2>
+        <div class="content-area">
+            <p style="font-size: 24px; margin-bottom: 25px;">S3 단독 호스팅보다 <strong>CloudFront(CDN 서비스)</strong> 연동이 권장되는 이유:</p>
+            <div class="tiled-content">
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-shield-cat"></i></div>
+                    <h3>HTTPS 적용</h3>
+                    <p>S3 엔드포인트는 HTTP만 지원하지만, CloudFront를 통해 보안 인증서(SSL/TLS) 적용 가능.</p>
+                </div>
+                <div class="tile" style="border-top-color: #ff9900;">
+                    <div class="icon"><i class="fa-solid fa-user-lock"></i></div>
+                    <h3>OAC (원본 액세스 제어)</h3>
+                    <p>S3 버킷을 비공개로 유지하고 CloudFront를 통해서만 데이터에 접근하도록 강제.</p>
+                </div>
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-gauge-high"></i></div>
+                    <h3>Edge Caching (엣지 캐싱)</h3>
+                    <p>전 세계 사용자 근처의 서버에 콘텐츠를 복제하여 응답 속도 극대화.</p>
+                </div>
+            </div>
+            <div class="footnote">
+                * OAC(Origin Access Control, 원본 액세스 제어): S3 버킷에 대한 직접적인 외부 접근을 차단하고 CDN을 통한 검증된 요청만 허용하는 최신 보안 방식입니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: 결론 및 체크리스트 -->
+    <div class="slide-container">
+        <h2 class="slide-title">S3 실무 마스터 체크리스트</h2>
+        <div class="content-area">
+            <ul class="bullet-list">
+                <li>용도에 맞는 <strong>스토리지 클래스</strong>를 선택했는가? (Standard vs IA vs Glacier)</li>
+                <li><strong>수명 주기 정책</strong>을 통해 오래된 데이터를 자동으로 관리하는가?</li>
+                <li>정적 호스팅 시 <strong>퍼블릭 액세스 차단</strong> 설정과 버킷 정책이 충돌하지 않는가?</li>
+                <li>보안을 위해 <strong>CloudFront + OAC</strong> 연동을 고려했는가?</li>
+                <li>버전 관리 활성화 시 <strong>삭제 마커 및 이전 버전 과금</strong>을 모니터링하는가?</li>
+            </ul>
+        </div>
+        <div style="margin-top: auto; text-align: center; color: #ff9900; font-weight: 700; font-size: 24px;">
+            THANK YOU
+        </div>
+    </div>
+
+</body>
+</html>
