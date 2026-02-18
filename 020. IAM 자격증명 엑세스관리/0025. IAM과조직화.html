@@ -1,0 +1,189 @@
+import React from 'react';
+import { UserCheck, Users, ShieldCheck, Network, Zap, Lock, DollarSign, ArrowRight, LayoutGrid, CheckCircle2, AlertCircle } from 'lucide-react';
+
+const App = () => {
+  return (
+    <div className="bg-slate-50 min-h-screen p-4 md:p-8 font-sans text-slate-900">
+      <div className="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        {/* Header Section */}
+        <header className="bg-gradient-to-r from-blue-900 to-indigo-900 p-8 text-white text-center">
+          <h1 className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight">
+            AWS 보안 관리 시스템 비교
+          </h1>
+          <p className="text-blue-100 text-lg font-medium">
+            IAM (자격 증명 및 액세스 관리) vs AWS Organizations (조직 관리 서비스)
+          </p>
+        </header>
+
+        {/* Introduction Section */}
+        <div className="p-8 border-b border-slate-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 text-blue-700">
+                <UserCheck size={28} />
+                <h2 className="text-2xl font-bold">IAM</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed">
+                <strong className="text-slate-900">단일 AWS 계정</strong> 내부에서 '누가(Identity)' '무엇을(Action)' 할 수 있는지 정의합니다. 사용자와 리소스 간의 구체적인 권한을 설계하는 마이크로(Micro) 수준의 제어 도구입니다.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 text-indigo-700">
+                <Network size={28} />
+                <h2 className="text-2xl font-bold">AWS Organizations</h2>
+              </div>
+              <p className="text-slate-600 leading-relaxed">
+                <strong className="text-slate-900">다수의 AWS 계정</strong>을 중앙에서 관리합니다. 전체 계정군에 적용될 보안 가드레일을 설정하고 비용을 통합하는 매크로(Macro) 수준의 거버넌스 도구입니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Visual Hierarchy Section */}
+        <div className="p-8 bg-slate-50">
+          <h3 className="text-xl font-bold mb-8 text-center flex items-center justify-center">
+            <LayoutGrid className="mr-2 text-blue-600" /> 작동 범위 및 계층 구조
+          </h3>
+          
+          <div className="relative border-2 border-dashed border-indigo-200 rounded-3xl p-6 bg-white mb-6">
+            <div className="absolute -top-4 left-6 bg-indigo-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow-md">
+              AWS Organizations (조직 전체)
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              {/* Account A */}
+              <div className="border-2 border-blue-100 rounded-2xl p-4 bg-blue-50/30">
+                <div className="text-sm font-bold text-blue-800 mb-3 flex items-center">
+                  <ShieldCheck size={16} className="mr-1" /> AWS Account A (개발 계정)
+                </div>
+                <div className="space-y-2">
+                  <div className="bg-white border border-blue-200 p-3 rounded-lg shadow-sm flex items-center">
+                    <UserCheck size={16} className="text-slate-400 mr-2" />
+                    <span className="text-xs">IAM User: Developer</span>
+                  </div>
+                  <div className="bg-white border border-blue-200 p-3 rounded-lg shadow-sm flex items-center">
+                    <Users size={16} className="text-slate-400 mr-2" />
+                    <span className="text-xs">IAM Role: EC2-Admin</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account B */}
+              <div className="border-2 border-blue-100 rounded-2xl p-4 bg-blue-50/30">
+                <div className="text-sm font-bold text-blue-800 mb-3 flex items-center">
+                  <ShieldCheck size={16} className="mr-1" /> AWS Account B (운영 계정)
+                </div>
+                <div className="space-y-2">
+                  <div className="bg-white border border-blue-200 p-3 rounded-lg shadow-sm flex items-center">
+                    <UserCheck size={16} className="text-slate-400 mr-2" />
+                    <span className="text-xs">IAM User: SRE-Lead</span>
+                  </div>
+                  <div className="bg-white border border-blue-200 p-3 rounded-lg shadow-sm flex items-center">
+                    <Lock size={16} className="text-slate-400 mr-2" />
+                    <span className="text-xs">IAM Policy: Read-Only</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-start space-x-3">
+              <Zap className="text-indigo-600 mt-1 flex-shrink-0" />
+              <p className="text-sm text-indigo-900 leading-snug font-medium">
+                <strong>SCP (Service Control Policy, 서비스 제어 정책)</strong>: 조직 전체 또는 계정 그룹(OU)에 적용되어, 개별 계정의 IAM 권한이 넘지 못하는 <span className="underline decoration-indigo-400 decoration-2">최대 권한 경계</span>를 설정합니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature Comparison Table */}
+        <div className="p-8 overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[600px]">
+            <thead>
+              <tr className="bg-slate-100 text-slate-700 uppercase text-xs tracking-wider">
+                <th className="px-6 py-4 rounded-tl-xl font-bold border-b border-slate-200">항목</th>
+                <th className="px-6 py-4 font-bold border-b border-slate-200">IAM</th>
+                <th className="px-6 py-4 rounded-tr-xl font-bold border-b border-slate-200">AWS Organizations</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-5 font-semibold text-slate-700 border-b border-slate-100">핵심 기능</td>
+                <td className="px-6 py-5 border-b border-slate-100">인가(Authorization) 부여</td>
+                <td className="px-6 py-5 border-b border-slate-100">가드레일(Guardrail) 설정</td>
+              </tr>
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-5 font-semibold text-slate-700 border-b border-slate-100">관리 단위</td>
+                <td className="px-6 py-5 border-b border-slate-100">사용자, 그룹, 역할</td>
+                <td className="px-6 py-5 border-b border-slate-100">AWS 계정, OU (조직 단위)</td>
+              </tr>
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-5 font-semibold text-slate-700 border-b border-slate-100">정책 도구</td>
+                <td className="px-6 py-5 border-b border-slate-100">IAM Policy (자격 증명 기반)</td>
+                <td className="px-6 py-5 border-b border-slate-100">SCP (서비스 제어 정책)</td>
+              </tr>
+              <tr className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-5 font-semibold text-slate-700 border-b border-slate-100">비용 관리</td>
+                <td className="px-6 py-5 border-b border-slate-100">해당 없음</td>
+                <td className="px-6 py-5 border-b border-slate-100">Consolidated Billing (통합 결제)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Best Practices & Key Insights */}
+        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-900 text-white">
+          <div className="bg-blue-800/40 p-6 rounded-2xl border border-blue-700">
+            <h4 className="flex items-center font-bold mb-4 text-blue-200">
+              <CheckCircle2 size={20} className="mr-2" /> 실전 모범 사례 (Best Practices)
+            </h4>
+            <ul className="space-y-3 text-sm text-blue-50">
+              <li className="flex items-start">
+                <div className="mt-1 mr-2 text-blue-400">•</div>
+                IAM: <strong>MFA (Multi-Factor Authentication, 다요소 인증)</strong>를 모든 사용자에게 강제하세요.
+              </li>
+              <li className="flex items-start">
+                <div className="mt-1 mr-2 text-blue-400">•</div>
+                IAM: <strong>최소 권한의 원칙 (Principle of Least Privilege)</strong>에 따라 필요한 만큼만 권한을 부여하세요.
+              </li>
+              <li className="flex items-start">
+                <div className="mt-1 mr-2 text-blue-400">•</div>
+                Organizations: <strong>통합 결제</strong>를 통해 전체 계정의 볼륨 할인을 활용하세요.
+              </li>
+            </ul>
+          </div>
+
+          <div className="bg-amber-800/30 p-6 rounded-2xl border border-amber-700/50">
+            <h4 className="flex items-center font-bold mb-4 text-amber-200">
+              <AlertCircle size={20} className="mr-2" /> 주의사항 (Caution)
+            </h4>
+            <ul className="space-y-3 text-sm text-amber-50">
+              <li className="flex items-start">
+                <div className="mt-1 mr-2 text-amber-400">•</div>
+                SCP는 권한을 부여하지 않습니다. SCP에서 허용되어도 <strong>IAM Policy</strong>가 없으면 접근이 거부됩니다.
+              </li>
+              <li className="flex items-start">
+                <div className="mt-1 mr-2 text-amber-400">•</div>
+                루트(Root) 계정은 일상 업무에 사용하지 말고 <strong>관리 전용 계정</strong>으로 보호하세요.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Billing Note */}
+        <div className="p-6 bg-slate-100 border-t border-slate-200 text-center text-xs text-slate-500">
+          <div className="flex items-center justify-center space-x-4">
+            <span className="flex items-center"><DollarSign size={14} className="mr-1" /> IAM 서비스: <strong>무료</strong></span>
+            <span className="flex items-center"><DollarSign size={14} className="mr-1" /> AWS Organizations: <strong>무료</strong> (단, 관리되는 자원 비용은 각 계정에서 발생)</span>
+          </div>
+        </div>
+      </div>
+      
+      <footer className="mt-10 text-center text-slate-400 text-sm">
+        <p>&copy; 2026 Putto's Lectures. AWS Cloud Governance Professional Series.</p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
