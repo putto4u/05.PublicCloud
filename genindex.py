@@ -10,7 +10,7 @@ def generate_index():
     <html lang="ko">
     <head>
         <meta charset="UTF-8">
-        <title>학습 자료 콘텐츠 목록</title>
+        <title>Public Cloud 강의 목록</title>
         <style>
             body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
             ul { list-style-type: none; }
