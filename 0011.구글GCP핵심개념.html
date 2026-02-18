@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCP Architecture Deep Dive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+/* 1. CORE SETUP & LUXURY IVORY THEME */
+* { box-sizing: border-box; }
+body {
+    background-color: #f4f1ea; /* Darker warm beige for background context */
+    display: grid;
+    gap: 40px;
+    grid-template-columns: 1fr;
+    margin: 0;
+    min-height: 100vh;
+    padding: 40px 0;
+    place-items: center;
+    font-family: 'Roboto', 'Noto Sans KR', sans-serif;
+    color: #333333; /* Soft Black */
+}
+
+/* 2. SLIDE CONTAINER - Premium Ivory */
+.slide-container {
+    background-color: #fdfbf7; /* Very light creamy ivory */
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(139, 131, 110, 0.15), 0 4px 10px rgba(0, 0, 0, 0.05); /* Softer, brownish shadow */
+    display: flex;
+    flex-direction: column;
+    height: 720px;
+    width: 1280px;
+    overflow: hidden;
+    position: relative;
+    padding: 60px;
+    justify-content: center;
+    border: 1px solid #f0ebe0;
+}
+
+/* 3. TYPOGRAPHY & COLORS */
+:root {
+    --google-blue: #4285F4;
+    --google-red: #EA4335;
+    --google-yellow: #FBBC05;
+    --google-green: #34A853;
+    --text-primary: #2d2d2d;
+    --text-secondary: #5a5a5a;
+    --accent-bg: #f4f1ea;
+}
+
+h1, h2, h3 {
+    color: var(--text-primary);
+    margin: 0;
+    font-weight: 700;
+}
+
+p, li, td, th {
+    color: var(--text-secondary);
+    font-size: 20px;
+    line-height: 1.6;
+}
+
+.slide-title {
+    font-size: 42px;
+    margin-bottom: 40px;
+    border-left: 6px solid var(--google-blue);
+    padding-left: 20px;
+    width: 100%;
+    text-align: left;
+}
+
+/* 4. LAYOUT UTILITIES */
+.content-area {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    justify-content: center;
+    width: 100%;
+}
+
+.two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 50px;
+    width: 100%;
+    align-items: center;
+}
+
+.tiled-content {
+    display: flex;
+    gap: 30px;
+    width: 100%;
+    justify-content: center;
+    align-items: stretch;
+}
+
+.tile {
+    background-color: #ffffff; /* Pure white tile for contrast against ivory */
+    border: 1px solid #eae5da;
+    border-radius: 16px;
+    padding: 30px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    transition: transform 0.2s;
+}
+
+.tile:hover {
+    transform: translateY(-5px);
+}
+
+.tile .icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: var(--google-blue);
+}
+
+.tile h3 {
+    font-size: 24px;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+}
+
+/* Table Layout */
+.table-layout table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.table-layout th {
+    background-color: var(--google-blue);
+    color: white;
+    padding: 22px;
+    font-size: 22px;
+    text-align: left;
+}
+
+.table-layout td {
+    padding: 20px 22px;
+    border-bottom: 1px solid #f0ebe0;
+}
+
+.table-layout tr:last-child td {
+    border-bottom: none;
+}
+
+/* Bleed Image Layout */
+.slide-container.bleed-image-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    padding: 0;
+    align-items: start;
+}
+
+.slide-container.bleed-image-layout > .content-container {
+    padding: 80px 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+}
+
+.slide-container.bleed-image-layout > .image-container {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.slide-container.bleed-image-layout img.bleed-image-side {
+    width: 100%;
+    height: 720px;
+    object-fit: cover;
+    display: block;
+}
+
+/* Image Wrapper */
+.image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 16px;
+}
+
+/* Architecture Diagram Specifics */
+.arch-diagram {
+    background: #fff;
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid #eae5da;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.diagram-step {
+    background: #fdfbf7;
+    border-left: 4px solid var(--google-blue);
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    width: 100%;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* Specific Slide Styles */
+.title-slide {
+    text-align: center;
+    background: radial-gradient(circle at top right, #eef4fc 0%, #fdfbf7 50%);
+}
+
+.title-slide h1 {
+    font-size: 72px;
+    margin-bottom: 20px;
+    color: var(--google-blue);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.title-slide .subtitle {
+    font-size: 28px;
+    color: var(--text-secondary);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.feature-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.feature-list li {
+    margin-bottom: 25px;
+    padding-left: 40px;
+    position: relative;
+    font-weight: 500;
+}
+
+.feature-list li::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    left: 0;
+    color: var(--google-green);
+    font-size: 24px;
+}
+
+.quote-slide {
+    background-color: var(--google-blue);
+}
+
+.quote-slide blockquote {
+    color: white;
+    font-size: 48px;
+    font-weight: 300;
+    text-align: center;
+    line-height: 1.4;
+    border: none;
+    margin: 0;
+    padding: 0 100px;
+}
+    </style>
+</head>
+<body>
+
+<!-- Slide 1: Title Slide -->
+<div class="slide-container title-slide" id="slide1">
+    <div class="content-area">
+        <h1>Google Cloud Platform</h1>
+        <p class="subtitle">Core Architecture & Deep Dive<br>아키텍트를 위한 핵심 개념 가이드</p>
+    </div>
+</div>
+
+<!-- Slide 2: Why GCP? -->
+<div class="slide-container" id="slide2">
+    <div class="content-area">
+        <div class="two-column">
+            <div>
+                <h2 class="slide-title" style="border-color: var(--google-red);">Why GCP?</h2>
+                <div class="feature-list">
+                    <ul>
+                        <li>글로벌 전용 네트워크 (Private Global Fiber)</li>
+                        <li>오픈소스 리더십 (Kubernetes, TensorFlow, Istio)</li>
+                        <li>데이터 분석 및 머신러닝의 강자 (BigQuery, Vertex AI)</li>
+                        <li>라이브 마이그레이션 (중단 없는 유지보수)</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <i class="fa-solid fa-network-wired" style="font-size: 180px; color: var(--google-blue); opacity: 0.1;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 3: Infrastructure -->
+<div class="slide-container bleed-image-layout" id="slide3">
+    <div class="content-container">
+        <h2 class="slide-title">글로벌 인프라</h2>
+        <div class="content-area">
+            <h3 style="color: var(--google-blue); margin-bottom: 10px;">Regions & Zones</h3>
+            <p>전 세계 35개 이상의 리전(Region)과 100개 이상의 존(Zone)으로 구성됩니다. 각 리전은 독립적인 지리적 위치이며, 존은 리전 내의 격리된 하드웨어 영역입니다.</p>
+            
+            <h3 style="color: var(--google-green); margin-bottom: 10px; margin-top: 30px;">글로벌 백본망</h3>
+            <p>GCP의 가장 큰 차별점은 구글이 직접 소유한 해저 광케이블망입니다. 데이터가 공용 인터넷이 아닌 구글 전용망을 통해 빠르고 안전하게 이동합니다.</p>
+        </div>
+    </div>
+    <div class="image-container">
+        <img class="bleed-image-side" src="http://googleusercontent.com/image_collection/image_retrieval/11418674359398242099" alt="Google Cloud Global Network Map">
+    </div>
+</div>
+
+<!-- Slide 4: Resource Hierarchy (Overview) -->
+<div class="slide-container" id="slide4">
+    <h2 class="slide-title">리소스 계층 구조 (Resource Hierarchy)</h2>
+    <div class="content-area">
+        <p style="text-align: center; margin-bottom: 30px;">정책(IAM)과 과금은 상위에서 하위로 상속됩니다.</p>
+        <div class="tiled-content">
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-building"></i></div>
+                <h3>Organization (조직)</h3>
+                <p>루트 노드. 회사 전체의 정책을 관리하는 최상위 컨테이너입니다.</p>
+            </div>
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-folder"></i></div>
+                <h3>Folder (폴더)</h3>
+                <p>부서(팀)나 환경(Dev, Prod)별로 프로젝트를 그룹화하여 격리합니다.</p>
+            </div>
+            <div class="tile" style="border-color: var(--google-blue); border-width: 2px;">
+                <div class="icon"><i class="fa-solid fa-box-open"></i></div>
+                <h3>Project (프로젝트)</h3>
+                <p>모든 리소스(VM, DB 등)가 생성되는 곳이며, <strong>과금(Billing)의 기준</strong>입니다.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 5: Compute Services -->
+<div class="slide-container" id="slide5">
+    <h2 class="slide-title">컴퓨팅 서비스 스펙트럼</h2>
+    <div class="content-area">
+        <div class="table-layout">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">구분</th>
+                        <th style="width: 25%;">서비스명</th>
+                        <th style="width: 55%;">특징 및 사용 사례</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>IaaS</strong><br><small>직접 관리</small></td>
+                        <td style="color: var(--google-blue); font-weight: 700;">Compute Engine (GCE)</td>
+                        <td>가상 머신(VM). OS, 커널 레벨의 튜닝이 필요하거나 레거시 앱을 그대로 옮길 때 사용합니다. [💰 초단위 과금]</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CaaS</strong><br><small>컨테이너</small></td>
+                        <td style="color: var(--google-blue); font-weight: 700;">GKE (Kubernetes)</td>
+                        <td>컨테이너 오케스트레이션의 표준. MSA(마이크로서비스) 아키텍처 구축에 최적화되어 있습니다. [💰 클러스터 관리비]</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Serverless</strong><br><small>서버리스</small></td>
+                        <td style="color: var(--google-blue); font-weight: 700;">Cloud Run</td>
+                        <td><strong>추천.</strong> 컨테이너를 서버 관리 없이 실행. 0으로 스케일링(비용 0원)이 가능하며 웹/API 서버에 적합합니다. [💰 요청당 과금]</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FaaS</strong><br><small>이벤트 기반</small></td>
+                        <td style="color: var(--google-blue); font-weight: 700;">Cloud Functions</td>
+                        <td>간단한 코드 조각 실행. 파일 업로드 감지 등 이벤트 트리거 처리에 유용합니다.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 6: Storage Options -->
+<div class="slide-container" id="slide6">
+    <h2 class="slide-title" style="border-color: var(--google-yellow);">데이터 저장소 선택 가이드</h2>
+    <div class="content-area">
+        <div class="tiled-content">
+            <div class="tile">
+                <div class="icon" style="color: var(--google-blue);"><i class="fa-solid fa-database"></i></div>
+                <h3>Cloud SQL</h3>
+                <p><strong>RDBMS</strong><br>MySQL, PostgreSQL 호환. 웹 서비스 표준 DB. [💰 인스턴스 과금]</p>
+            </div>
+            <div class="tile">
+                <div class="icon" style="color: var(--google-red);"><i class="fa-solid fa-globe"></i></div>
+                <h3>Cloud Spanner</h3>
+                <p><strong>Global RDBMS</strong><br>글로벌 정합성 보장, 무제한 수평 확장. [💰 노드당 고비용]</p>
+            </div>
+            <div class="tile">
+                <div class="icon" style="color: var(--google-yellow);"><i class="fa-solid fa-box"></i></div>
+                <h3>Cloud Storage (GCS)</h3>
+                <p><strong>Object Storage</strong><br>이미지, 파일, 백업 저장. [💰 용량+전송료]</p>
+            </div>
+             <div class="tile">
+                <div class="icon" style="color: var(--google-green);"><i class="fa-solid fa-table"></i></div>
+                <h3>Bigtable</h3>
+                <p><strong>NoSQL (Wide-column)</strong><br>IoT, 시계열 데이터, 초당 수백만 쓰기. [💰 노드당 과금]</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 7: Networking (General) -->
+<div class="slide-container" id="slide7">
+    <h2 class="slide-title">네트워킹: Global VPC</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div>
+                <h3 style="margin-bottom: 20px;">전 세계가 하나의 네트워크</h3>
+                <ul style="list-style-type: none; padding: 0;">
+                    <li style="margin-bottom: 20px;"><i class="fa-solid fa-check" style="color: var(--google-green); margin-right: 10px;"></i><strong>글로벌 단일 VPC:</strong> 리전마다 VPC를 만들 필요가 없습니다. VPC 하나로 전 세계 서브넷을 관리합니다.</li>
+                    <li style="margin-bottom: 20px;"><i class="fa-solid fa-check" style="color: var(--google-green); margin-right: 10px;"></i><strong>사설 통신:</strong> 서울 리전의 VM과 미국 리전의 DB가 내부 사설 IP(Private IP)로 안전하게 통신합니다.</li>
+                    <li style="margin-bottom: 20px;"><i class="fa-solid fa-check" style="color: var(--google-green); margin-right: 10px;"></i><strong>복잡성 제거:</strong> 리전 간 Peering, VPN 설정이 불필요하여 관리 포인트가 획기적으로 줄어듭니다.</li>
+                </ul>
+            </div>
+            <div class="image-wrapper" style="height: 400px; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <img src="http://googleusercontent.com/image_collection/image_retrieval/11376457877756041979" style="width: 100%; height: 100%; object-fit: cover;" alt="Global Network Concept">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 8: IAM & Security -->
+<div class="slide-container" id="slide8">
+    <h2 class="slide-title">보안 및 권한 관리 (IAM)</h2>
+    <div class="content-area">
+        <p style="text-align: center; margin-bottom: 40px; font-size: 24px;">"누가(Who) 무엇을(Permission) 어디에(Resource) 할 수 있는가?"</p>
+        <div class="tiled-content">
+            <div class="tile">
+                <h3>1. Member (주체)</h3>
+                <p>Google 계정, 서비스 계정(Service Account), Google 그룹 등 작업을 수행하는 주체입니다.</p>
+            </div>
+             <div class="icon" style="align-self: center; font-size: 30px; color: #ccc;"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="tile">
+                <h3>2. Role (역할)</h3>
+                <p>권한(Permission)의 집합입니다. (예: 뷰어, 편집자, 스토리지 관리자 등)</p>
+            </div>
+             <div class="icon" style="align-self: center; font-size: 30px; color: #ccc;"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="tile">
+                <h3>3. Policy (정책)</h3>
+                <p>Member와 Role을 리소스(프로젝트, 버킷 등)에 연결(Binding)하는 규칙입니다.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 9: Big Data & AI -->
+<div class="slide-container bleed-image-layout" id="slide9">
+    <div class="content-container">
+        <h2 class="slide-title" style="border-color: var(--google-yellow);">데이터 분석의 혁신</h2>
+        <div class="content-area">
+            <h3 style="color: var(--text-primary); margin-bottom: 15px;">BigQuery (빅쿼리) [💰 스캔량 과금]</h3>
+            <p>서버리스 데이터 웨어하우스입니다. 페타바이트급 데이터를 SQL 쿼리만으로 몇 초 만에 분석할 수 있습니다. 스토리지와 컴퓨팅이 분리되어 있어 비용 효율적입니다.</p>
+            
+            <h3 style="color: var(--text-primary); margin-bottom: 15px; margin-top: 40px;">Vertex AI</h3>
+            <p>데이터 준비부터 모델 학습, 배포까지 머신러닝의 전 과정을 통합 관리하는 MLOps 플랫폼입니다. Google의 최신 Gemini 모델을 손쉽게 활용할 수 있습니다.</p>
+        </div>
+    </div>
+    <div class="image-container">
+        <img class="bleed-image-side" src="http://googleusercontent.com/image_collection/image_retrieval/10817118458085998364" alt="Data Analytics Dashboard">
+    </div>
+</div>
+
+<!-- Slide 10: Deep Dive - Global LB -->
+<div class="slide-container" id="slide10">
+    <h2 class="slide-title">Deep Dive: Global Load Balancing</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div class="arch-diagram">
+                <div class="diagram-step">
+                    <strong style="color: var(--google-blue);">1. Single Anycast IP</strong><br>
+                    전 세계 어디서나 동일한 <strong>단 하나의 IP</strong>로 접속합니다. DNS 캐싱 문제나 전파 지연이 없습니다.
+                </div>
+                <div class="diagram-step">
+                    <strong style="color: var(--google-green);">2. Edge PoP Entry</strong><br>
+                    사용자는 자신과 가장 가까운 Google Edge 위치(PoP)로 진입합니다. (공용 인터넷 구간 최소화)
+                </div>
+                <div class="diagram-step">
+                    <strong style="color: var(--google-red);">3. Software Defined (Maglev)</strong><br>
+                    하드웨어 장비가 아닌 소프트웨어 기반 LB로, 트래픽 급증 시 워밍업 없이 즉시 확장됩니다.
+                </div>
+            </div>
+            <div>
+                <h3 style="color: var(--text-primary); margin-bottom: 20px;">Why is it superior?</h3>
+                <p>기존 DNS 기반 로드밸런싱(Geo-DNS)의 한계를 극복했습니다.</p>
+                <ul class="feature-list" style="margin-top: 20px;">
+                    <li style="margin-bottom: 20px;"><strong>Cross-Region Failover:</strong> 서울 리전 장애 시, 별도 설정 없이 즉시 도쿄나 미국 리전으로 트래픽을 우회시킵니다.</li>
+                    <li style="margin-bottom: 20px;"><strong>No Pre-warming:</strong> 갑작스러운 트래픽 폭주(Spike)에도 LB 용량 부족으로 인한 패킷 드랍이 발생하지 않습니다.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 11: Deep Dive - Live Migration -->
+<div class="slide-container" id="slide11">
+    <h2 class="slide-title">Deep Dive: Live Migration (Reliability)</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div>
+                <h3 style="color: var(--text-primary); margin-bottom: 20px;">유지보수 시에도 "서버 재부팅 없음"</h3>
+                <p>GCP는 물리적 호스트 장비의 유지보수(BIOS 업데이트, 하드웨어 교체 등)가 필요할 때, 실행 중인 VM을 <strong>중단 없이</strong> 다른 호스트로 이동시킵니다.</p>
+                <br>
+                <div style="background: #ffffff; padding: 25px; border-radius: 12px; border: 1px solid #eae5da;">
+                    <h4 style="margin: 0 0 10px 0; color: var(--google-blue);">작동 원리 (Process)</h4>
+                    <ol style="margin: 0; padding-left: 20px; color: var(--text-secondary);">
+                        <li>이동할 대상 호스트 준비</li>
+                        <li>VM 메모리 상태를 지속적으로 복사 (Pre-copy)</li>
+                        <li>마지막 순간 짧은 일시정지 (Blackout < 1초)</li>
+                        <li>새 호스트에서 즉시 재개</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="image-wrapper" style="height: 450px; border: 1px solid #eae5da;">
+                <!-- Concept visualization via image -->
+                <img src="http://googleusercontent.com/image_collection/image_retrieval/13296229596377317789" alt="Live Migration Concept">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 12: Summary -->
+<div class="slide-container quote-slide" id="slide12">
+    <div class="content-area">
+        <i class="fa-solid fa-cloud" style="font-size: 80px; color: white; margin-bottom: 30px; display: block; text-align: center; width: 100%;"></i>
+        <blockquote>
+            The Network is the Computer.<br>
+            <span style="font-size: 24px; opacity: 0.8; margin-top: 20px; display: block;">질문이 있으신가요? (Q&A)</span>
+        </blockquote>
+    </div>
+</div>
+
+</body>
+</html>
