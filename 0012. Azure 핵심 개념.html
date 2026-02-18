@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure vs AWS Infographic Deck (Korean)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Oswald:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 1. RESET & SETUP */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f3f4f6;
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1fr;
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px 0;
+            place-items: center;
+            font-family: 'Noto Sans KR', sans-serif; /* 한글 폰트 적용 */
+        }
+
+        .slide-container {
+            background-color: #ffffff;
+            border-radius: 0;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 720px;
+            overflow: hidden;
+            padding: 50px;
+            position: relative;
+            width: 1280px;
+            border-top: 10px solid #2d3748; 
+        }
+
+        /* 2. THEME COLORS */
+        :root {
+            --azure-blue: #0078D4;
+            --aws-orange: #FF9900;
+            --dark-slate: #2d3748;
+            --light-bg: #f7fafc;
+            --success-green: #38a169;
+        }
+
+        .slide-container.azure-theme { border-top-color: var(--azure-blue); }
+        .slide-container.aws-theme { border-top-color: var(--aws-orange); }
+        .slide-container.comparison-theme { 
+            background: linear-gradient(90deg, #f0f7ff 50%, #fffbf0 50%);
+            border-top: none;
+        }
+
+        /* 3. TYPOGRAPHY (INFOGRAPHIC STYLE) */
+        h1, h2, h3, .big-stat-label {
+            font-family: 'Oswald', 'Noto Sans KR', sans-serif;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 72px;
+            color: var(--dark-slate);
+            line-height: 1;
+            font-weight: 700;
+        }
+
+        .slide-title {
+            font-size: 42px;
+            color: var(--dark-slate);
+            margin-bottom: 30px;
+            border-left: 8px solid var(--azure-blue);
+            padding-left: 20px;
+            width: 100%;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        p, li, td {
+            font-size: 18px;
+            color: #4a5568;
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        /* 4. LAYOUT COMPONENTS */
+        
+        /* 4.1 Grid Tiles */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .info-card {
+            background: var(--light-bg);
+            border-radius: 8px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border-bottom: 4px solid #cbd5e0;
+            transition: transform 0.2s;
+        }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+            border-bottom-color: var(--azure-blue);
+        }
+
+        .info-card i {
+            font-size: 48px;
+            color: var(--azure-blue);
+            margin-bottom: 20px;
+        }
+
+        .info-card h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--dark-slate);
+            font-weight: 700;
+        }
+
+        /* 4.2 Big Stats */
+        .stat-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .big-number {
+            font-family: 'Oswald', sans-serif;
+            font-size: 120px;
+            color: var(--azure-blue);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--dark-slate);
+            margin-top: 10px;
+        }
+
+        /* 4.3 Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .comparison-table th {
+            font-family: 'Oswald', 'Noto Sans KR', sans-serif;
+            font-size: 24px;
+            padding: 15px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .comparison-table td {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 500;
+        }
+
+        .comparison-table tr td:first-child {
+            border-left: 1px solid #e2e8f0;
+            border-radius: 8px 0 0 8px;
+            font-weight: 700;
+            color: var(--dark-slate);
+        }
+
+        .comparison-table tr td:last-child {
+            border-right: 1px solid #e2e8f0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* 4.4 Charts */
+        .bar-chart-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            width: 100%;
+        }
+
+        .bar-label {
+            width: 160px;
+            font-weight: 700;
+            text-align: right;
+            padding-right: 20px;
+            font-family: 'Oswald', 'Noto Sans KR', sans-serif;
+            font-size: 20px;
+        }
+
+        .bar-track {
+            flex-grow: 1;
+            background: #edf2f7;
+            height: 40px;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            color: white;
+            font-weight: 700;
+            font-family: 'Oswald', sans-serif;
+        }
+
+        /* 4.5 Donut Chart */
+        .donut-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 50px;
+            height: 100%;
+        }
+        
+        .donut-chart {
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: conic-gradient(var(--aws-orange) 0% 32%, var(--azure-blue) 32% 55%, #cbd5e0 55% 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .donut-hole {
+            width: 250px;
+            height: 250px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        /* 4.6 Header Graphic */
+        .header-graphic {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 600px;
+            height: 100%;
+            background: url('http://googleusercontent.com/image_collection/image_retrieval/6392646041000318021') no-repeat center center;
+            background-size: cover;
+            clip-path: polygon(20% 0, 100% 0, 100% 100%, 0% 100%);
+            opacity: 0.9;
+        }
+        
+        .title-content {
+            z-index: 2;
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+        }
+
+        /* Specific Slide Tweaks */
+        .azure-bg { background-color: var(--azure-blue) !important; color: white !important; }
+        .aws-bg { background-color: var(--aws-orange) !important; color: white !important; }
+
+    </style>
+</head>
+<body>
+
+<!-- Slide 1: Title (Infographic Header) -->
+<div class="slide-container azure-theme" id="slide1">
+    <div class="title-content">
+        <h3 style="color: var(--azure-blue); margin-bottom: 10px; font-weight: 700;">클라우드 컴퓨팅 비교 분석</h3>
+        <h1>Microsoft<br>AZURE<br><span style="font-size: 40px; color: #a0aec0;">vs</span><br><span style="color: var(--aws-orange);">AWS</span></h1>
+        <p style="margin-top: 20px; font-weight: 500; font-size: 22px;">핵심 개념 및 전략적 차이점 분석</p>
+        <div style="margin-top: 40px; display: flex; gap: 20px;">
+            <div style="background: var(--azure-blue); width: 60px; height: 6px;"></div>
+            <div style="background: var(--aws-orange); width: 60px; height: 6px;"></div>
+        </div>
+    </div>
+    <div class="header-graphic"></div>
+</div>
+
+<!-- Slide 2: Azure at a Glance (Big Stats) -->
+<div class="slide-container azure-theme" id="slide2">
+    <h2 class="slide-title">Azure 개요 및 규모</h2>
+    <div class="stat-container">
+        <div class="stat-box">
+            <div class="big-number">60+</div>
+            <div class="stat-label">글로벌 리전(Regions)<br><span style="font-size: 16px; color: #718096; font-weight: 400;">타 클라우드 공급자 대비 최다 보유</span></div>
+        </div>
+        <div class="stat-box">
+            <div class="big-number">200+</div>
+            <div class="stat-label">제품 및 서비스<br><span style="font-size: 16px; color: #718096; font-weight: 400;">AI부터 IoT까지 포괄적 지원</span></div>
+        </div>
+        <div class="stat-box">
+            <div class="big-number">95%</div>
+            <div class="stat-label">포춘 500대 기업<br><span style="font-size: 16px; color: #718096; font-weight: 400;">마이크로소프트 Azure 신뢰 및 사용</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 3: Global Infrastructure (Infographic Map Concept) -->
+<div class="slide-container azure-theme" id="slide3">
+    <h2 class="slide-title">글로벌 인프라 계층 구조</h2>
+    <div class="grid-3">
+        <div class="info-card">
+            <i class="fa-solid fa-earth-americas"></i>
+            <h3>지리적 영역 (Geography)</h3>
+            <p>데이터 레지던시 및 규정 준수 경계를 보존하는 별도의 시장 단위입니다. 일반적으로 두 개 이상의 리전을 포함합니다. (예: 한국, 미국)</p>
+        </div>
+        <div class="info-card" style="border-bottom-color: var(--azure-blue); transform: translateY(20px);">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <h3>리전 (Region)</h3>
+            <p>지연 시간(Latency)이 정의된 경계 내에 배포되고, 전용 초저지연 네트워크를 통해 연결된 데이터 센터의 집합입니다.</p>
+        </div>
+        <div class="info-card">
+            <i class="fa-solid fa-building-shield"></i>
+            <h3>가용 영역 (Availability Zone)</h3>
+            <p>Azure 리전 내에서 물리적으로 분리된 위치입니다. 각 영역은 독립적인 전원, 냉각 및 네트워킹을 갖춘 데이터 센터로 구성됩니다.</p>
+        </div>
+    </div>
+    <div style="text-align: center; margin-top: 30px; color: #a0aec0;">
+        <i class="fa-solid fa-arrow-right-long" style="font-size: 30px;"></i>
+    </div>
+</div>
+
+<!-- Slide 4: Core Compute Services -->
+<div class="slide-container azure-theme" id="slide4">
+    <h2 class="slide-title">컴퓨팅 서비스 스펙트럼</h2>
+    <div class="grid-3" style="grid-template-rows: 1fr 1fr; height: auto; gap: 20px;">
+        <div class="info-card" style="flex-direction: row; text-align: left; align-items: flex-start;">
+            <i class="fa-brands fa-windows" style="font-size: 32px; margin-right: 15px; margin-bottom: 0;"></i>
+            <div>
+                <h3>Virtual Machines</h3>
+                <p style="font-size: 16px;">IaaS: Windows/Linux 서버 가상화. OS에 대한 완전한 제어권 제공.</p>
+            </div>
+        </div>
+        <div class="info-card" style="flex-direction: row; text-align: left; align-items: flex-start;">
+            <i class="fa-solid fa-code" style="font-size: 32px; margin-right: 15px; margin-bottom: 0;"></i>
+            <div>
+                <h3>App Service</h3>
+                <p style="font-size: 16px;">PaaS: 인프라 관리 없이 웹 앱 및 API를 구축/배포하는 관리형 서비스.</p>
+            </div>
+        </div>
+        <div class="info-card" style="flex-direction: row; text-align: left; align-items: flex-start;">
+            <i class="fa-solid fa-cubes" style="font-size: 32px; margin-right: 15px; margin-bottom: 0;"></i>
+            <div>
+                <h3>AKS (Kubernetes)</h3>
+                <p style="font-size: 16px;">마이크로서비스 아키텍처를 위한 완전 관리형 컨테이너 오케스트레이션.</p>
+            </div>
+        </div>
+        <div class="info-card" style="flex-direction: row; text-align: left; align-items: flex-start;">
+            <i class="fa-solid fa-bolt" style="font-size: 32px; margin-right: 15px; margin-bottom: 0;"></i>
+            <div>
+                <h3>Azure Functions</h3>
+                <p style="font-size: 16px;">Serverless: 이벤트 기반으로 코드를 실행하며, 사용한 만큼만 과금.</p>
+            </div>
+        </div>
+        <!-- Highlighted AVD -->
+        <div class="info-card" style="flex-direction: row; text-align: left; align-items: flex-start; background-color: #ebf8ff; border: 2px solid var(--azure-blue);">
+            <i class="fa-solid fa-desktop" style="font-size: 32px; margin-right: 15px; margin-bottom: 0;"></i>
+            <div>
+                <h3 style="color: var(--azure-blue);">Azure Virtual Desktop</h3>
+                <p style="font-size: 16px;"><strong>[차별화]</strong> 유일하게 Windows 10/11 멀티 세션을 지원하는 클라우드 VDI.</p>
+            </div>
+        </div>
+        <div class="info-card" style="flex-direction: row; text-align: left; align-items: flex-start;">
+            <i class="fa-solid fa-layer-group" style="font-size: 32px; margin-right: 15px; margin-bottom: 0;"></i>
+            <div>
+                <h3>Azure Arc</h3>
+                <p style="font-size: 16px;">온프레미스, 타 클라우드 등 모든 인프라로 Azure 관리를 확장.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 5: Storage Breakdown (Visual Buckets) -->
+<div class="slide-container azure-theme" id="slide5">
+    <h2 class="slide-title">스토리지 솔루션 분류</h2>
+    <div style="display: flex; justify-content: space-between; gap: 30px; height: 100%;">
+        <div style="flex: 1; background: #ebf8ff; padding: 30px; border-radius: 12px; display: flex; flex-direction: column; align-items: center;">
+            <div style="font-size: 50px; color: var(--azure-blue); margin-bottom: 20px;"><i class="fa-solid fa-box-open"></i></div>
+            <h3 style="color: var(--azure-blue);">Blob Storage</h3>
+            <p style="text-align: center;">비정형 데이터(이미지, 영상, 로그 등)를 위한 대규모 객체 스토리지입니다.</p>
+            <div style="margin-top: auto; padding: 10px; background: white; border-radius: 6px; width: 100%; text-align: center; font-weight: bold; color: #a0aec0;">AWS S3 대응</div>
+        </div>
+        
+        <div style="flex: 1; background: #fffaf0; padding: 30px; border-radius: 12px; display: flex; flex-direction: column; align-items: center;">
+            <div style="font-size: 50px; color: #d69e2e; margin-bottom: 20px;"><i class="fa-solid fa-hard-drive"></i></div>
+            <h3 style="color: #d69e2e;">Disk Storage</h3>
+            <p style="text-align: center;">Azure VM을 위한 고성능 블록 스토리지입니다. (SSD/HDD 선택 가능)</p>
+            <div style="margin-top: auto; padding: 10px; background: white; border-radius: 6px; width: 100%; text-align: center; font-weight: bold; color: #a0aec0;">AWS EBS 대응</div>
+        </div>
+
+        <div style="flex: 1; background: #f0fff4; padding: 30px; border-radius: 12px; display: flex; flex-direction: column; align-items: center;">
+            <div style="font-size: 50px; color: #38a169; margin-bottom: 20px;"><i class="fa-solid fa-folder-tree"></i></div>
+            <h3 style="color: #38a169;">Azure Files</h3>
+            <p style="text-align: center;">표준 SMB 프로토콜을 통해 접근 가능한 완전 관리형 파일 공유 서비스입니다.</p>
+            <div style="margin-top: auto; padding: 10px; background: white; border-radius: 6px; width: 100%; text-align: center; font-weight: bold; color: #a0aec0;">AWS EFS 대응</div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 6: Azure vs AWS Comparison Table -->
+<div class="slide-container comparison-theme" id="slide6">
+    <h2 class="slide-title" style="border-left-color: var(--dark-slate); text-align: center; border: none;">서비스 1:1 비교 (Head-to-Head)</h2>
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th style="width: 25%; color: var(--dark-slate);">서비스 카테고리</th>
+                <th style="width: 37.5%; background-color: var(--azure-blue); border-radius: 8px 8px 0 0;">Microsoft Azure</th>
+                <th style="width: 37.5%; background-color: var(--aws-orange); border-radius: 8px 8px 0 0;">AWS</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>컴퓨팅 (VM)</td>
+                <td style="color: var(--azure-blue);">Virtual Machine</td>
+                <td style="color: var(--aws-orange);">EC2 Instance</td>
+            </tr>
+            <tr>
+                <td>관리형 쿠버네티스</td>
+                <td style="color: var(--azure-blue);">AKS</td>
+                <td style="color: var(--aws-orange);">EKS</td>
+            </tr>
+            <tr>
+                <td>서버리스 (Serverless)</td>
+                <td style="color: var(--azure-blue);">Azure Functions</td>
+                <td style="color: var(--aws-orange);">AWS Lambda</td>
+            </tr>
+            <tr>
+                <td>객체 스토리지</td>
+                <td style="color: var(--azure-blue);">Blob Storage</td>
+                <td style="color: var(--aws-orange);">Simple Storage Service (S3)</td>
+            </tr>
+            <tr>
+                <td>관계형 데이터베이스</td>
+                <td style="color: var(--azure-blue);">SQL Database</td>
+                <td style="color: var(--aws-orange);">RDS</td>
+            </tr>
+            <tr>
+                <td>가상 네트워크</td>
+                <td style="color: var(--azure-blue);">Virtual Network (VNet)</td>
+                <td style="color: var(--aws-orange);">VPC</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Slide 7: Cost Savings (Bar Chart) -->
+<div class="slide-container azure-theme" id="slide7">
+    <h2 class="slide-title">Azure 하이브리드 혜택: 비용 최적화</h2>
+    <div style="display: flex; width: 100%; height: 100%; align-items: center; gap: 50px;">
+        <div style="flex: 1;">
+            <p style="font-size: 24px; margin-bottom: 30px;">
+                기존 온프레미스 Windows Server 및 SQL Server 라이선스를 Azure에서 재사용하여<br>
+                <strong style="color: var(--success-green); font-size: 32px;">최대 40% 비용 절감</strong> 가능
+            </p>
+            <img src="http://googleusercontent.com/image_collection/image_retrieval/14145189214858287500" alt="비즈니스 성장 그래프" style="width: 100%; border-radius: 12px;">
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+            <h3 style="margin-bottom: 20px; color: var(--dark-slate);">총 소유 비용 (TCO, 3년 기준)</h3>
+            
+            <div class="bar-chart-row">
+                <div class="bar-label">표준 클라우드</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: 100%; background: #cbd5e0;">$100k</div>
+                </div>
+            </div>
+            
+            <div class="bar-chart-row">
+                <div class="bar-label" style="color: var(--aws-orange);">AWS</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: 85%; background: var(--aws-orange);">$85k</div>
+                </div>
+            </div>
+
+            <div class="bar-chart-row">
+                <div class="bar-label" style="color: var(--azure-blue);">Azure Hybrid</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: 55%; background: var(--azure-blue);">$55k</div>
+                </div>
+            </div>
+            
+            <p style="font-size: 14px; color: #a0aec0; text-align: right;">*표준 D-series VM 가격 기준 예상 절감액</p>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 8: Azure Exclusive Features (REPLACED MARKET SHARE) -->
+<div class="slide-container azure-theme" id="slide8">
+    <h2 class="slide-title">Azure만의 독보적인 강점 (Azure Exclusive)</h2>
+    <div class="grid-3">
+        <!-- Feature 1: AVD -->
+        <div class="info-card" style="border-top: 6px solid var(--azure-blue);">
+            <i class="fa-solid fa-desktop" style="color: var(--azure-blue); margin-bottom: 20px;"></i>
+            <h3 style="font-size: 26px;">Azure Virtual Desktop<br>(AVD)</h3>
+            <p style="text-align: left; font-size: 17px; margin-top: 10px;">
+                <i class="fa-solid fa-check" style="color: var(--success-green);"></i> <strong>Win 10/11 멀티 세션:</strong><br>단일 VM에 여러 사용자가 동시 접속 가능한 유일한 클라우드 VDI. (타사는 1:1 방식)<br><br>
+                <i class="fa-solid fa-check" style="color: var(--success-green);"></i> <strong>비용 절감:</strong><br>기존 M365 라이선스 활용 및 인프라 비용 최소화.
+            </p>
+        </div>
+        
+        <!-- Feature 2: Arc -->
+        <div class="info-card" style="border-top: 6px solid var(--dark-slate);">
+            <i class="fa-solid fa-network-wired" style="color: var(--dark-slate); margin-bottom: 20px;"></i>
+            <h3 style="font-size: 26px;">Azure Arc<br>(True Hybrid)</h3>
+            <p style="text-align: left; font-size: 17px; margin-top: 10px;">
+                <i class="fa-solid fa-check" style="color: var(--success-green);"></i> <strong>어디서나 Azure 실행:</strong><br>온프레미스, AWS, Google Cloud의 서버와 쿠버네티스를 Azure Portal에서 통합 관리.<br><br>
+                <i class="fa-solid fa-check" style="color: var(--success-green);"></i> <strong>데이터 서비스 확장:</strong><br>SQL Managed Instance를 내 데이터 센터에서 실행 가능.
+            </p>
+        </div>
+
+        <!-- Feature 3: Developer Ecosystem -->
+        <div class="info-card" style="border-top: 6px solid #6e40c9;">
+            <i class="fa-brands fa-github" style="color: #6e40c9; margin-bottom: 20px; font-size: 56px;"></i>
+            <h3 style="font-size: 26px;">GitHub + DevOps<br>(개발자 생태계)</h3>
+            <p style="text-align: left; font-size: 17px; margin-top: 10px;">
+                <i class="fa-solid fa-check" style="color: var(--success-green);"></i> <strong>완벽한 통합:</strong><br>Visual Studio Code ➔ GitHub ➔ Azure 배포로 이어지는 끊김 없는 워크플로우.<br><br>
+                <i class="fa-solid fa-check" style="color: var(--success-green);"></i> <strong>엔터프라이즈 생산성:</strong><br>Microsoft 생태계(Teams, Power Platform)와의 기본 통합으로 협업 효율 극대화.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 9: Security & Compliance -->
+<div class="slide-container azure-theme" id="slide9">
+    <h2 class="slide-title">타의 추종을 불허하는 보안(Security)</h2>
+    <div style="display: flex; gap: 40px; align-items: center; height: 100%;">
+        <div style="flex: 1; display: flex; justify-content: center;">
+             <img src="http://googleusercontent.com/image_collection/image_retrieval/17602864427758009861" alt="보안 쉴드" style="width: 80%; object-fit: contain;">
+        </div>
+        <div style="flex: 1;">
+            <div class="grid-3" style="grid-template-columns: 1fr; gap: 20px;">
+                <div class="info-card" style="flex-direction: row; align-items: center; text-align: left;">
+                    <i class="fa-solid fa-certificate" style="font-size: 40px; margin-right: 20px; margin-bottom: 0;"></i>
+                    <div>
+                        <h3>90+ 규정 준수 인증</h3>
+                        <p style="font-size: 16px;">타 클라우드 공급자보다 많은 업계 최다 규정 준수 인증 보유.</p>
+                    </div>
+                </div>
+                <div class="info-card" style="flex-direction: row; align-items: center; text-align: left;">
+                    <i class="fa-solid fa-user-shield" style="font-size: 40px; margin-right: 20px; margin-bottom: 0;"></i>
+                    <div>
+                        <h3>Active Directory (Entra ID)</h3>
+                        <p style="font-size: 16px;">온프레미스와 완벽하게 통합되는 아이덴티티 및 접근 관리.</p>
+                    </div>
+                </div>
+                <div class="info-card" style="flex-direction: row; align-items: center; text-align: left;">
+                    <i class="fa-solid fa-robot" style="font-size: 40px; margin-right: 20px; margin-bottom: 0;"></i>
+                    <div>
+                        <h3>AI 기반 위협 방어</h3>
+                        <p style="font-size: 16px;">매일 8조 개 이상의 신호를 분석하여 사이버 위협 탐지 및 대응.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 10: Summary Checklist -->
+<div class="slide-container azure-theme" id="slide10">
+    <h2 class="slide-title">핵심 요약 (Key Takeaways)</h2>
+    <div style="background: var(--light-bg); border-radius: 12px; padding: 40px; height: 100%; width: 100%; display: flex; flex-direction: column; justify-content: space-around;">
+        <div style="display: flex; align-items: center;">
+            <i class="fa-solid fa-check-circle" style="color: var(--success-green); font-size: 40px; margin-right: 25px;"></i>
+            <div>
+                <h3 style="color: var(--dark-slate);">엔터프라이즈 최적화 (Enterprise Ready)</h3>
+                <p>기존 Microsoft 생태계(Office 365, Windows Server)와의 가장 완벽한 통합 제공.</p>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <i class="fa-solid fa-check-circle" style="color: var(--success-green); font-size: 40px; margin-right: 25px;"></i>
+            <div>
+                <h3 style="color: var(--dark-slate);">강력한 하이브리드 클라우드</h3>
+                <p>Azure Arc를 통한 업계 최고의 하이브리드 및 멀티 클라우드 관리 기능.</p>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <i class="fa-solid fa-check-circle" style="color: var(--success-green); font-size: 40px; margin-right: 25px;"></i>
+            <div>
+                <h3 style="color: var(--dark-slate);">비용 효율성 (Cost Effective)</h3>
+                <p>Windows/SQL 워크로드에 대한 하이브리드 혜택으로 획기적인 비용 절감.</p>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <i class="fa-solid fa-check-circle" style="color: var(--success-green); font-size: 40px; margin-right: 25px;"></i>
+            <div>
+                <h3 style="color: var(--dark-slate);">개발자 친화적 환경</h3>
+                <p>GitHub 및 VS Code와의 긴밀한 통합으로 DevOps 라이프사이클 효율화.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
