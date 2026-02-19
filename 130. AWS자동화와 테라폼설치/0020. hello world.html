@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테라폼 기초: Hello World 인터랙티브 실습</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F9F7F2;
+            color: #2D3748;
+        }
+
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .terminal-bg {
+            background-color: #1A202C;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+
+        .step-active {
+            border-left: 4px solid #3182CE;
+            background-color: #EBF8FF;
+        }
+
+        .custom-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background-color: #A0AEC0;
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header Section -->
+        <header class="mb-10 text-center">
+            <h1 class="text-4xl font-bold mb-4 text-slate-800">Terraform(테라폼) 기초: 첫 번째 리소스 생성</h1>
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto">
+                이 랩에서는 Infrastructure as Code(코드형 인프라)의 핵심인 테라폼을 사용하여 로컬 파일 시스템에 리소스를 생성하는 과정을 체험합니다. 
+                복잡한 클라우드 설정 없이 테라폼의 기본 원리를 이해할 수 있습니다.
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left: Instruction Panel -->
+            <div class="lg:col-span-5 space-y-6">
+                <section class="bg-white p-6 rounded-xl custom-shadow">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <span class="mr-2">📁</span> 학습 가이드
+                    </h2>
+                    
+                    <div id="guide-steps" class="space-y-4">
+                        <div id="step-1" class="p-4 rounded-lg border border-slate-100 step-active">
+                            <h3 class="font-semibold text-blue-800 mb-1">1단계: 구성 파일 작성 (Write)</h3>
+                            <p class="text-sm text-slate-600">
+                                테라폼은 HCL(HashiCorp Configuration Language, 하시코프 구성 언어)을 사용합니다. 
+                                <code class="bg-slate-100 px-1 rounded">main.tf</code> 파일에 리소스를 정의합니다.
+                            </p>
+                        </div>
+
+                        <div id="step-2" class="p-4 rounded-lg border border-transparent">
+                            <h3 class="font-semibold text-slate-700 mb-1">2단계: 초기화 (Initialize)</h3>
+                            <p class="text-sm text-slate-600">
+                                <code class="bg-slate-100 px-1 rounded">terraform init</code> 명령어를 통해 필요한 Provider(프로바이더, 리소스 공급자) 플러그인을 다운로드합니다.
+                            </p>
+                        </div>
+
+                        <div id="step-3" class="p-4 rounded-lg border border-transparent">
+                            <h3 class="font-semibold text-slate-700 mb-1">3단계: 계획 및 실행 (Plan & Apply)</h3>
+                            <p class="text-sm text-slate-600">
+                                <code class="bg-slate-100 px-1 rounded">terraform apply</code>를 실행하여 실제 리소스를 생성합니다. 실행 전 변경 사항을 확인하는 단계를 거칩니다.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Plan Visualization Context -->
+                <section class="bg-white p-6 rounded-xl custom-shadow">
+                    <h3 class="font-bold mb-2">실행 계획(Plan) 데이터 분석</h3>
+                    <p class="text-sm text-slate-600 mb-4">
+                        테라폼은 리소스를 생성하기 전, 현재 상태와 코드를 비교하여 변경 사항을 수치로 보여줍니다. 아래는 현재 코드 기준의 분석 결과입니다.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="planChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Warning/Note Section -->
+                <section class="bg-amber-50 border-l-4 border-amber-400 p-6 rounded-r-xl">
+                    <h3 class="font-bold text-amber-800 mb-2 flex items-center">
+                        <span class="mr-2">⚠️</span> 주의사항: 과금 및 환경
+                    </h3>
+                    <p class="text-sm text-amber-900 mb-4">
+                        현재 실습은 로컬 파일 시스템을 사용하므로 <strong>Free Tier(프리 티어, 무료 제공 범위)</strong>와 상관없이 무료입니다. 
+                        단, AWS나 Azure 리소스를 생성할 때는 즉시 과금이 시작될 수 있으니 주의가 필요합니다.
+                    </p>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="costChart"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right: Interactive Lab Environment -->
+            <div class="lg:col-span-7 space-y-6">
+                <!-- Code Editor View -->
+                <div class="bg-slate-800 rounded-xl overflow-hidden custom-shadow">
+                    <div class="bg-slate-700 px-4 py-2 flex justify-between items-center">
+                        <span class="text-slate-300 text-sm code-font">main.tf</span>
+                        <div class="flex space-x-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                    </div>
+                    <div class="p-6 text-sm code-font leading-relaxed">
+                        <pre class="text-blue-300"><span class="text-purple-400">resource</span> <span class="text-yellow-200">"local_file"</span> <span class="text-yellow-200">"hello_world"</span> {
+  content  = <span class="text-green-300">"Hello, Terraform World!"</span>
+  filename = <span class="text-green-300">"${path.module}/hello.txt"</span>
+}
+
+<span class="text-purple-400">output</span> <span class="text-yellow-200">"greeting"</span> {
+  value = <span class="text-green-300 text-sm">"Terraform has successfully created the file."</span>
+}</pre>
+                    </div>
+                </div>
+
+                <!-- Terminal Emulator -->
+                <div class="terminal-bg rounded-xl overflow-hidden custom-shadow flex flex-col h-[400px]">
+                    <div class="bg-slate-700 px-4 py-2 flex items-center">
+                        <span class="text-slate-300 text-xs font-bold mr-4">TERMINAL</span>
+                        <div class="flex space-x-4">
+                            <button onclick="runInit()" id="btn-init" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition">terraform init</button>
+                            <button onclick="runPlan()" id="btn-plan" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition opacity-50 cursor-not-allowed" disabled>terraform plan</button>
+                            <button onclick="runApply()" id="btn-apply" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded transition opacity-50 cursor-not-allowed" disabled>terraform apply</button>
+                        </div>
+                    </div>
+                    <div id="terminal-content" class="p-6 text-green-400 text-sm code-font flex-1 overflow-y-auto terminal-scroll">
+                        <div class="mb-2">사용자:~/terraform-hello-world$ <span class="cursor"></span></div>
+                    </div>
+                </div>
+
+                <!-- Virtual File Explorer -->
+                <div class="bg-white p-6 rounded-xl custom-shadow">
+                    <h3 class="font-bold mb-4 flex items-center text-slate-700">
+                        <span class="mr-2">🔎</span> 가상 파일 시스템 브라우저
+                    </h3>
+                    <div id="file-system" class="space-y-2 text-sm text-slate-600">
+                        <div class="flex items-center">
+                            <span class="mr-2">📄</span> main.tf
+                        </div>
+                        <div id="file-init" class="hidden flex items-center animate-pulse text-blue-600">
+                            <span class="mr-2">📁</span> .terraform/ <span class="text-xs ml-2 italic">(Initializing...)</span>
+                        </div>
+                        <div id="file-state" class="hidden flex items-center text-amber-600">
+                            <span class="mr-2">📄</span> terraform.tfstate
+                        </div>
+                        <div id="file-output" class="hidden flex items-center font-bold text-green-600">
+                            <span class="mr-2">📄</span> hello.txt
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center text-slate-500 text-sm">
+            <p>Next Step: AWS EC2 인스턴스 생성 코드 작성하기 (과금 주의)</p>
+        </footer>
+    </div>
+
+    <script>
+        // State Management
+        let appState = {
+            initialized: false,
+            planned: false,
+            applied: false
+        };
+
+        // Charts Initialization
+        let planChart, costChart;
+
+        function initCharts() {
+            const planCtx = document.getElementById('planChart').getContext('2d');
+            planChart = new Chart(planCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['추가 (Add)', '변경 (Change)', '삭제 (Destroy)'],
+                    datasets: [{
+                        label: '리소스 수',
+                        data: [0, 0, 0],
+                        backgroundColor: ['#48BB78', '#ECC94B', '#F56565'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, max: 2, ticks: { stepSize: 1 } } }
+                }
+            });
+
+            const costCtx = document.getElementById('costChart').getContext('2d');
+            costChart = new Chart(costCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['로컬 환경 (무료)', '클라우드 (유료 가능성)'],
+                    datasets: [{
+                        data: [100, 0],
+                        backgroundColor: ['#4FD1C5', '#FC8181'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+
+        // Terminal Interaction Logic
+        const terminal = document.getElementById('terminal-content');
+        
+        function typeInTerminal(text, callback) {
+            const line = document.createElement('div');
+            line.className = "mb-1";
+            terminal.appendChild(line);
+            
+            let i = 0;
+            const interval = setInterval(() => {
+                line.textContent += text[i];
+                i++;
+                if (i === text.length) {
+                    clearInterval(interval);
+                    terminal.scrollTop = terminal.scrollHeight;
+                    if (callback) callback();
+                }
+            }, 5);
+        }
+
+        function runInit() {
+            if (appState.initialized) return;
+            
+            const btn = document.getElementById('btn-init');
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            typeInTerminal("사용자:~/terraform-hello-world$ terraform init", () => {
+                setTimeout(() => {
+                    typeInTerminal("Initializing the backend...", () => {
+                        setTimeout(() => {
+                            typeInTerminal("Initializing provider plugins...", () => {
+                                setTimeout(() => {
+                                    typeInTerminal("Terraform has been successfully initialized!", () => {
+                                        appState.initialized = true;
+                                        document.getElementById('file-init').classList.remove('hidden');
+                                        document.getElementById('btn-plan').classList.remove('opacity-50', 'cursor-not-allowed');
+                                        document.getElementById('btn-plan').disabled = false;
+                                        updateStepUI(2);
+                                    });
+                                }, 500);
+                            });
+                        }, 500);
+                    });
+                }, 500);
+            });
+        }
+
+        function runPlan() {
+            if (!appState.initialized || appState.planned) return;
+
+            typeInTerminal("사용자:~/terraform-hello-world$ terraform plan", () => {
+                setTimeout(() => {
+                    typeInTerminal("Terraform will perform the following actions:", () => {
+                        typeInTerminal("  # local_file.hello_world will be created", () => {
+                            typeInTerminal("Plan: 1 to add, 0 to change, 0 to destroy.", () => {
+                                appState.planned = true;
+                                planChart.data.datasets[0].data = [1, 0, 0];
+                                planChart.update();
+                                document.getElementById('btn-apply').classList.remove('opacity-50', 'cursor-not-allowed');
+                                document.getElementById('btn-apply').disabled = false;
+                                updateStepUI(3);
+                            });
+                        });
+                    });
+                }, 500);
+            });
+        }
+
+        function runApply() {
+            if (!appState.planned || appState.applied) return;
+
+            typeInTerminal("사용자:~/terraform-hello-world$ terraform apply", () => {
+                typeInTerminal("Do you want to perform these actions? (yes/no): yes", () => {
+                    setTimeout(() => {
+                        typeInTerminal("local_file.hello_world: Creating...", () => {
+                            setTimeout(() => {
+                                typeInTerminal("local_file.hello_world: Creation complete after 0s", () => {
+                                    typeInTerminal("Apply complete! Resources: 1 added, 0 changed, 0 destroyed.", () => {
+                                        typeInTerminal("Outputs: greeting = \"Terraform has successfully created the file.\"", () => {
+                                            appState.applied = true;
+                                            document.getElementById('file-state').classList.remove('hidden');
+                                            document.getElementById('file-output').classList.remove('hidden');
+                                            costChart.data.datasets[0].data = [100, 0]; // Still local
+                                            costChart.update();
+                                        });
+                                    });
+                                });
+                            }, 1000);
+                        });
+                    }, 500);
+                });
+            });
+        }
+
+        function updateStepUI(step) {
+            document.querySelectorAll('#guide-steps > div').forEach((el, idx) => {
+                if (idx + 1 === step) {
+                    el.classList.add('step-active', 'border-blue-200');
+                    el.querySelector('h3').classList.add('text-blue-800');
+                } else {
+                    el.classList.remove('step-active', 'border-blue-200');
+                }
+            });
+        }
+
+        window.onload = initCharts;
+    </script>
+</body>
+</html>
