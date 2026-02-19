@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS 핵심 키 관리 인포그래픽</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #0f172a; } /* bg-slate-900 */
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gradient-text { background: linear-gradient(to right, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .dashed-line { background-image: linear-gradient(to bottom, #475569 50%, transparent 50%); background-size: 2px 10px; background-repeat: repeat-y; }
+    </style>
+</head>
+<body class="text-slate-200 antialiased p-4 md:p-8 flex justify-center">
+
+    <!-- Infographic Main Container -->
+    <main class="w-full max-w-5xl bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-700 relative">
+        
+        <!-- Header Section -->
+        <header class="bg-gradient-to-br from-slate-800 to-slate-900 p-10 text-center border-b border-slate-700 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+            <div class="inline-block bg-blue-900/50 border border-blue-500/30 text-blue-300 px-4 py-1 rounded-full text-sm font-bold mb-4">
+                Cloud Security Architecture
+            </div>
+            <h1 class="text-4xl md:text-5xl font-black mb-4 tracking-tight">
+                AWS <span class="gradient-text">핵심 키(Key)</span> 시각화 가이드
+            </h1>
+            <p class="text-slate-400 md:text-lg max-w-2xl mx-auto">
+                안전한 인프라 제어와 데이터 보호를 위한 AWS(Amazon Web Services, 아마존 웹 서비스) 보안 자격 증명 총정리
+            </p>
+        </header>
+
+        <div class="p-6 md:p-10 space-y-12">
+
+            <!-- Section 1: The Myth vs Reality of Access Key Creation -->
+            <section class="glass-panel rounded-2xl p-6 md:p-8 relative">
+                <div class="absolute -top-4 left-8 bg-blue-600 text-white px-4 py-1 rounded-full font-bold text-sm shadow-lg">
+                    Phase 1. 발급의 오해와 진실
+                </div>
+                
+                <h2 class="text-2xl font-bold text-white mt-2 mb-6 text-center">
+                    '사용 사례' 선택이 권한을 결정할까?
+                </h2>
+
+                <div class="flex flex-col md:flex-row items-stretch justify-center gap-4 relative z-10">
+                    <!-- Option A -->
+                    <div class="flex-1 bg-slate-800 border border-slate-600 rounded-xl p-5 text-center relative">
+                        <div class="text-blue-400 font-bold mb-2">선택 A</div>
+                        <div class="text-lg font-bold text-white mb-2">CLI(Command Line Interface, 명령줄 인터페이스)</div>
+                        <p class="text-sm text-slate-400">Terraform(테라폼) 등 로컬 코드 실행 목적</p>
+                    </div>
+
+                    <!-- OR divider -->
+                    <div class="flex items-center justify-center font-black text-slate-500 text-xl py-2 md:py-0">
+                        VS
+                    </div>
+
+                    <!-- Option B -->
+                    <div class="flex-1 bg-slate-800 border border-slate-600 rounded-xl p-5 text-center">
+                        <div class="text-indigo-400 font-bold mb-2">선택 B</div>
+                        <div class="text-lg font-bold text-white mb-2">AWS 외부에서 실행되는 애플리케이션</div>
+                        <p class="text-sm text-slate-400">온프레미스(On-premises, 자체 보유 전산실) 등 외부 연동 목적</p>
+                    </div>
+                </div>
+
+                <!-- Merge pointing down -->
+                <div class="flex justify-center my-4">
+                    <svg class="w-8 h-8 text-slate-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </div>
+
+                <!-- Result -->
+                <div class="bg-gradient-to-r from-emerald-900/50 to-teal-900/50 border border-emerald-500/30 rounded-xl p-6 text-center">
+                    <h3 class="text-xl font-bold text-emerald-400 mb-2">결과: 100% 동일한 키 발급</h3>
+                    <p class="text-slate-300 text-sm mb-4">
+                        화면의 선택은 AWS의 단순 통계 및 가이드라인 제시용일 뿐입니다.<br>
+                        실제 권한은 연결된 <strong>IAM Policy(아이엠 정책, 항등 및 접근 관리 권한 정책)<a href="#fn1" class="text-blue-400 hover:underline">¹</a></strong>에 의해 결정됩니다.
+                    </p>
+                    <div class="inline-flex items-center bg-slate-900 border border-slate-700 rounded-lg px-4 py-2">
+                        <span class="bg-emerald-500 text-slate-900 text-xs font-bold px-2 py-1 rounded mr-3">무료</span>
+                        <span class="text-sm text-slate-400">키 발급은 무료이나, 프로비저닝<a href="#fn2" class="text-blue-400 hover:underline">²</a>된 리소스는 과금됨</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Core 4 Keys Matrix -->
+            <section class="relative">
+                <div class="absolute -top-4 left-8 bg-indigo-600 text-white px-4 py-1 rounded-full font-bold text-sm shadow-lg z-10">
+                    Phase 2. AWS 핵심 키 4대장
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+                    
+                    <!-- 1. Access Key -->
+                    <div class="glass-panel rounded-2xl p-6 border-t-4 border-t-blue-500 hover:bg-slate-800 transition-colors">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-blue-500/20 p-3 rounded-lg">
+                                <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                            </div>
+                            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 text-xs font-bold px-2 py-1 rounded">발급 무료</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-1">Access Key</h3>
+                        <p class="text-xs text-slate-400 mb-4">액세스 키 아이디 & 비밀 액세스 키</p>
+                        <p class="text-sm text-slate-300 mb-4">프로그래밍 방식(CLI, SDK)으로 AWS API를 호출하여 클라우드 자원을 제어하는 장기 자격 증명.</p>
+                        <div class="text-xs text-slate-400 bg-slate-900/50 p-3 rounded border border-slate-700">
+                            <strong>주 사용처:</strong> Terraform(테라폼), CI/CD(지속적 통합/배포) 자동화 파이프라인
+                        </div>
+                    </div>
+
+                    <!-- 2. Key Pair -->
+                    <div class="glass-panel rounded-2xl p-6 border-t-4 border-t-amber-500 hover:bg-slate-800 transition-colors">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-amber-500/20 p-3 rounded-lg">
+                                <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+                            </div>
+                            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 text-xs font-bold px-2 py-1 rounded">발급 무료</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-1">Key Pair</h3>
+                        <p class="text-xs text-slate-400 mb-4">Amazon EC2 Key Pair (아마존 엘라스틱 컴퓨트 클라우드 키 페어)</p>
+                        <p class="text-sm text-slate-300 mb-4">가상 서버 운영체제에 원격으로 로그인(SSH, RDP)하기 위한 비대칭 암호화 키 (.pem / .ppk).</p>
+                        <div class="text-xs text-slate-400 bg-slate-900/50 p-3 rounded border border-slate-700">
+                            <strong>주의사항:</strong> 최초 1회만 다운로드 가능. 분실 시 서버 접근 불가.
+                        </div>
+                    </div>
+
+                    <!-- 3. KMS Key -->
+                    <div class="glass-panel rounded-2xl p-6 border-t-4 border-t-red-500 hover:bg-slate-800 transition-colors">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-red-500/20 p-3 rounded-lg">
+                                <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            </div>
+                            <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-lg animate-pulse">유료 서비스</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-1">KMS Key</h3>
+                        <p class="text-xs text-slate-400 mb-4">AWS Key Management Service Key (아마존 웹 서비스 키 관리 서비스 키)</p>
+                        <p class="text-sm text-slate-300 mb-4">DB, 스토리지 파일, 애플리케이션 데이터 등을 암/복호화하는 중앙 집중식 마스터 키.</p>
+                        <div class="text-xs text-slate-400 bg-slate-900/50 p-3 rounded border border-slate-700">
+                            <strong>과금 포인트:</strong> 커스텀 키 1개당 월 $1 + API 호출 1만 건당 $0.03 부과<a href="#fn3" class="text-blue-400 hover:underline">³</a>
+                        </div>
+                    </div>
+
+                    <!-- 4. API Key -->
+                    <div class="glass-panel rounded-2xl p-6 border-t-4 border-t-purple-500 hover:bg-slate-800 transition-colors">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-purple-500/20 p-3 rounded-lg">
+                                <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            </div>
+                            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 text-xs font-bold px-2 py-1 rounded">발급 무료</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-white mb-1">API Key</h3>
+                        <p class="text-xs text-slate-400 mb-4">Amazon API Gateway API Key (아마존 에이피아이 게이트웨이 키)</p>
+                        <p class="text-sm text-slate-300 mb-4">자체 개발한 서버리스 API를 호출하는 고객의 사용량을 추적하고 제어하기 위한 식별자.</p>
+                        <div class="text-xs text-slate-400 bg-slate-900/50 p-3 rounded border border-slate-700">
+                            <strong>주 사용처:</strong> 고객사별 초당 호출 횟수(Throttling) 제한 및 과금 모델 구축
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Section 3: Security Red Zone -->
+            <section class="border-2 border-red-500/50 bg-red-950/20 rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                <!-- Diagonal stripes background -->
+                <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg, #ef4444 25%, transparent 25%, transparent 75%, #ef4444 75%, #ef4444), repeating-linear-gradient(45deg, #ef4444 25%, transparent 25%, transparent 75%, #ef4444 75%, #ef4444); background-size: 20px 20px; background-position: 0 0, 10px 10px;"></div>
+                
+                <div class="relative z-10 flex flex-col md:flex-row gap-6 items-center">
+                    <div class="bg-red-500/20 p-5 rounded-full border border-red-500 shrink-0">
+                        <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-black text-red-400 mb-2">클라우드 해킹 원인 1위: Access Key 하드코딩</h2>
+                        <p class="text-slate-300 text-sm leading-relaxed mb-4">
+                            <code>Secret Access Key(비밀 액세스 키)</code>가 포함된 코드를 <a href="https://github.com" target="_blank" class="text-blue-400 hover:underline">GitHub(깃허브)</a> 퍼블릭 리포지토리에 올리는 순간, 전 세계 해킹 봇이 <strong>1분 이내에 스캔</strong>하여 최고 사양의 가상 채굴 서버 수백 대를 생성합니다. (수천만 원 요금 폭탄 발생)
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-slate-900 border border-red-500/30 rounded p-3">
+                                <span class="text-red-400 font-bold text-xs uppercase tracking-wider">절대 금지 ❌</span>
+                                <p class="text-slate-400 text-xs mt-1">코드 내부에 직접 키 값 입력 (하드코딩)</p>
+                            </div>
+                            <div class="bg-slate-900 border border-emerald-500/30 rounded p-3">
+                                <span class="text-emerald-400 font-bold text-xs uppercase tracking-wider">모범 사례 ✅</span>
+                                <p class="text-slate-400 text-xs mt-1">로컬 <code>환경 변수</code> 사용 및 <code>.gitignore</code> 적용.<br>AWS 자원 간 통신은 <strong>IAM Role(아이엠 역할)</strong> 사용.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Footer / Footnotes -->
+        <footer class="bg-slate-950 p-8 border-t border-slate-800 text-xs text-slate-500">
+            <h4 class="font-bold text-slate-400 mb-3">용어 주석 및 참고 자료</h4>
+            <div class="space-y-2">
+                <p id="fn1"><span class="text-slate-400 font-bold">1. IAM Policy(아이엠 정책):</span> AWS 리소스에 대한 접근 권한을 매우 세밀하게 정의하는 JSON(JavaScript Object Notation) 형식의 규칙 문서입니다. 이 문서에 따라 자원의 허용/차단 여부가 결정됩니다.</p>
+                <p id="fn2"><span class="text-slate-400 font-bold">2. 프로비저닝(Provisioning):</span> IT 인프라를 설정하는 프로세스로, 사용자의 요구에 맞게 네트워크, 서버 등을 할당하고 배치하여 시스템을 즉시 사용할 수 있는 상태로 준비해 두는 과정입니다.</p>
+                <p id="fn3"><span class="text-slate-400 font-bold">3. KMS 요금제:</span> 기본 제공 관리형 키는 무료이나, 사용자 제어(Customer Managed Key) 생성 시 발생합니다. 또한, 애플리케이션 봉투 암호화(Envelope Encryption: 데이터 키 생성 후 마스터 키로 한 번 더 암호화하는 아키텍처) 적용 시 API 호출량에 따라 과금됩니다.</p>
+            </div>
+            
+            <div class="mt-8 pt-6 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="text-blue-400 hover:text-blue-300 transition-colors">
+                    <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials.html" target="_blank">📚 AWS 공식 가이드: IAM 자격 증명 개요</a>
+                </div>
+                <div class="font-black text-lg text-white bg-blue-600 px-6 py-2 rounded-lg">
+                    Next Step: Terraform 보안 관리 및 실습
+                </div>
+            </div>
+        </footer>
+
+    </main>
+
+</body>
+</html>
