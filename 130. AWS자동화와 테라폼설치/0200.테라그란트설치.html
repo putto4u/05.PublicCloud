@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <!-- 해당 문서에는 SVG 및 Mermaid JS가 전혀 사용되지 않았음을 명시적으로 확인합니다. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terragrunt: DRY 인프라스트럭처 마스터하기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+        }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        
+        .tree-line::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: -1rem;
+            width: 2px;
+            background-color: #E2E8F0;
+        }
+        
+        .tree-branch::before {
+            content: '';
+            position: absolute;
+            top: 1.25rem;
+            left: -1rem;
+            width: 1rem;
+            height: 2px;
+            background-color: #E2E8F0;
+        }
+    </style>
+</head>
+<body class="antialiased pb-20">
+
+    <header class="bg-[#4F46E5] text-white py-16 px-6 text-center shadow-lg">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">Terragrunt(테라그란트)</h1>
+            <h2 class="text-xl md:text-2xl font-light text-indigo-100">DRY (Don't Repeat Yourself - 코드 중복 최소화 원칙) 인프라스트럭처 마스터하기</h2>
+            <p class="mt-6 text-lg text-indigo-200 max-w-2xl mx-auto">
+                Terraform(테라폼)의 한계를 극복하고, 수십 개의 클라우드 환경을 단 하나의 설정 파일로 우아하게 통제하는 실무 엔터프라이즈 아키텍처 가이드입니다.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-20">
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div>
+                <h3 class="text-2xl font-bold text-[#0F172A] mb-4 border-b-4 border-[#06B6D4] inline-block pb-2">문제점과 해결책</h3>
+                <p class="text-slate-600 mb-6 leading-relaxed">
+                    다수의 클라우드 프로젝트를 관리할 때, 기존 Terraform(테라폼) 방식은 <a href="https://developer.hashicorp.com/terraform/language/providers" target="_blank" class="text-indigo-600 hover:underline font-semibold">Provider(제공자)</a>와 Backend(백엔드 원격 저장소) 설정 코드가 모든 폴더마다 중복되는 치명적인 단점이 있습니다. Terragrunt(테라그란트)는 Wrapper(래퍼 - 기본 프로그램의 기능을 감싸 확장하는 도구)로서 이 중복을 완벽히 제거합니다.
+                </p>
+                <div class="bg-amber-50 border-l-4 border-[#F59E0B] p-4 rounded-r-lg shadow-sm">
+                    <h4 class="font-bold text-amber-800 flex items-center gap-2">
+                        <span>⚠️</span> 실전 팁 & 자주 하는 실수
+                    </h4>
+                    <p class="text-amber-700 text-sm mt-2">
+                        많은 실무자들이 중복을 줄이려고 OS의 Symbolic Link(심볼릭 링크 - 원본 파일의 바로가기)를 사용하지만, 이는 CI/CD(지속적 통합/지속적 배포) 파이프라인에서 경로 인식 오류를 일으키는 명백한 안티 패턴입니다. 반드시 테라그란트와 같은 전용 도구를 사용해야 합니다.
+                    </p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-100">
+                <h4 class="text-center font-semibold text-slate-700 mb-2">보일러플레이트(반복 코드) 감소 효과</h4>
+                <div class="chart-container">
+                    <canvas id="boilerplateChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-cyan-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 -z-10 transform translate-x-1/2 -translate-y-1/2"></div>
+            
+            <h3 class="text-2xl font-bold text-[#0F172A] mb-8 text-center">실무 디렉터리 아키텍처 구조</h3>
+            <p class="text-slate-600 mb-8 text-center max-w-3xl mx-auto">
+                최상위 루트에 위치한 공통 <code class="bg-slate-100 px-1 py-0.5 rounded text-indigo-600">terragrunt.hcl</code> 파일 하나가 수백 개의 하위 프로젝트에 설정을 동적으로 주입합니다.
+            </p>
+
+            <div class="max-w-2xl mx-auto bg-slate-800 rounded-xl p-8 shadow-inner text-slate-300 font-mono text-sm">
+                <div class="font-bold text-indigo-400 mb-4 text-lg">📁 live-infrastructure/</div>
+                <div class="relative tree-line ml-4 space-y-4">
+                    
+                    <div class="relative tree-branch pl-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">📄</span>
+                            <div class="bg-indigo-600/20 border border-indigo-500 text-indigo-300 px-3 py-1.5 rounded-md flex-1">
+                                <span class="font-bold text-white">terragrunt.hcl</span> (루트 공통 설정)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative tree-branch pl-4 pt-2">
+                        <div class="font-bold text-cyan-400 text-lg mb-2">📁 global/ (글로벌 공통 환경)</div>
+                        <div class="relative tree-line ml-4 space-y-3">
+                            <div class="relative tree-branch pl-4">
+                                <div class="font-bold text-slate-200">📁 iam/ (IAM - ID 및 접근 관리)</div>
+                                <div class="relative tree-line ml-4 mt-2">
+                                    <div class="relative tree-branch pl-4 flex items-center gap-3">
+                                        <span class="text-xl">📄</span>
+                                        <div class="bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-md text-slate-300 flex-1">
+                                            terragrunt.hcl <span class="text-slate-500 text-xs">(계정 공통 권한)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative tree-branch pl-4 pt-2">
+                        <div class="font-bold text-emerald-400 text-lg mb-2">📁 prod/ (운영 환경)</div>
+                        <div class="relative tree-line ml-4 space-y-3">
+                            <div class="relative tree-branch pl-4">
+                                <div class="font-bold text-slate-200">📁 vpc/ (VPC - 가상 사설망)</div>
+                                <div class="relative tree-line ml-4 mt-2 mb-3">
+                                    <div class="relative tree-branch pl-4 flex items-center gap-3">
+                                        <span class="text-xl">📄</span>
+                                        <div class="bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-md text-slate-300 flex-1">
+                                            terragrunt.hcl
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative tree-branch pl-4">
+                                <div class="font-bold text-slate-200">📁 database/ (데이터베이스)</div>
+                                <div class="relative tree-line ml-4 mt-2 mb-3">
+                                    <div class="relative tree-branch pl-4 flex items-center gap-3">
+                                        <span class="text-xl">📄</span>
+                                        <div class="bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-md text-slate-300 flex-1">
+                                            terragrunt.hcl
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative tree-branch pl-4">
+                                <div class="font-bold text-slate-200">📁 web-server/ (웹 서버)</div>
+                                <div class="relative tree-line ml-4 mt-2">
+                                    <div class="relative tree-branch pl-4 flex items-center gap-3">
+                                        <span class="text-xl">📄</span>
+                                        <div class="bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-md text-slate-300 flex-1">
+                                            terragrunt.hcl <span class="text-slate-500 text-xs">(상속 및 변수 주입)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative tree-branch pl-4 pt-2">
+                        <div class="font-bold text-amber-400 text-lg mb-2">📁 dev/ (개발 환경)</div>
+                        <div class="relative tree-line ml-4 space-y-3">
+                            <div class="relative tree-branch pl-4">
+                                <div class="font-bold text-slate-200">📁 vpc/</div>
+                                <div class="relative tree-line ml-4 mt-2 mb-3">
+                                    <div class="relative tree-branch pl-4 flex items-center gap-3">
+                                        <span class="text-xl">📄</span>
+                                        <div class="bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-md text-slate-300 flex-1">
+                                            terragrunt.hcl
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative tree-branch pl-4">
+                                <div class="font-bold text-slate-200">📁 database/</div>
+                                <div class="relative tree-line ml-4 mt-2 mb-3">
+                                    <div class="relative tree-branch pl-4 flex items-center gap-3">
+                                        <span class="text-xl">📄</span>
+                                        <div class="bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-md text-slate-300 flex-1">
+                                            terragrunt.hcl
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative tree-branch pl-4">
+                                <div class="font-bold text-slate-200">📁 web-server/</div>
+                                <div class="relative tree-line ml-4 mt-2">
+                                    <div class="relative tree-branch pl-4 flex items-center gap-3">
+                                        <span class="text-xl">📄</span>
+                                        <div class="bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-md text-slate-300 flex-1">
+                                            terragrunt.hcl <span class="text-slate-500 text-xs">(상속 및 변수 주입)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div class="order-2 md:order-1 bg-white p-6 rounded-2xl shadow-md border border-slate-100">
+                <h4 class="text-center font-semibold text-slate-700 mb-2">안전한 원격 상태(Remote State) 구성 요소</h4>
+                <div class="chart-container">
+                    <canvas id="backendChart"></canvas>
+                </div>
+            </div>
+            <div class="order-1 md:order-2">
+                <h3 class="text-2xl font-bold text-[#0F172A] mb-4 border-b-4 border-[#4F46E5] inline-block pb-2">동적 원격 상태 관리</h3>
+                <p class="text-slate-600 mb-4 leading-relaxed">
+                    테라그란트는 루트 설정에서 <code>path_relative_to_include()</code> 내장 함수를 사용하여, 각 폴더의 경로를 기반으로 고유한 S3 객체 키(Key)를 자동 생성합니다. 이를 통해 상태 파일이 겹치거나 손상되는 휴먼 에러를 원천적으로 차단합니다.
+                </p>
+                
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm mt-6">
+                    <h4 class="font-bold text-red-800 flex items-center gap-2">
+                        <span>💰</span> 과금 주의 사항 (AWS)
+                    </h4>
+                    <ul class="text-red-700 text-sm mt-2 list-disc list-inside space-y-1">
+                        <li><strong>Amazon S3 (아마존 단순 스토리지 서비스):</strong> 상태 파일 보관량 및 데이터 읽기/쓰기 API 요청 건수에 따라 <span class="font-bold underline">유료 과금</span>이 발생합니다.</li>
+                        <li><strong>Amazon DynamoDB (아마존 다이나모디비):</strong> 동시에 인프라를 수정하는 것을 막는 잠금(Locking) 기능에 사용되며, 테이블의 읽기/쓰기 용량 단위(RCU/WCU) 설정에 따라 <span class="font-bold underline">유료 과금</span>이 발생합니다. <sup>[1]</sup></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="text-center mb-10">
+                <h3 class="text-2xl font-bold text-[#0F172A] mb-4 border-b-4 border-[#06B6D4] inline-block pb-2">Terragrunt(테라그란트) 설치 방법</h3>
+                <p class="text-slate-600 max-w-3xl mx-auto">
+                    테라그란트를 사용하기 위해서는 먼저 <span class="font-semibold text-indigo-600">Terraform(테라폼)</span>이 시스템에 설치되어 있어야 합니다. OS(운영체제) 환경에 맞는 방식을 선택하세요.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- macOS -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+                        <span class="text-2xl">🍎</span>
+                        <h4 class="font-bold text-slate-800">macOS 환경 (권장)</h4>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-sm text-slate-600 mb-4"><a href="https://brew.sh/" target="_blank" class="text-indigo-600 hover:underline font-semibold">Homebrew(홈브루 - macOS용 패키지 관리자)</a>를 이용한 설치</p>
+                        <div class="bg-slate-800 rounded-lg p-4 font-mono text-sm text-green-400 overflow-x-auto shadow-inner leading-relaxed">
+                            <span class="text-slate-400"># 1. 테라폼 설치 (미설치 시)</span><br>
+                            $ brew tap hashicorp/tap<br>
+                            $ brew install hashicorp/tap/terraform<br><br>
+                            <span class="text-slate-400"># 2. 테라그란트 설치</span><br>
+                            $ brew install terragrunt
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Linux / Windows -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+                        <span class="text-2xl">🐧🪟</span>
+                        <h4 class="font-bold text-slate-800">Linux(리눅스) 및 Windows(윈도우)</h4>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-sm text-slate-600 mb-4">공식 릴리스 페이지에서 직접 Binary(바이너리 - 컴퓨터가 실행할 수 있는 형식의 파일) 다운로드</p>
+                        <ol class="list-decimal list-inside text-sm text-slate-700 space-y-3">
+                            <li><a href="https://github.com/gruntwork-io/terragrunt/releases" target="_blank" class="text-indigo-600 hover:underline font-semibold">GitHub(깃허브) Releases 페이지</a> 접속</li>
+                            <li>운영체제에 맞는 압축 파일 다운로드 및 해제</li>
+                            <li>시스템의 환경 변수(PATH)가 지정된 디렉터리로 파일 이동</li>
+                            <li>실행 권한 부여 <br><span class="text-xs text-slate-500 ml-4">(Linux/Mac 예시: <code class="bg-slate-100 px-1 rounded text-indigo-600">chmod u+x terragrunt</code>)</span></li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verification -->
+            <div class="mt-8 bg-indigo-50 rounded-xl p-6 border border-indigo-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <h4 class="font-bold text-indigo-900 mb-1 flex items-center gap-2"><span>✅</span> 설치 확인</h4>
+                    <p class="text-sm text-indigo-700">터미널에서 버전을 확인하여 정상 작동을 테스트합니다.</p>
+                </div>
+                <div class="bg-slate-800 rounded-lg p-4 font-mono text-sm text-green-400 shadow-inner w-full md:w-auto text-center md:text-left">
+                    $ terragrunt --version
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h3 class="text-2xl font-bold text-[#0F172A] mb-8 text-center">핵심 워크플로우 변환</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="bg-white rounded-xl shadow p-6 border-t-4 border-slate-300 hover:border-[#06B6D4] transition-colors">
+                    <div class="text-4xl mb-4 text-center">📥</div>
+                    <h4 class="text-lg font-bold text-center text-slate-800 mb-2">초기화</h4>
+                    <div class="bg-slate-100 p-3 rounded font-mono text-sm text-center text-slate-600 line-through mb-2">terraform init</div>
+                    <div class="text-center text-xl text-indigo-500 font-bold mb-2">↓</div>
+                    <div class="bg-indigo-50 p-3 rounded font-mono text-sm text-center text-indigo-700 font-bold border border-indigo-200">terragrunt init</div>
+                    <p class="text-xs text-slate-500 mt-4 text-center">루트 설정을 읽어와 동적으로 백엔드 구성을 초기화합니다.</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow p-6 border-t-4 border-slate-300 hover:border-[#4F46E5] transition-colors">
+                    <div class="text-4xl mb-4 text-center">🔍</div>
+                    <h4 class="text-lg font-bold text-center text-slate-800 mb-2">계획 확인</h4>
+                    <div class="bg-slate-100 p-3 rounded font-mono text-sm text-center text-slate-600 line-through mb-2">terraform plan</div>
+                    <div class="text-center text-xl text-indigo-500 font-bold mb-2">↓</div>
+                    <div class="bg-indigo-50 p-3 rounded font-mono text-sm text-center text-indigo-700 font-bold border border-indigo-200">terragrunt plan</div>
+                    <p class="text-xs text-slate-500 mt-4 text-center">중복 없는 코드를 기반으로 변경될 인프라 내역을 사전 검토합니다.</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow p-6 border-t-4 border-slate-300 hover:border-[#F59E0B] transition-colors">
+                    <div class="text-4xl mb-4 text-center">🚀</div>
+                    <h4 class="text-lg font-bold text-center text-slate-800 mb-2">실제 배포</h4>
+                    <div class="bg-slate-100 p-3 rounded font-mono text-sm text-center text-slate-600 line-through mb-2">terraform apply</div>
+                    <div class="text-center text-xl text-indigo-500 font-bold mb-2">↓</div>
+                    <div class="bg-indigo-50 p-3 rounded font-mono text-sm text-center text-indigo-700 font-bold border border-indigo-200">terragrunt apply</div>
+                    <p class="text-xs text-slate-500 mt-4 text-center">결합된 최종 설정으로 클라우드에 실제 리소스를 프로비저닝합니다.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="footnotes" class="text-sm text-slate-500 mt-16 border-t border-slate-200 pt-6">
+            <h4 class="font-bold mb-2">각주 및 참고자료</h4>
+            <ol class="list-decimal list-inside space-y-2">
+                <li id="fn-1">DynamoDB 과금 방어: 상태 잠금용 DynamoDB 테이블은 트래픽이 간헐적이므로, Provisioned(프로비저닝된 용량) 방식 대신 On-Demand(온디맨드) 모드로 설정해야 불필요한 고정 비용 청구를 막을 수 있습니다.</li>
+                <li>버전 관리: 팀 내 장애 예방을 위해 <code class="text-xs bg-slate-100 px-1 rounded">terraform_version_constraint</code> 구문을 통해 도구 버전을 엄격히 통제하세요.</li>
+            </ol>
+        </section>
+
+    </main>
+
+    <script>
+        function wrapLabel(label) {
+            if (label.length <= 16) return label;
+            
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            
+            for (let i = 0; i < words.length; i++) {
+                const word = words[i];
+                if ((currentLine + word).length > 16) {
+                    if (currentLine.length > 0) {
+                        lines.push(currentLine.trim());
+                    }
+                    currentLine = word + ' ';
+                } else {
+                    currentLine += word + ' ';
+                }
+            }
+            if (currentLine.trim().length > 0) {
+                lines.push(currentLine.trim());
+            }
+            return lines;
+        }
+
+        const commonTooltipConfig = {
+            callbacks: {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    if (Array.isArray(label)) {
+                        return label.join(' ');
+                    } else {
+                        return label;
+                    }
+                }
+            }
+        };
+
+        const rawBarLabels = ['표준 테라폼 (Standard Terraform)', '테라그란트 (Terragrunt 적용 후)'];
+        const wrappedBarLabels = rawBarLabels.map(wrapLabel);
+
+        const ctxBar = document.getElementById('boilerplateChart').getContext('2d');
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: wrappedBarLabels,
+                datasets: [{
+                    label: '설정 파일 코드 라인 수 (Lines of Code)',
+                    data: [180, 25],
+                    backgroundColor: [
+                        '#94A3B8',
+                        '#4F46E5'
+                    ],
+                    borderColor: [
+                        '#64748B',
+                        '#4338CA'
+                    ],
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: commonTooltipConfig
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '코드 라인 수'
+                        }
+                    }
+                }
+            }
+        });
+
+        const rawDoughnutLabels = ['S3 (상태 데이터 저장, 과금 발생)', 'DynamoDB (동시성 제어 잠금, 과금 발생)', 'KMS (상태 데이터 암호화)'];
+        const wrappedDoughnutLabels = rawDoughnutLabels.map(wrapLabel);
+
+        const ctxDoughnut = document.getElementById('backendChart').getContext('2d');
+        new Chart(ctxDoughnut, {
+            type: 'doughnut',
+            data: {
+                labels: wrappedDoughnutLabels,
+                datasets: [{
+                    data: [60, 25, 15],
+                    backgroundColor: [
+                        '#06B6D4',
+                        '#F59E0B',
+                        '#4F46E5'
+                    ],
+                    hoverOffset: 4,
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: commonTooltipConfig
+                }
+            }
+        });
+    </script>
+</body>
+</html>
