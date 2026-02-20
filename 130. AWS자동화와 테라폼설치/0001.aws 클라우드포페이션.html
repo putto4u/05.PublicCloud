@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IaC 인사이트: AWS CloudFormation vs Terraform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Palette: Vibrant Tech (Blue/Purple/Pink) */
+        :root {
+            --color-primary: #4361ee;
+            --color-secondary: #7209b7;
+            --color-accent: #f72585;
+            --color-bg: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--color-bg);
+            color: #1f2937;
+        }
+
+        /* Chart Container Styling - MANDATORY */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Constrain width for readability */
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px; /* Base height */
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        /* Custom Utilities */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .step-arrow::after {
+            content: '➔';
+            font-size: 1.5rem;
+            color: var(--color-secondary);
+            margin-left: 0.5rem;
+            margin-right: 0.5rem;
+        }
+        @media (max-width: 640px) {
+            .step-arrow::after {
+                content: '↓';
+                display: block;
+                margin: 0.5rem auto;
+            }
+        }
+    </style>
+    <!-- 
+        NARRATIVE PLAN:
+        1. Intro: Define IaC and introduce the two contenders.
+        2. CloudFormation Deep Dive: Core components (Template, Stack, ChangeSet) and Workflow.
+        3. The Comparison (Radar Chart): Visualizing qualitative differences (Scope, Speed, etc.).
+        4. Decision Matrix (Bar Chart): When to use which tool based on scenarios.
+        5. Best Practices & Cost (Donut Chart): Practical tips and pricing model.
+        
+        PALETTE: "Vibrant Tech" - #4361ee (Blue), #7209b7 (Purple), #f72585 (Pink)
+        NO SVG USED. NO MERMAID USED.
+    -->
+</head>
+<body class="antialiased">
+
+    <!-- Hero Section -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-black tracking-tight text-gray-900">IaC <span class="text-indigo-600">INSIGHTS</span></h1>
+            <nav class="hidden md:flex space-x-8 text-sm font-semibold text-gray-500">
+                <a href="#core-concepts" class="hover:text-indigo-600 transition">핵심 개념</a>
+                <a href="#comparison" class="hover:text-indigo-600 transition">비교 분석</a>
+                <a href="#decision" class="hover:text-indigo-600 transition">선택 가이드</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <!-- Introduction -->
+        <section class="text-center space-y-6">
+            <h2 class="text-5xl md:text-6xl font-black text-gray-900 leading-tight">
+                인프라, <br class="md:hidden" />이제는 <span class="gradient-text">코드</span>입니다.
+            </h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                AWS CloudFormation과 Terraform. 클라우드 인프라 자동화(IaC)의 두 거인을 비교하고, 
+                귀하의 조직에 가장 적합한 도구를 선택하는 방법을 데이터 시각화로 안내합니다.
+            </p>
+        </section>
+
+        <!-- Section 1: CloudFormation Core Concepts -->
+        <section id="core-concepts" class="space-y-8">
+            <div class="border-l-4 border-indigo-500 pl-6">
+                <h3 class="text-3xl font-bold text-gray-900">AWS CloudFormation 핵심 구성</h3>
+                <p class="mt-2 text-lg text-gray-600">
+                    CloudFormation은 인프라를 '템플릿'으로 정의하고, 이를 '스택' 단위로 관리합니다.
+                    변경 사항은 '변경 세트'를 통해 미리 검증하여 안전성을 확보합니다.
+                </p>
+            </div>
+
+            <!-- 3 Columns for Core Concepts -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Template -->
+                <div class="glass-card bg-white p-8 rounded-2xl shadow-lg transform hover:-translate-y-1 transition duration-300">
+                    <div class="text-4xl mb-4">📄</div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-2">템플릿 (Template)</h4>
+                    <p class="text-gray-600">
+                        인프라의 설계도입니다. <span class="font-semibold text-indigo-600">JSON</span> 또는 <span class="font-semibold text-indigo-600">YAML</span> 형식으로 작성되며, 리소스와 종속성을 선언적으로 기술합니다.
+                    </p>
+                </div>
+                <!-- Stack -->
+                <div class="glass-card bg-white p-8 rounded-2xl shadow-lg transform hover:-translate-y-1 transition duration-300">
+                    <div class="text-4xl mb-4">📚</div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-2">스택 (Stack)</h4>
+                    <p class="text-gray-600">
+                        템플릿이 실체화된 결과물입니다. 관련된 리소스들을 하나의 논리적 그룹으로 묶어 생성, 수정, 삭제를 일괄 처리합니다.
+                    </p>
+                </div>
+                <!-- Change Set -->
+                <div class="glass-card bg-white p-8 rounded-2xl shadow-lg transform hover:-translate-y-1 transition duration-300">
+                    <div class="text-4xl mb-4">🛡️</div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-2">변경 세트 (Change Set)</h4>
+                    <p class="text-gray-600">
+                        안전 장치입니다. 스택을 업데이트하기 전, 변경 사항이 인프라에 미칠 영향을 미리 시뮬레이션하고 검토합니다.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Workflow Diagram using HTML/CSS (No Mermaid) -->
+            <div class="mt-12 bg-white rounded-2xl shadow-md p-8">
+                <h4 class="text-lg font-bold text-gray-800 mb-6 text-center">CloudFormation 작동 프로세스</h4>
+                <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 text-center">
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 w-full md:w-auto">
+                        <div class="font-bold text-indigo-600">1. 코드 작성</div>
+                        <div class="text-sm text-gray-500">YAML/JSON</div>
+                    </div>
+                    <div class="step-arrow text-gray-400"></div>
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 w-full md:w-auto">
+                        <div class="font-bold text-indigo-600">2. S3 저장</div>
+                        <div class="text-sm text-gray-500">템플릿 업로드</div>
+                    </div>
+                    <div class="step-arrow text-gray-400"></div>
+                    <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200 w-full md:w-auto shadow-inner">
+                        <div class="font-bold text-indigo-800">CF 엔진</div>
+                        <div class="text-sm text-indigo-600">종속성 분석</div>
+                    </div>
+                    <div class="step-arrow text-gray-400"></div>
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 w-full md:w-auto">
+                        <div class="font-bold text-indigo-600">3. API 호출</div>
+                        <div class="text-sm text-gray-500">리소스 배치</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Comparison (Radar Chart) -->
+        <section id="comparison" class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div class="order-2 lg:order-1">
+                <div class="chart-container bg-white rounded-2xl shadow-lg p-4">
+                    <canvas id="comparisonRadar"></canvas>
+                </div>
+            </div>
+            <div class="order-1 lg:order-2 space-y-6">
+                <div class="border-l-4 border-purple-500 pl-6">
+                    <h3 class="text-3xl font-bold text-gray-900">CloudFormation vs Terraform</h3>
+                    <p class="mt-2 text-lg text-gray-600">
+                        두 도구의 기술적 특성을 5가지 주요 지표로 비교했습니다.
+                    </p>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <span class="flex-shrink-0 h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm mr-3">1</span>
+                        <p class="text-gray-600"><strong class="text-gray-900">적용 범위:</strong> Terraform은 멀티 클라우드를 지원하는 반면, CloudFormation은 AWS에 최적화되어 있습니다.</p>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="flex-shrink-0 h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-sm mr-3">2</span>
+                        <p class="text-gray-600"><strong class="text-gray-900">상태 관리:</strong> Terraform은 상태 파일(.tfstate)을 사용자가 직접 관리해야 하지만, CloudFormation은 AWS가 내부적으로 완전 관리합니다.</p>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="flex-shrink-0 h-6 w-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-bold text-sm mr-3">3</span>
+                        <p class="text-gray-600"><strong class="text-gray-900">실행 속도:</strong> Terraform의 실행 속도가 일반적으로 더 빠르며, CloudFormation은 안전한 롤백을 중시하여 상대적으로 느릴 수 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Decision Matrix (Horizontal Bar Chart) -->
+        <section id="decision" class="bg-gray-50 rounded-3xl p-8 md:p-12 shadow-inner">
+            <div class="max-w-4xl mx-auto space-y-8">
+                <div class="text-center">
+                    <h3 class="text-3xl font-bold text-gray-900">어떤 도구를 선택해야 할까요?</h3>
+                    <p class="mt-4 text-gray-600">
+                        실무 전문가들의 의견을 바탕으로 시나리오별 적합성 점수를 시각화했습니다.
+                        조직의 환경과 요구사항에 따라 더 높은 점수의 도구를 선택하세요.
+                    </p>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="decisionBar"></canvas>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-indigo-100">
+                        <h5 class="font-bold text-indigo-700 mb-2">CloudFormation 추천</h5>
+                        <ul class="list-disc list-inside text-gray-600 space-y-1">
+                            <li>AWS 100% 종속 환경 (All-in AWS)</li>
+                            <li>엄격한 보안 및 규정 준수 필요</li>
+                            <li>외부 도구/상태 관리 부담 최소화</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-purple-100">
+                        <h5 class="font-bold text-purple-700 mb-2">Terraform 추천</h5>
+                        <ul class="list-disc list-inside text-gray-600 space-y-1">
+                            <li>멀티 클라우드/온프레미스 혼합 환경</li>
+                            <li>복잡한 로직(반복/조건) 구현 필요</li>
+                            <li>빠른 실행 및 DX(개발자 경험) 중시</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Cost & Best Practices -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-1 space-y-6">
+                 <div class="border-l-4 border-pink-500 pl-6">
+                    <h3 class="text-2xl font-bold text-gray-900">비용 구조 이해</h3>
+                    <p class="mt-2 text-gray-600">
+                        CloudFormation 자체는 무료입니다. 비용은 생성된 리소스에서만 발생합니다.
+                    </p>
+                </div>
+                <div class="chart-container h-64">
+                    <canvas id="costDonut"></canvas>
+                </div>
+            </div>
+            
+            <div class="md:col-span-2 bg-white rounded-2xl shadow-lg p-8">
+                <h3 class="text-2xl font-bold text-gray-900 mb-6">⚠️ 실전 주의사항 및 팁</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <!-- Drift -->
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-2 text-red-500 font-bold">
+                            <span>🚫</span>
+                            <span>Drift (형상 불일치) 주의</span>
+                        </div>
+                        <p class="text-sm text-gray-600">
+                            콘솔에서 리소스를 수동으로 변경하면 코드와 실제 상태가 달라집니다. <br>
+                            <strong>해결책:</strong> 항상 템플릿을 수정하여 배포하고, 주기적으로 'Drift Detection'을 실행하세요.
+                        </p>
+                    </div>
+                    <!-- DeletionPolicy -->
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-2 text-green-600 font-bold">
+                            <span>💡</span>
+                            <span>DeletionPolicy 활용</span>
+                        </div>
+                        <p class="text-sm text-gray-600">
+                            스택 삭제 시 DB 같은 중요 데이터가 날아가지 않도록 보호하세요.<br>
+                            <strong>팁:</strong> <code>DeletionPolicy: Retain</code> 속성을 사용하여 리소스를 유지하세요.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-400 text-sm py-12">
+            <p>Data Source: AWS CloudFormation Guide (2026)</p>
+            <p class="mt-2">Generated by Canvas Infographics</p>
+        </footer>
+
+    </main>
+
+    <script>
+        // --- 1. Utility: Text Wrapping Function for Chart.js (Strict 16-char rule) ---
+        function wrapLabel(label) {
+            if (typeof label !== 'string') return label;
+            if (label.length <= 16) return label;
+            
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                if ((currentLine + " " + words[i]).length <= 16) {
+                    currentLine += " " + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        // --- 2. Chart Configurations with Tooltip Callbacks ---
+        const commonTooltipOptions = {
+            callbacks: {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    if (Array.isArray(label)) {
+                        return label.join(' ');
+                    } else {
+                        return label;
+                    }
+                }
+            }
+        };
+
+        // --- Chart 1: Radar Comparison ---
+        const radarCtx = document.getElementById('comparisonRadar').getContext('2d');
+        const labelsRadar = ["멀티 클라우드 지원", "AWS 통합 깊이", "실행 속도", "상태 관리 편의성", "모듈 재사용성"];
+        
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: labelsRadar.map(wrapLabel), // Apply wrap logic
+                datasets: [
+                    {
+                        label: 'AWS CloudFormation',
+                        data: [2, 10, 6, 9, 6], // High AWS integration, Managed State
+                        fill: true,
+                        backgroundColor: 'rgba(67, 97, 238, 0.2)', // Primary Blue
+                        borderColor: 'rgba(67, 97, 238, 1)',
+                        pointBackgroundColor: 'rgba(67, 97, 238, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(67, 97, 238, 1)'
+                    },
+                    {
+                        label: 'Terraform',
+                        data: [10, 8, 9, 5, 9], // High Multi-cloud, Speed, Modules
+                        fill: true,
+                        backgroundColor: 'rgba(114, 9, 183, 0.2)', // Secondary Purple
+                        borderColor: 'rgba(114, 9, 183, 1)',
+                        pointBackgroundColor: 'rgba(114, 9, 183, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(114, 9, 183, 1)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: '#e5e7eb' },
+                        grid: { color: '#e5e7eb' },
+                        pointLabels: {
+                            font: { size: 12, family: "'Noto Sans KR', sans-serif" },
+                            color: '#4b5563'
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 10
+                    }
+                },
+                plugins: {
+                    tooltip: commonTooltipOptions,
+                    legend: {
+                        position: 'top',
+                        labels: { font: { family: "'Noto Sans KR', sans-serif" } }
+                    }
+                }
+            }
+        });
+
+        // --- Chart 2: Decision Matrix (Horizontal Bar) ---
+        const barCtx = document.getElementById('decisionBar').getContext('2d');
+        // Scenarios mapped to scores
+        const scenarios = ["멀티 클라우드 전략", "AWS 전용 환경", "엄격한 규정 준수", "복잡한 로직 구현"];
+        
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: scenarios.map(wrapLabel),
+                datasets: [
+                    {
+                        label: 'CloudFormation 적합성',
+                        data: [20, 95, 90, 40],
+                        backgroundColor: '#4361ee',
+                        borderColor: '#4361ee',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Terraform 적합성',
+                        data: [95, 75, 70, 90],
+                        backgroundColor: '#7209b7',
+                        borderColor: '#7209b7',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y', // Horizontal Bar
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { display: false }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { font: { family: "'Noto Sans KR', sans-serif" } }
+                    }
+                },
+                plugins: {
+                    tooltip: commonTooltipOptions,
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // --- Chart 3: Cost Structure (Donut) ---
+        const donutCtx = document.getElementById('costDonut').getContext('2d');
+        const costLabels = ["CloudFormation 서비스 비용 (무료)", "AWS 리소스 사용료 (유료)"];
+        
+        new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: costLabels.map(wrapLabel),
+                datasets: [{
+                    label: '비용 구성',
+                    data: [0, 100], // Visual trick: 0 value segment might be invisible, so we use logic or just emphasize via text
+                    // To make it visible as a concept, let's give "Free" a tiny slice or just use colors
+                    // Better approach for infographic: Show 100% Resource cost, but label the center.
+                    // Let's create a "Concept" chart: 
+                    data: [5, 95], // 5% representing the 'Management overhead' or just a visual placeholder for the free tier existence awareness
+                    backgroundColor: [
+                        '#e5e7eb', // Grey for "Free/Service"
+                        '#f72585'  // Pink for "Paid/Resources"
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                // Custom label to explain the "Free" part
+                                if (context.dataIndex === 0) return "CloudFormation 서비스: 무료";
+                                return "EC2, RDS 등 리소스: 유료 과금";
+                            },
+                            title: commonTooltipOptions.callbacks.title
+                        }
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12 }
+                    }
+                },
+                cutout: '70%'
+            },
+            plugins: [{
+                id: 'textCenter',
+                beforeDraw: function(chart) {
+                    var width = chart.width,
+                        height = chart.height,
+                        ctx = chart.ctx;
+                    
+                    ctx.restore();
+                    var fontSize = (height / 120).toFixed(2);
+                    ctx.font = "bold " + fontSize + "em sans-serif";
+                    ctx.textBaseline = "middle";
+                    ctx.fillStyle = "#1f2937";
+                    
+                    var text = "비용 모델",
+                        textX = Math.round((width - ctx.measureText(text).width) / 2),
+                        textY = height / 2;
+                    
+                    ctx.fillText(text, textX, textY);
+                    ctx.save();
+                }
+            }]
+        });
+
+    </script>
+</body>
+</html>
