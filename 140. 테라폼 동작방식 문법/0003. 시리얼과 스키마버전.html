@@ -1,0 +1,263 @@
+import React, { useState } from 'react';
+import { 
+  Database, 
+  RefreshCcw, 
+  ShieldAlert, 
+  Layers, 
+  ArrowRightLeft, 
+  AlertTriangle, 
+  CheckCircle2,
+  FileCode,
+  Info
+} from 'lucide-react';
+
+const App = () => {
+  const [activeTab, setActiveTab] = useState('comparison');
+
+  const Term = ({ english, korean, description }) => (
+    <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+      <span className="font-bold text-blue-800">{english} ({korean})</span>
+      <p className="text-sm text-slate-600 mt-1">{description}</p>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
+      {/* Header */}
+      <header className="max-w-5xl mx-auto mb-10 text-center">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
+          테라폼 상태 파일 메타데이터 심층 분석
+        </h1>
+        <p className="text-lg text-slate-600">
+          `serial`과 `schema_version`의 비교를 통한 인프라 무결성 유지 및 마이그레이션 전략
+        </p>
+      </header>
+
+      {/* Navigation */}
+      <nav className="max-w-5xl mx-auto mb-8 flex flex-wrap justify-center gap-2">
+        <button 
+          onClick={() => setActiveTab('comparison')}
+          className={`px-6 py-2 rounded-full font-medium transition-all ${activeTab === 'comparison' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+        >
+          핵심 비교 (Comparison)
+        </button>
+        <button 
+          onClick={() => setActiveTab('serial')}
+          className={`px-6 py-2 rounded-full font-medium transition-all ${activeTab === 'serial' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+        >
+          상태 시리얼 (Serial)
+        </button>
+        <button 
+          onClick={() => setActiveTab('schema')}
+          className={`px-6 py-2 rounded-full font-medium transition-all ${activeTab === 'schema' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+        >
+          스키마 버전 (Schema)
+        </button>
+      </nav>
+
+      <main className="max-w-5xl mx-auto">
+        {/* Comparison View */}
+        {activeTab === 'comparison' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                  <RefreshCcw size={24} />
+                </div>
+                <h2 className="text-2xl font-bold">Serial (시리얼)</h2>
+              </div>
+              <ul className="space-y-4">
+                <li className="flex gap-3">
+                  <CheckCircle2 className="text-green-500 shrink-0" size={20} />
+                  <span><strong>정의:</strong> 상태 파일의 갱신 횟수를 나타내는 일련번호</span>
+                </li>
+                <li className="flex gap-3">
+                  <CheckCircle2 className="text-green-500 shrink-0" size={20} />
+                  <span><strong>목적:</strong> 동시성 제어(Concurrency Control) 및 충돌 방지</span>
+                </li>
+                <li className="flex gap-3">
+                  <CheckCircle2 className="text-green-500 shrink-0" size={20} />
+                  <span><strong>범위:</strong> 상태 파일 전체(Global)</span>
+                </li>
+              </ul>
+              <div className="mt-8 p-4 bg-slate-900 rounded-xl font-mono text-sm text-blue-400">
+                {`{
+  "version": 4,
+  "terraform_version": "1.5.0",
+  "serial": 42,
+  ...
+}`}
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-purple-100 text-purple-600 rounded-xl">
+                  <Layers size={24} />
+                </div>
+                <h2 className="text-2xl font-bold">Schema Version (스키마)</h2>
+              </div>
+              <ul className="space-y-4">
+                <li className="flex gap-3">
+                  <CheckCircle2 className="text-green-500 shrink-0" size={20} />
+                  <span><strong>정의:</strong> 리소스 데이터 구조의 명세 버전</span>
+                </li>
+                <li className="flex gap-3">
+                  <CheckCircle2 className="text-green-500 shrink-0" size={20} />
+                  <span><strong>목적:</strong> 하위 호환성 유지 및 마이그레이션(Migration)</span>
+                </li>
+                <li className="flex gap-3">
+                  <CheckCircle2 className="text-green-500 shrink-0" size={20} />
+                  <span><strong>범위:</strong> 개별 리소스 단위(Per Resource)</span>
+                </li>
+              </ul>
+              <div className="mt-8 p-4 bg-slate-900 rounded-xl font-mono text-sm text-purple-400">
+                {`"resources": [
+  {
+    "mode": "managed",
+    "type": "aws_instance",
+    "schema_version": 2,
+    ...
+  }
+]`}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Serial View */}
+        {activeTab === 'serial' && (
+          <div className="space-y-6">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <ArrowRightLeft className="text-blue-500" />
+                동시성 제어 시나리오 (Concurrency Control)
+              </h3>
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-6 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-slate-200 w-full md:w-1/3">
+                  <div className="text-xs font-bold text-slate-400 mb-1">LOCAL STATE</div>
+                  <div className="text-2xl font-bold text-blue-600">Serial: 10</div>
+                  <p className="text-xs mt-2 text-slate-500">작업자가 수정한 상태</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <ShieldAlert className="text-red-500 mb-2" />
+                  <div className="h-0.5 w-16 bg-red-200 hidden md:block"></div>
+                  <span className="text-xs font-bold text-red-500 mt-2">비교 불가 (Rejected)</span>
+                </div>
+                <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-slate-200 w-full md:w-1/3">
+                  <div className="text-xs font-bold text-slate-400 mb-1">REMOTE STATE (S3)</div>
+                  <div className="text-2xl font-bold text-slate-800">Serial: 12</div>
+                  <p className="text-xs mt-2 text-slate-500 text-red-600 font-semibold">이미 다른 작업자가 업데이트함</p>
+                </div>
+              </div>
+              <p className="mt-6 text-slate-600 leading-relaxed">
+                테라폼은 원격 저장소의 `serial`이 로컬보다 높으면 작업을 거부합니다. 이는 <strong>낙관적 잠금(Optimistic Locking)</strong>의 일환으로, 다수의 관리자가 동시에 인프라를 수정할 때 발생할 수 있는 데이터 오염을 방지합니다.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+                  <AlertTriangle size={18} />
+                  주의사항: Serial 수동 수정 금지
+                </h4>
+                <p className="text-sm text-amber-700">
+                  `serial` 숫자를 임의로 높여 충돌을 해결하려 하면, 실제 인프라 리소스와 상태 파일 간의 불일치로 인해 예상치 못한 리소스 삭제가 발생할 수 있습니다.
+                </p>
+              </div>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <h4 className="font-bold text-blue-800 flex items-center gap-2 mb-2">
+                  <Info size={18} />
+                  추천 환경: Remote State Backend
+                </h4>
+                <p className="text-sm text-blue-700">
+                  Amazon S3와 같은 객체 스토리지(Object Storage)와 DynamoDB를 활용해 상태 잠금(State Locking)을 병행하는 것이 가장 안전합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Schema View */}
+        {activeTab === 'schema' && (
+          <div className="space-y-6">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <Database className="text-purple-500" />
+                상태 마이그레이션 메커니즘 (State Migration)
+              </h3>
+              <div className="relative p-6 bg-slate-900 rounded-xl overflow-hidden">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-4 text-slate-400">
+                    <div className="w-24 px-2 py-1 bg-slate-800 rounded text-[10px] text-center">PROVIDER v4.0</div>
+                    <div className="flex-1 h-px bg-slate-800"></div>
+                    <div className="px-3 py-1 bg-slate-700 text-slate-200 rounded text-xs">Schema Version: 1</div>
+                  </div>
+                  <div className="flex justify-center my-2">
+                    <RefreshCcw className="text-green-400 animate-spin-slow" size={32} />
+                  </div>
+                  <div className="flex items-center gap-4 text-purple-400 font-bold">
+                    <div className="w-24 px-2 py-1 bg-purple-900/30 border border-purple-500/50 rounded text-[10px] text-center">PROVIDER v5.0</div>
+                    <div className="flex-1 h-px bg-purple-500/30"></div>
+                    <div className="px-3 py-1 bg-purple-600 text-white rounded text-xs shadow-lg shadow-purple-500/20">Schema Version: 2</div>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-6 text-slate-600 leading-relaxed">
+                프로바이더(Provider)가 업데이트되면서 리소스의 속성 구조가 변경되면 `schema_version`이 상승합니다. 테라폼은 새 프로바이더를 사용할 때, 상태 파일 내의 이전 스키마 데이터를 감지하고 최신 포맷으로 자동 변환합니다.
+              </p>
+            </div>
+
+            <Term 
+              english="State Migration" 
+              korean="상태 마이그레이션" 
+              description="소프트웨어 버전 업그레이드 시 이전 버전의 데이터 구조를 현재 버전의 요구 사항에 맞춰 변환하는 프로세스입니다."
+            />
+          </div>
+        )}
+
+        {/* Technical Definitions Footer */}
+        <section className="mt-12 pt-8 border-t border-slate-200">
+          <h3 className="text-lg font-bold mb-4 text-slate-900">전문 용어 해설 (Technical Glossary)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+            <div className="text-sm text-slate-500 italic">
+              * <strong>Concurrency Control (동시성 제어)</strong>: 여러 사용자가 동시에 동일한 데이터에 접근할 때 데이터의 무결성을 해치지 않도록 제어하는 기술입니다.
+            </div>
+            <div className="text-sm text-slate-500 italic">
+              * <strong>Backward Compatibility (하위 호환성)</strong>: 새로운 버전의 기술이 이전 버전에서 생성된 데이터나 환경을 그대로 수용할 수 있는 능력을 뜻합니다.
+            </div>
+            <div className="text-sm text-slate-500 italic">
+              * <strong>Stale State (오래된 상태)</strong>: 최신 인프라 상황이 반영되지 않은, 과거 시점의 상태 정보를 의미합니다.
+            </div>
+            <div className="text-sm text-slate-500 italic">
+              * <strong>Metadata (메타데이터)</strong>: 데이터에 대한 속성 정보로, 테라폼에서는 상태 파일 자체의 버전이나 수정 이력을 추적하는 데 쓰입니다.
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* AWS Cost Warning */}
+      <aside className="max-w-5xl mx-auto mt-8 p-4 bg-orange-50 border border-orange-200 rounded-xl flex gap-3 items-start">
+        <AlertTriangle className="text-orange-500 shrink-0 mt-1" size={20} />
+        <div>
+          <p className="text-sm text-orange-800 font-bold">AWS 서비스 비용 주의사항</p>
+          <p className="text-xs text-orange-700 leading-relaxed mt-1">
+            원격 상태 저장소로 사용하는 <strong>Amazon S3 (Amazon Simple Storage Service)</strong>는 저장 용량 및 API 요청(GET/PUT) 횟수에 따라 과금이 발생하며, 상태 잠금을 위한 <strong>Amazon DynamoDB</strong> 역시 읽기/쓰기 용량 및 데이터 저장량에 따라 유료 비용이 청구될 수 있습니다. Free Tier 범위를 초과하지 않도록 설정 주의가 필요합니다.
+          </p>
+        </div>
+      </aside>
+
+      <style>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 8s linear infinite;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;
