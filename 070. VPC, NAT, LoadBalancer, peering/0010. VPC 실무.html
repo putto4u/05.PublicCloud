@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS VPC 구축 실무 및 네트워크 아키텍처 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc; /* Light slate background */
+            color: #334155;
+            line-height: 1.6;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .block-animation {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .block-animation:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.15);
+        }
+        
+        .expert-tip-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-left: 4px solid #06b6d4; /* Cyan 500 */
+        }
+
+        .diagram-line {
+            stroke-dasharray: 6;
+            animation: dash 15s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -100; }
+        }
+    </style>
+</head>
+<body class="antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        <!-- Header Section -->
+        <header class="bg-slate-900 text-white p-8 md:p-12 relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                <i class="fas fa-network-wired text-9xl text-cyan-400"></i>
+            </div>
+            <div class="relative z-10">
+                <span class="bg-cyan-900 text-cyan-300 border border-cyan-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">Networking (Expert Practical)</span>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 leading-tight">클라우드 네트워크 설계 및 구현:<br><span class="text-cyan-400">VPC 아키텍처 실무 예제</span></h1>
+                <p class="text-lg md:text-xl text-slate-300 max-w-3xl">
+                    기초적인 단일 VPC(Virtual Private Cloud, 가상 프라이빗 클라우드) 구축부터, 다중 클러스터 간의 안전한 통신을 위한 VPC Peering(VPC 피어링), 그리고 대규모 엔터프라이즈 환경의 표준인 Hub and Spoke(허브 앤 스포크) 라우팅 설계까지 실전 스크립트와 함께 단계별로 마스터합니다.
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-8 md:p-12 space-y-16">
+
+            <!-- Section 1: Single VPC -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-cyan-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-server text-indigo-600 mr-3"></i>1. 기초 단일 VPC 구축 및 라우팅
+                    </h2>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation mb-6">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        가장 기본적인 실무 표준 3-Tier(3계층) 웹 서비스 아키텍처를 위한 네트워크 토대입니다. 외부 인터넷과 통신하는 <strong>Public Subnet(퍼블릭 서브넷)</strong>과 철저히 격리된 <strong>Private Subnet(프라이빗 서브넷)</strong>을 구성하고, 라우팅 테이블(Route Table)을 분리합니다.
+                    </p>
+
+                    <!-- Diagram: Single VPC -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6 overflow-x-auto">
+                        <div class="min-w-[600px] text-center">
+                            <div class="text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">AWS Region (예: ap-northeast-2)</div>
+                            <div class="border-2 border-indigo-400 bg-indigo-50/30 rounded-lg p-6 relative">
+                                <div class="absolute -top-3 left-4 bg-white px-2 text-indigo-700 font-bold text-sm border border-indigo-200 rounded shadow-sm">VPC (10.1.0.0/16)</div>
+                                
+                                <!-- IGW -->
+                                <div class="absolute -top-6 right-8 bg-blue-500 text-white p-2 rounded-lg text-xs font-bold shadow-md flex items-center">
+                                    <i class="fas fa-globe mr-2"></i>IGW
+                                </div>
+
+                                <div class="flex gap-6 mt-4">
+                                    <!-- Public Subnet -->
+                                    <div class="flex-1 border border-blue-300 bg-blue-50 p-4 rounded-lg relative">
+                                        <div class="text-xs font-bold text-blue-800 mb-2">Public Subnet (10.1.1.0/24)</div>
+                                        <div class="bg-white border border-blue-200 rounded p-2 text-xs text-slate-600 shadow-sm mb-2 flex items-center justify-center">
+                                            <i class="fas fa-route text-blue-400 mr-1"></i> RT: 0.0.0.0/0 &rarr; IGW
+                                        </div>
+                                        <div class="bg-orange-100 border border-orange-300 rounded p-2 text-xs font-bold text-orange-800 shadow-sm flex items-center justify-center relative z-10">
+                                            <i class="fas fa-network-wired mr-1"></i> NAT Gateway
+                                        </div>
+                                    </div>
+
+                                    <!-- Private Subnet -->
+                                    <div class="flex-1 border border-emerald-300 bg-emerald-50 p-4 rounded-lg relative">
+                                        <div class="text-xs font-bold text-emerald-800 mb-2">Private Subnet (10.1.2.0/24)</div>
+                                        <div class="bg-white border border-emerald-200 rounded p-2 text-xs text-slate-600 shadow-sm mb-2 flex items-center justify-center">
+                                            <i class="fas fa-route text-emerald-500 mr-1"></i> RT: 0.0.0.0/0 &rarr; NAT GW
+                                        </div>
+                                        <div class="bg-slate-800 border border-slate-700 rounded p-2 text-xs font-bold text-white shadow-sm flex items-center justify-center">
+                                            <i class="fas fa-database mr-1"></i> Database Cluster
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Arrow from Private RT to NAT -->
+                                <svg class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-6 pointer-events-none" style="z-index: 0;">
+                                    <line x1="100%" y1="50%" x2="0" y2="50%" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrowhead)"/>
+                                    <defs>
+                                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                            <polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e1" />
+                                        </marker>
+                                    </defs>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CLI Script -->
+                    <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                        <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                            <h4 class="font-bold text-cyan-400 text-sm"><i class="fas fa-terminal mr-2"></i>작업 스크립트 (AWS CLI)</h4>
+                        </div>
+                        <div class="p-4 font-mono text-xs text-emerald-400 overflow-x-auto leading-relaxed">
+                            <pre><code><span class="text-slate-400"># 1. VPC 생성</span>
+aws ec2 create-vpc --cidr-block 10.1.0.0/16
+
+<span class="text-slate-400"># 2. 서브넷 생성 (Public & Private)</span>
+aws ec2 create-subnet --vpc-id vpc-0a1b2c --cidr-block 10.1.1.0/24 --availability-zone ap-northeast-2a
+aws ec2 create-subnet --vpc-id vpc-0a1b2c --cidr-block 10.1.2.0/24 --availability-zone ap-northeast-2a
+
+<span class="text-slate-400"># 3. 인터넷 게이트웨이(IGW) 생성 및 VPC 연결</span>
+aws ec2 create-internet-gateway
+aws ec2 attach-internet-gateway --vpc-id vpc-0a1b2c --internet-gateway-id igw-012345
+
+<span class="text-slate-400"># 4. Public 라우팅 테이블 업데이트 (외부 통신 허용)</span>
+aws ec2 create-route --route-table-id rtb-pub --destination-cidr-block 0.0.0.0/0 --gateway-id igw-012345</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: VPC Peering -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-cyan-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-link text-indigo-600 mr-3"></i>2. 다중 클러스터 연결: VPC Peering (피어링)
+                    </h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        회사 내부에 개발팀 클러스터(VPC A)와 공통 데이터베이스 클러스터(VPC B)가 분리되어 있을 때, 이 두 네트워크를 AWS 백본망을 통해 프라이빗하게 직접 연결하는 기술이 <strong>VPC Peering(VPC 피어링)</strong>입니다. 인터넷을 거치지 않아 안전하고 빠릅니다.
+                    </p>
+
+                    <!-- Diagram: VPC Peering -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6 overflow-x-auto flex justify-center items-center gap-4">
+                        <!-- VPC A -->
+                        <div class="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-4 w-48 text-center relative shadow-sm">
+                            <div class="text-xs font-bold text-indigo-800 mb-1">EKS Cluster VPC</div>
+                            <div class="text-xs font-mono text-slate-500 mb-3">10.1.0.0/16</div>
+                            <div class="bg-white border border-slate-200 rounded p-2 text-[10px] text-slate-600 shadow-inner">
+                                <span class="font-bold text-rose-500">Route:</span><br>10.2.0.0/16 &rarr; pcx-123
+                            </div>
+                        </div>
+
+                        <!-- Peering Connection -->
+                        <div class="flex flex-col items-center">
+                            <div class="text-[10px] font-bold text-slate-500 mb-1">VPC Peering Connection</div>
+                            <svg width="100" height="20" class="text-cyan-500">
+                                <line x1="0" y1="10" x2="100" y2="10" stroke="currentColor" stroke-width="3" class="diagram-line"/>
+                                <polygon points="0,10 10,5 10,15" fill="currentColor" />
+                                <polygon points="100,10 90,5 90,15" fill="currentColor" />
+                            </svg>
+                            <div class="text-xs font-mono text-cyan-600 font-bold mt-1">pcx-123</div>
+                        </div>
+
+                        <!-- VPC B -->
+                        <div class="border-2 border-emerald-400 bg-emerald-50 rounded-lg p-4 w-48 text-center relative shadow-sm">
+                            <div class="text-xs font-bold text-emerald-800 mb-1">Database VPC</div>
+                            <div class="text-xs font-mono text-slate-500 mb-3">10.2.0.0/16</div>
+                            <div class="bg-white border border-slate-200 rounded p-2 text-[10px] text-slate-600 shadow-inner">
+                                <span class="font-bold text-rose-500">Route:</span><br>10.1.0.0/16 &rarr; pcx-123
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expert Tip -->
+                    <div class="bg-slate-900 text-white p-5 rounded-lg shadow-inner expert-tip-bg mb-6">
+                        <h4 class="font-bold text-cyan-400 mb-2 flex items-center"><i class="fas fa-triangle-exclamation mr-2 text-rose-400"></i>전문가 아키텍처 주의사항: IP 충돌 및 라우팅 누락</h4>
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            피어링하려는 두 VPC의 CIDR(IP 대역) 블록이 <strong>단 1개의 IP라도 겹치면(Overlap) 연결 생성이 원천적으로 거부</strong>됩니다. 또한, 연결(Connection)을 맺는 것만으로는 통신이 되지 않습니다. 반드시 양쪽 VPC의 라우팅 테이블(Route Table)에 서로의 IP 대역으로 가는 길을 <code>pcx-...</code> 타겟으로 추가해야 합니다.
+                        </p>
+                    </div>
+
+                    <!-- CLI Script -->
+                    <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                        <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                            <h4 class="font-bold text-cyan-400 text-sm"><i class="fas fa-terminal mr-2"></i>작업 스크립트 (양방향 라우팅)</h4>
+                        </div>
+                        <div class="p-4 font-mono text-xs text-emerald-400 overflow-x-auto leading-relaxed">
+                            <pre><code><span class="text-slate-400"># 1. VPC A에서 VPC B로 피어링 연결 요청 생성</span>
+aws ec2 create-vpc-peering-connection --vpc-id vpc-1111(A) --peer-vpc-id vpc-2222(B)
+<span class="text-slate-400"># 반환된 Peering ID: pcx-12345678</span>
+
+<span class="text-slate-400"># 2. VPC B에서 피어링 요청 수락 (Accept)</span>
+aws ec2 accept-vpc-peering-connection --vpc-peering-connection-id pcx-12345678
+
+<span class="text-slate-400"># 3. 양쪽 라우팅 테이블에 서로의 경로 추가 (가장 많이 실수하는 부분)</span>
+aws ec2 create-route --route-table-id rtb-vpcA --destination-cidr-block 10.2.0.0/16 --vpc-peering-connection-id pcx-12345678
+aws ec2 create-route --route-table-id rtb-vpcB --destination-cidr-block 10.1.0.0/16 --vpc-peering-connection-id pcx-12345678</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Transit Gateway (Hub and Spoke) -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-cyan-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-dharmachakra text-indigo-600 mr-3"></i>3. 허브 앤 스포크 (Hub and Spoke) 및 전사 라우팅
+                    </h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        VPC의 개수가 3개 이상으로 늘어나면 피어링을 1:1로 맺는 것(Full Mesh 형태)은 관리의 지옥이 됩니다. 이를 해결하기 위해 중앙에 가상의 거대한 라우터를 두고 모든 VPC를 연결하는 구조가 <strong>허브 앤 스포크(Hub and Spoke)</strong> 아키텍처이며, 이 중심 역할을 <strong>AWS Transit Gateway(전송 게이트웨이)</strong>가 수행합니다.
+                    </p>
+
+                    <!-- Diagram: Transit Gateway -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-8 mb-6 relative">
+                        <!-- TGW Center -->
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-indigo-900 border-4 border-cyan-400 rounded-full w-32 h-32 flex flex-col items-center justify-center shadow-xl z-20">
+                            <i class="fas fa-arrows-to-circle text-3xl text-white mb-1"></i>
+                            <span class="text-xs font-bold text-cyan-200 text-center">Transit<br>Gateway</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-24 relative z-10">
+                            <!-- VPC 1 -->
+                            <div class="border-2 border-slate-300 bg-white rounded-lg p-4 text-center shadow-sm relative">
+                                <div class="text-xs font-bold text-slate-800 mb-1">Dev VPC (10.1.0.0/16)</div>
+                                <div class="bg-slate-100 rounded p-1 text-[10px] text-slate-600">RT: 10.0.0.0/8 &rarr; tgw-123</div>
+                                <!-- Line to center -->
+                                <svg class="absolute top-1/2 -right-12 transform -translate-y-1/2 w-12 h-2 text-indigo-300 pointer-events-none">
+                                    <line x1="0" y1="4" x2="100%" y2="4" stroke="currentColor" stroke-width="3" />
+                                </svg>
+                            </div>
+
+                            <!-- VPC 2 -->
+                            <div class="border-2 border-slate-300 bg-white rounded-lg p-4 text-center shadow-sm relative">
+                                <div class="text-xs font-bold text-slate-800 mb-1">Prod VPC (10.2.0.0/16)</div>
+                                <div class="bg-slate-100 rounded p-1 text-[10px] text-slate-600">RT: 10.0.0.0/8 &rarr; tgw-123</div>
+                                <!-- Line to center -->
+                                <svg class="absolute top-1/2 -left-12 transform -translate-y-1/2 w-12 h-2 text-indigo-300 pointer-events-none">
+                                    <line x1="0" y1="4" x2="100%" y2="4" stroke="currentColor" stroke-width="3" />
+                                </svg>
+                            </div>
+
+                            <!-- VPC 3 -->
+                            <div class="border-2 border-rose-300 bg-rose-50 rounded-lg p-4 text-center shadow-sm relative">
+                                <div class="text-xs font-bold text-rose-800 mb-1">Security VPC (Inspection)</div>
+                                <div class="bg-white rounded p-1 text-[10px] text-slate-600">중앙 방화벽 및 로그 수집</div>
+                                <!-- Line to center -->
+                                <svg class="absolute -top-12 left-1/2 transform -translate-x-1/2 w-2 h-12 text-indigo-300 pointer-events-none">
+                                    <line x1="4" y1="0" x2="4" y2="100%" stroke="currentColor" stroke-width="3" />
+                                </svg>
+                            </div>
+
+                            <!-- On-Premise VPN -->
+                            <div class="border-2 border-teal-400 bg-teal-50 rounded-lg p-4 text-center shadow-sm relative">
+                                <div class="text-xs font-bold text-teal-800 mb-1">On-Premises (IDC)</div>
+                                <div class="bg-white rounded p-1 text-[10px] text-slate-600">VPN / Direct Connect</div>
+                                <!-- Line to center -->
+                                <svg class="absolute -top-12 left-1/2 transform -translate-x-1/2 w-2 h-12 text-indigo-300 pointer-events-none">
+                                    <line x1="4" y1="0" x2="4" y2="100%" stroke="currentColor" stroke-width="3" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Billed Service Warning -->
+                    <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded text-sm text-rose-800 shadow-sm mb-6 flex items-start">
+                        <i class="fas fa-file-invoice-dollar text-2xl mr-3 mt-1 text-rose-600"></i>
+                        <div>
+                            <strong class="block text-base mb-1">Transit Gateway(TGW)는 강력하지만 비싼 유료 서비스입니다.</strong>
+                            TGW는 <strong>시간당 연결(Attachment) 비용</strong>과 <strong>처리되는 데이터(GB당) 비용</strong>이 이중으로 발생합니다. 소규모 네트워크에서는 VPC Peering을 유지하고, VPC가 수십 개를 넘어가거나 온프레미스 VPN을 통합해야 하는 대규모 인프라에서만 TGW를 도입하는 것이 비용 최적화의 핵심입니다.
+                        </div>
+                    </div>
+
+                    <!-- CLI Script -->
+                    <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                        <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                            <h4 class="font-bold text-cyan-400 text-sm"><i class="fas fa-terminal mr-2"></i>작업 스크립트 (TGW 연결)</h4>
+                        </div>
+                        <div class="p-4 font-mono text-xs text-emerald-400 overflow-x-auto leading-relaxed">
+                            <pre><code><span class="text-slate-400"># 1. Transit Gateway 생성</span>
+aws ec2 create-transit-gateway --description "Main TGW for Hub-and-Spoke"
+<span class="text-slate-400"># 반환된 TGW ID: tgw-1234abcd</span>
+
+<span class="text-slate-400"># 2. TGW에 VPC 연결 (Attachment)</span>
+aws ec2 create-transit-gateway-vpc-attachment \
+    --transit-gateway-id tgw-1234abcd \
+    --vpc-id vpc-1111 \
+    --subnet-ids subnet-a1 subnet-a2
+
+<span class="text-slate-400"># 3. 각 VPC 라우팅 테이블에서 사설망(10.0.0.0/8 등) 목적지를 TGW로 향하도록 설정</span>
+aws ec2 create-route --route-table-id rtb-vpc1 --destination-cidr-block 10.0.0.0/8 --transit-gateway-id tgw-1234abcd</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footnotes Section -->
+        <footer class="bg-slate-50 border-t border-slate-200 p-8 text-sm text-slate-500">
+            <h4 class="font-bold text-slate-700 mb-3 border-b border-slate-300 pb-2 inline-block">주석 및 용어 설명</h4>
+            <ol class="list-decimal list-inside space-y-3 ml-2">
+                <li id="fn1"><strong>VPC Peering (VPC 피어링) 제한 사항</strong>: 피어링은 전이적(Transitive) 라우팅을 지원하지 않습니다. 즉, VPC A와 B가 연결되어 있고, B와 C가 연결되어 있다고 해서 A와 C가 통신할 수 없습니다. A와 C가 통신하려면 별도로 A-C 피어링을 맺어야 합니다.</li>
+                <li id="fn2"><strong>Security VPC (보안 VPC / Inspection VPC)</strong>: TGW 아키텍처에서 모든 트래픽이 한 곳을 지나가게 한 뒤, 그곳에 강력한 상용 방화벽(IPS/IDS)을 배치하여 들어오고 나가는 모든 트래픽을 검사하는 실무 보안 설계 패턴입니다.</li>
+                <li id="fn3"><strong>CIDR (Classless Inter-Domain Routing)</strong>: <code>10.1.0.0/16</code>과 같이 네트워크의 크기(사용 가능한 IP 주소의 수)를 정의하는 방식입니다. 인프라 설계 시 서로 다른 VPC 간에 이 범위가 겹치지 않도록 사전에 IP 설계(IP Addressing Plan)를 수립하는 것이 매우 중요합니다.</li>
+            </ol>
+        </footer>
+
+        <!-- Next Step Banner -->
+        <div class="bg-slate-900 text-cyan-400 text-center py-6 px-4 font-bold text-lg md:text-xl relative overflow-hidden group cursor-pointer border-t-4 border-cyan-500">
+            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition duration-300"></div>
+            Next Step: AWS VPN 및 Direct Connect(전용선)를 활용한 하이브리드 클라우드 구성 <i class="fas fa-arrow-right ml-2 text-white group-hover:translate-x-2 transition transform"></i>
+        </div>
+
+    </div>
+
+</body>
+</html>
