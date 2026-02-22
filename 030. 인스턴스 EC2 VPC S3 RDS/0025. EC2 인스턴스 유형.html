@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon EC2 인스턴스 이해</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+        .aws-orange { color: #FF9900; }
+        .aws-bg-orange { background-color: #FF9900; }
+        .aws-navy { color: #232F3E; }
+        .aws-bg-navy { background-color: #232F3E; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        <!-- Header Section -->
+        <header class="aws-bg-navy text-white p-8 md:p-12 relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                <i class="fas fa-server text-9xl"></i>
+            </div>
+            <div class="relative z-10">
+                <span class="aws-bg-orange text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block">Core Infrastructure</span>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 leading-tight">가상 서버의 심장:<br><span class="text-orange-400">Amazon EC2</span> 인스턴스 이해</h1>
+                <p class="text-lg md:text-xl text-slate-300 max-w-3xl">
+                    Amazon EC2(Elastic Compute Cloud, 탄력적 컴퓨팅 클라우드)는 <a href="https://aws.amazon.com/ko/" target="_blank" class="underline hover:text-white">AWS(Amazon Web Services, 아마존 웹 서비스)</a>의 핵심 서비스로, 클라우드에서 가상 서버를 제공합니다. 사용자의 목적에 따라 CPU<sup><a href="#fn1" class="text-orange-400 font-bold">1</a></sup>, 메모리, 저장 공간의 비율이 최적화된 다양한 <strong>인스턴스 유형</strong>과 예산에 맞춘 <strong>요금제</strong>를 선택할 수 있습니다.
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-8 md:p-12 space-y-16">
+
+            <!-- Section 1: Naming Convention -->
+            <section>
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-full aws-bg-orange text-white flex items-center justify-center font-bold text-xl mr-4 shadow-lg">1</div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 border-b-2 border-orange-400 pb-2 inline-block">EC2 인스턴스 명칭 해석법 (Naming Convention)</h2>
+                </div>
+                <p class="text-lg mb-8 text-slate-600">인스턴스 이름은 일정한 규칙에 따라 명명됩니다. 이 명칭 체계만 이해하면 서버의 성능과 세대를 즉시 파악할 수 있습니다.</p>
+
+                <!-- Diagram: Naming Convention -->
+                <div class="bg-slate-50 p-8 rounded-xl border border-slate-200 mb-8">
+                    <div class="text-center mb-6 text-sm text-slate-500 font-bold tracking-widest uppercase">명칭 구조 도식화</div>
+                    
+                    <div class="flex flex-wrap justify-center items-center gap-2 md:gap-4 font-mono text-3xl md:text-5xl font-black mb-12">
+                        <div class="relative group cursor-pointer">
+                            <span class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg shadow-sm border border-blue-200 transition transform hover:-translate-y-1">m</span>
+                            <div class="absolute -bottom-14 left-1/2 transform -translate-x-1/2 w-max opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded py-1 px-2">패밀리 (Family)</div>
+                        </div>
+                        <div class="relative group cursor-pointer">
+                            <span class="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-lg shadow-sm border border-emerald-200 transition transform hover:-translate-y-1">6</span>
+                            <div class="absolute -bottom-14 left-1/2 transform -translate-x-1/2 w-max opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded py-1 px-2">세대 (Generation)</div>
+                        </div>
+                        <div class="relative group cursor-pointer">
+                            <span class="bg-amber-100 text-amber-700 px-4 py-2 rounded-lg shadow-sm border border-amber-200 transition transform hover:-translate-y-1 flex gap-1">
+                                <span>g</span><span>d</span>
+                            </span>
+                            <div class="absolute -bottom-14 left-1/2 transform -translate-x-1/2 w-max opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded py-1 px-2">추가 속성 (Attributes)</div>
+                        </div>
+                        <span class="text-slate-400">.</span>
+                        <div class="relative group cursor-pointer">
+                            <span class="bg-purple-100 text-purple-700 px-4 py-2 rounded-lg shadow-sm border border-purple-200 transition transform hover:-translate-y-1">large</span>
+                            <div class="absolute -bottom-14 left-1/2 transform -translate-x-1/2 w-max opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded py-1 px-2">크기 (Size)</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+                            <h4 class="font-bold text-blue-700 mb-2"><i class="fas fa-layer-group mr-2"></i>패밀리 (Family)</h4>
+                            <p class="text-slate-600">인스턴스의 주 목적을 나타냅니다. (C=Compute, M=Memory 등)</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+                            <h4 class="font-bold text-emerald-700 mb-2"><i class="fas fa-microchip mr-2"></i>세대 (Generation)</h4>
+                            <p class="text-slate-600">숫자가 높을수록 최신 하드웨어이며 가성비가 우수합니다.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+                            <h4 class="font-bold text-amber-700 mb-2"><i class="fas fa-tags mr-2"></i>추가 속성 (Attributes)</h4>
+                            <ul class="list-disc list-inside text-slate-600 space-y-1 ml-1">
+                                <li><code class="bg-slate-100 px-1 rounded text-amber-600">g</code>: AWS Graviton 프로세서 (가성비 최적화 ARM 칩)</li>
+                                <li><code class="bg-slate-100 px-1 rounded text-amber-600">i</code>: Intel 프로세서 / <code class="bg-slate-100 px-1 rounded text-amber-600">a</code>: AMD 프로세서</li>
+                                <li><code class="bg-slate-100 px-1 rounded text-amber-600">d</code>: 인스턴스 저장소(로컬 NVMe SSD<sup><a href="#fn2" class="text-orange-500">2</a></sup>) 포함</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+                            <h4 class="font-bold text-purple-700 mb-2"><i class="fas fa-expand-arrows-alt mr-2"></i>크기 (Size)</h4>
+                            <p class="text-slate-600">vCPU<sup><a href="#fn3" class="text-orange-500">3</a></sup>와 메모리 용량의 규모를 나타냅니다.<br> 
+                            <span class="text-xs text-slate-500">(nano < micro < small < medium < large < xlarge ...)</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Practical Examples -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                    <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 font-bold text-slate-700 flex items-center">
+                            <i class="fas fa-search mr-2 text-slate-400"></i> 분석 실습 1
+                        </div>
+                        <div class="p-5">
+                            <div class="text-2xl font-mono font-bold text-slate-800 mb-3 text-center">m6gd.large</div>
+                            <ul class="space-y-2 text-sm text-slate-600">
+                                <li><span class="inline-block w-6 text-center font-bold text-slate-800 bg-slate-200 rounded mr-2">m</span> 범용 (컴퓨팅과 메모리 균형)</li>
+                                <li><span class="inline-block w-6 text-center font-bold text-slate-800 bg-slate-200 rounded mr-2">6</span> 6세대 하드웨어</li>
+                                <li><span class="inline-block w-6 text-center font-bold text-slate-800 bg-slate-200 rounded mr-2">g</span> AWS Graviton(ARM) 칩 (가성비 우수)</li>
+                                <li><span class="inline-block w-6 text-center font-bold text-slate-800 bg-slate-200 rounded mr-2">d</span> 로컬 NVMe SSD 디스크 포함</li>
+                                <li><span class="inline-block px-1 text-center font-bold text-slate-800 bg-slate-200 rounded mr-2">large</span> vCPU 2개, 메모리 8GB 사양</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 font-bold text-slate-700 flex items-center">
+                            <i class="fas fa-search mr-2 text-slate-400"></i> 분석 실습 2
+                        </div>
+                        <div class="p-5">
+                            <div class="text-2xl font-mono font-bold text-slate-800 mb-3 text-center">c7i.xlarge</div>
+                            <ul class="space-y-2 text-sm text-slate-600">
+                                <li><span class="inline-block w-6 text-center font-bold text-slate-800 bg-slate-200 rounded mr-2">c</span> 컴퓨팅 최적화 (CPU 비중 높음)</li>
+                                <li><span class="inline-block w-6 text-center font-bold text-slate-800 bg-slate-200 rounded mr-2">7</span> 최신 7세대 하드웨어</li>
+                                <li><span class="inline-block w-6 text-center font-bold text-slate-800 bg-slate-200 rounded mr-2">i</span> Intel 프로세서 사용</li>
+                                <li><span class="inline-block px-1 text-center font-bold text-slate-800 bg-slate-200 rounded mr-2">xlarge</span> vCPU 4개, 메모리 16GB 사양</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Instance Families -->
+            <section>
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-full aws-bg-orange text-white flex items-center justify-center font-bold text-xl mr-4 shadow-lg">2</div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 border-b-2 border-orange-400 pb-2 inline-block">주요 패밀리별 상세 분류 및 용도</h2>
+                </div>
+                <p class="text-lg mb-8 text-slate-600">실무 사례를 곁들여 각 인스턴스 패밀리의 특징을 상세히 분류해 보겠습니다.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 범용 -->
+                    <div class="bg-white rounded-xl shadow-md border border-slate-200 hover:shadow-xl transition duration-300 overflow-hidden flex flex-col">
+                        <div class="h-2 bg-blue-500 w-full"></div>
+                        <div class="p-6 flex-grow">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-xl font-bold text-slate-800">범용 (General Purpose)</h3>
+                                <div class="bg-blue-100 text-blue-800 font-mono font-bold px-2 py-1 rounded text-lg">T, M</div>
+                            </div>
+                            <p class="text-sm text-slate-600 mb-4 h-16">컴퓨팅, 메모리, 네트워킹 리소스가 균형 잡힌 유형입니다. 어떤 용도로 써야 할지 모를 때 가장 먼저 고려하는 표준형입니다.</p>
+                            <div class="bg-slate-50 p-3 rounded-lg text-sm border border-slate-100 mb-4">
+                                <strong>주요 용도:</strong> 웹 서버, 개발/테스트 환경, 소규모 DB
+                            </div>
+                        </div>
+                        <div class="bg-slate-100 px-6 py-3 border-t border-slate-200 text-xs font-mono text-slate-500">
+                            예: t3.micro, m6i.large
+                        </div>
+                    </div>
+
+                    <!-- 컴퓨팅 최적화 -->
+                    <div class="bg-white rounded-xl shadow-md border border-slate-200 hover:shadow-xl transition duration-300 overflow-hidden flex flex-col">
+                        <div class="h-2 bg-emerald-500 w-full"></div>
+                        <div class="p-6 flex-grow">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-xl font-bold text-slate-800">컴퓨팅 최적화</h3>
+                                <div class="bg-emerald-100 text-emerald-800 font-mono font-bold px-2 py-1 rounded text-lg">C</div>
+                            </div>
+                            <p class="text-sm text-slate-600 mb-4 h-16">고성능 프로세서가 집중적으로 할당되어, 메모리 대비 CPU 성능 비율이 높게 설계되었습니다.</p>
+                            <div class="bg-slate-50 p-3 rounded-lg text-sm border border-slate-100 mb-4">
+                                <strong>주요 용도:</strong> 고성능 웹 서버, 배치(Batch) 작업, 멀티플레이어 게임 서버
+                            </div>
+                        </div>
+                        <div class="bg-slate-100 px-6 py-3 border-t border-slate-200 text-xs font-mono text-slate-500">
+                            예: c6a.2xlarge, c7g.xlarge
+                        </div>
+                    </div>
+
+                    <!-- 메모리 최적화 -->
+                    <div class="bg-white rounded-xl shadow-md border border-slate-200 hover:shadow-xl transition duration-300 overflow-hidden flex flex-col">
+                        <div class="h-2 bg-purple-500 w-full"></div>
+                        <div class="p-6 flex-grow">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-xl font-bold text-slate-800">메모리 최적화</h3>
+                                <div class="bg-purple-100 text-purple-800 font-mono font-bold px-2 py-1 rounded text-lg">R, X, z</div>
+                            </div>
+                            <p class="text-sm text-slate-600 mb-4 h-16">CPU에 비해 대용량 RAM(Random Access Memory, 휘발성 메모리) 용량이 압도적으로 많습니다.</p>
+                            <div class="bg-slate-50 p-3 rounded-lg text-sm border border-slate-100 mb-4">
+                                <strong>주요 용도:</strong> 메모리 내 데이터베이스(Redis 등)<sup><a href="#fn4" class="text-orange-500">4</a></sup>, 대규모 데이터 분석
+                            </div>
+                        </div>
+                        <div class="bg-slate-100 px-6 py-3 border-t border-slate-200 text-xs font-mono text-slate-500">
+                            예: r6i.2xlarge, r7g.large
+                        </div>
+                    </div>
+
+                    <!-- 가속 컴퓨팅 -->
+                    <div class="bg-white rounded-xl shadow-md border border-slate-200 hover:shadow-xl transition duration-300 overflow-hidden flex flex-col">
+                        <div class="h-2 bg-rose-500 w-full"></div>
+                        <div class="p-6 flex-grow">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-xl font-bold text-slate-800">가속 컴퓨팅</h3>
+                                <div class="bg-rose-100 text-rose-800 font-mono font-bold px-2 py-1 rounded text-lg">P, G, F</div>
+                            </div>
+                            <p class="text-sm text-slate-600 mb-4 h-16">GPU(그래픽 처리 장치) 또는 FPGA(현장 프로그래머블 게이트 어레이) 하드웨어 가속기를 포함합니다.</p>
+                            <div class="bg-slate-50 p-3 rounded-lg text-sm border border-slate-100 mb-4">
+                                <strong>주요 용도:</strong> 딥러닝 기계학습(Machine Learning), 그래픽 렌더링
+                            </div>
+                        </div>
+                        <div class="bg-slate-100 px-6 py-3 border-t border-slate-200 text-xs font-mono text-slate-500">
+                            예: p4d.24xlarge, g5.xlarge
+                        </div>
+                    </div>
+
+                    <!-- 스토리지 최적화 -->
+                    <div class="bg-white rounded-xl shadow-md border border-slate-200 hover:shadow-xl transition duration-300 overflow-hidden flex flex-col lg:col-span-2">
+                        <div class="h-2 bg-amber-500 w-full"></div>
+                        <div class="p-6 flex-grow">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-xl font-bold text-slate-800">스토리지 최적화</h3>
+                                <div class="bg-amber-100 text-amber-800 font-mono font-bold px-2 py-1 rounded text-lg">I, D, H</div>
+                            </div>
+                            <p class="text-sm text-slate-600 mb-4 max-w-2xl">로컬 스토리지의 높은 I/O(Input/Output, 입출력) 성능을 요구하는 워크로드에 설계되었습니다. 아주 빠른 디스크 읽기/쓰기 속도가 필요할 때 사용합니다.</p>
+                            <div class="bg-slate-50 p-3 rounded-lg text-sm border border-slate-100 mb-4 inline-block">
+                                <strong>주요 용도:</strong> 분산 파일 시스템, 대규모 데이터 웨어하우징, NoSQL DB
+                            </div>
+                        </div>
+                        <div class="bg-slate-100 px-6 py-3 border-t border-slate-200 text-xs font-mono text-slate-500">
+                            예: i4i.large, d3.xlarge
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scale-up Concept Diagram -->
+                <div class="mt-8 bg-slate-800 text-white p-6 rounded-xl relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 opacity-10">
+                        <i class="fas fa-chart-line text-9xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-4 relative z-10"><i class="fas fa-arrow-up-right-dots text-orange-400 mr-2"></i>인스턴스 크기 확장 원리 (Scale-up)</h3>
+                    <p class="text-sm text-slate-300 mb-6 relative z-10">인스턴스 크기가 한 단계 커질 때마다 일반적으로 <strong>자원(vCPU, 메모리)과 과금액이 정확히 2배씩</strong> 증가합니다.</p>
+                    
+                    <div class="flex flex-col md:flex-row items-end gap-4 relative z-10">
+                        <div class="flex flex-col items-center w-full md:w-auto">
+                            <div class="bg-blue-500/20 border border-blue-400 w-16 h-16 flex items-center justify-center rounded mb-2 text-xs font-mono">1x</div>
+                            <span class="text-xs text-slate-300 font-mono">t3.medium</span>
+                            <span class="text-[10px] text-slate-400">2 vCPU / 4 GiB</span>
+                        </div>
+                        <div class="hidden md:flex flex-col items-center justify-center pb-8 text-slate-500"><i class="fas fa-chevron-right"></i></div>
+                        <div class="flex flex-col items-center w-full md:w-auto">
+                            <div class="bg-blue-500/40 border border-blue-400 w-24 h-24 flex items-center justify-center rounded mb-2 text-sm font-mono text-shadow">2x</div>
+                            <span class="text-xs text-slate-300 font-mono">t3.large</span>
+                            <span class="text-[10px] text-slate-400">2 vCPU / 8 GiB</span>
+                        </div>
+                        <div class="hidden md:flex flex-col items-center justify-center pb-8 text-slate-500"><i class="fas fa-chevron-right"></i></div>
+                        <div class="flex flex-col items-center w-full md:w-auto">
+                            <div class="bg-blue-500/60 border border-blue-400 w-32 h-32 flex items-center justify-center rounded mb-2 text-lg font-bold font-mono text-shadow">4x</div>
+                            <span class="text-xs text-slate-300 font-mono">t3.xlarge</span>
+                            <span class="text-[10px] text-slate-400">4 vCPU / 16 GiB</span>
+                        </div>
+                        <div class="hidden md:flex flex-col items-center justify-center pb-8 text-slate-500"><i class="fas fa-chevron-right"></i></div>
+                        <div class="flex flex-col items-center w-full md:w-auto">
+                            <div class="bg-blue-500/80 border border-blue-400 w-40 h-40 flex items-center justify-center rounded mb-2 text-2xl font-bold font-mono text-shadow">8x</div>
+                            <span class="text-xs text-slate-300 font-mono">t3.2xlarge</span>
+                            <span class="text-[10px] text-slate-400">8 vCPU / 32 GiB</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Purchase Options -->
+            <section>
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-full aws-bg-orange text-white flex items-center justify-center font-bold text-xl mr-4 shadow-lg">3</div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 border-b-2 border-orange-400 pb-2 inline-block">EC2 구매 옵션 (요금제)</h2>
+                </div>
+                <p class="text-lg mb-8 text-slate-600">사용 기간과 예산 상황에 따라 4가지 주요 구매 옵션을 제공합니다. 비용 효율적인 인프라 운영을 위해 워크로드의 성격에 맞는 요금제를 선택해야 합니다.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- On-Demand -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-slate-100 text-slate-500 text-xs font-bold px-3 py-1 rounded-bl-lg">기준가 0% 할인</div>
+                        <div class="text-blue-500 text-4xl mb-4"><i class="fas fa-clock"></i></div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">① 온디맨드 (On-Demand)</h3>
+                        <p class="text-sm text-slate-600 mb-4 leading-relaxed">약정 없이 사용한 만큼 초 단위로 비용을 지불합니다. 생성과 삭제가 자유로워 가장 유연합니다.</p>
+                        <div class="bg-blue-50 text-blue-800 text-sm p-3 rounded border border-blue-100">
+                            <strong><i class="fas fa-check-circle mr-1"></i>적합:</strong> 단기 프로젝트, 예측 불가능한 트래픽, 신규 애플리케이션 개발 및 테스트
+                        </div>
+                    </div>
+
+                    <!-- Spot -->
+                    <div class="bg-white border-2 border-emerald-400 rounded-xl p-6 shadow-md relative overflow-hidden transform hover:-translate-y-1 transition duration-300">
+                        <div class="absolute top-0 right-0 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">최대 90% 할인</div>
+                        <div class="text-emerald-500 text-4xl mb-4"><i class="fas fa-percentage"></i></div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">② 스팟 인스턴스 (Spot)</h3>
+                        <p class="text-sm text-slate-600 mb-4 leading-relaxed">AWS 데이터 센터 내에 남는 잉여 자원을 매우 저렴하게 이용합니다. 단, AWS가 자원이 필요해지면 <strong>2분 전 통보 후 인스턴스를 강제 회수</strong>합니다.</p>
+                        <div class="bg-emerald-50 text-emerald-800 text-sm p-3 rounded border border-emerald-100">
+                            <strong><i class="fas fa-check-circle mr-1"></i>적합:</strong> 중단되어도 상관없는 배치 작업, 빅데이터 분석, 상태가 없는(Stateless) 서비스
+                        </div>
+                    </div>
+
+                    <!-- Reserved -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">최대 72% 할인</div>
+                        <div class="text-purple-500 text-4xl mb-4"><i class="fas fa-handshake"></i></div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">③ 예약 인스턴스 (RI)</h3>
+                        <p class="text-sm text-slate-600 mb-4 leading-relaxed">1년 또는 3년 기간을 약정하여 사용하는 대신 요금을 대폭 할인받는 옵션입니다. (Savings Plans 포함)</p>
+                        <div class="bg-purple-50 text-purple-800 text-sm p-3 rounded border border-purple-100">
+                            <strong><i class="fas fa-check-circle mr-1"></i>적합:</strong> 상태가 일정하고 예측 가능한 장기 워크로드, 24시간 중단 없이 가동되는 서비스
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start">
+                    <div class="text-slate-400 text-3xl mr-4"><i class="fas fa-server"></i></div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-1">④ 전용 호스트 (Dedicated Hosts)</h3>
+                        <p class="text-sm text-slate-600">고객 전용의 물리적 EC2 서버를 통째로 할당받습니다. 기존에 보유한 소프트웨어 라이선스(BYOL) 규정을 준수해야 하거나, 국가/기업의 엄격한 물리적 보안 규정이 필요한 경우에 사용합니다.</p>
+                    </div>
+                </div>
+
+                <!-- Hybrid Strategy Tip -->
+                <div class="mt-8 bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl p-6 shadow-lg text-white">
+                    <h3 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-lightbulb text-yellow-400 mr-2 text-2xl"></i> 실전 팁: 비용을 줄이는 하이브리드(Hybrid) 구성 전략</h3>
+                    <p class="mb-4 text-slate-300">실제 기업의 인프라 설계 시에는 하나의 요금제만 쓰지 않고 혼합하여 비용과 안정성을 모두 잡습니다.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white/10 p-4 rounded-lg border border-white/20">
+                            <div class="font-bold text-purple-300 mb-2">Base Layer (기본층)</div>
+                            <p class="text-sm text-slate-300">최소한으로 유지되는 기본 트래픽은 <strong>예약 인스턴스(RI)</strong>로 구성하여 고정 비용을 대폭 절감합니다.</p>
+                        </div>
+                        <div class="bg-white/10 p-4 rounded-lg border border-white/20">
+                            <div class="font-bold text-blue-300 mb-2">Burst Layer (확장층)</div>
+                            <p class="text-sm text-slate-300">이벤트 등으로 갑작스러운 트래픽이 증가할 때는 <strong>온디맨드(On-Demand)</strong>로 스케일 아웃(Scale-out)하여 유연하게 대응합니다.</p>
+                        </div>
+                        <div class="bg-white/10 p-4 rounded-lg border border-white/20">
+                            <div class="font-bold text-emerald-300 mb-2">Batch Layer (처리층)</div>
+                            <p class="text-sm text-slate-300">즉각 처리하지 않아도 되는 백그라운드 분석/로그 처리 작업은 <strong>스팟 인스턴스(Spot)</strong>로 돌려 비용을 극소화합니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Warnings & Costs -->
+            <section>
+                <div class="bg-red-50 border-l-8 border-red-500 rounded-r-xl p-6 shadow-md relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-red-200/50 transform rotate-12">
+                        <i class="fas fa-exclamation-triangle text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-black text-red-700 mb-4 flex items-center">
+                            <i class="fas fa-engine-warning mr-3"></i> 과금 및 유료 전환 주의 (필독)
+                        </h2>
+                        <ul class="space-y-4 text-slate-800 font-medium">
+                            <li class="flex items-start">
+                                <i class="fas fa-dollar-sign text-red-500 mt-1 mr-3 text-lg"></i>
+                                <div>
+                                    <strong class="text-red-700 block text-lg mb-1">프리 티어(Free Tier) 유료 전환 주의</strong>
+                                    계정 생성 후 1년간 무료로 제공되는 프리 티어를 사용하는 경우, 반드시 <code class="bg-red-100 text-red-800 px-1 rounded border border-red-200">t2.micro</code> 또는 <code class="bg-red-100 text-red-800 px-1 rounded border border-red-200">t3.micro</code>(리전별 상이) 사양만 선택해야 합니다. 실수로 <code class="bg-slate-200 text-slate-700 px-1 rounded">m5.large</code>와 같은 상위 사양을 생성하면 <strong>생성 즉시 시간당 약 $0.096 USD (서울 리전 기준 약 130원) 이상의 과금</strong>이 발생하기 시작합니다.
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-database text-red-500 mt-1 mr-3 text-lg"></i>
+                                <div>
+                                    <strong class="text-red-700 block text-lg mb-1">스팟 인스턴스 데이터 유실 위험</strong>
+                                    저렴한 스팟 인스턴스는 AWS 자원 상황에 따라 예고 없이(2분 전 알림) 회수될 수 있습니다. 이때 메모리와 디스크의 <strong>데이터가 모두 유실</strong>될 수 있으므로, 반드시 AWS S3(Simple Storage Service)나 RDS(Relational Database Service)와 같은 외부 저장소로 실시간 데이터를 분리 및 백업하는 아키텍처 설계가 병행되어야 합니다.
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-arrow-trend-down text-red-500 mt-1 mr-3 text-lg"></i>
+                                <div>
+                                    <strong class="text-red-700 block text-lg mb-1">구형 세대 선택 주의</strong>
+                                    같은 <code class="bg-slate-200 text-slate-700 px-1 rounded">m</code> 패밀리라도 <code class="bg-slate-200 text-slate-700 px-1 rounded">m4</code> 등 이전 세대를 선택하면 최신 세대(<code class="bg-slate-200 text-slate-700 px-1 rounded">m6</code>, <code class="bg-slate-200 text-slate-700 px-1 rounded">m7</code>)에 비해 하드웨어 성능은 떨어지면서 가격은 더 비쌀 수 있습니다. 특별한 호환성 이유가 없다면 항상 최신 세대를 선택하세요.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footnotes Section -->
+        <footer class="bg-slate-100 border-t border-slate-200 p-8 text-sm text-slate-500">
+            <h4 class="font-bold text-slate-700 mb-3 border-b border-slate-300 pb-2 inline-block">주석 및 용어 설명</h4>
+            <ol class="list-decimal list-inside space-y-2 ml-2">
+                <li id="fn1"><strong>CPU (Central Processing Unit, 중앙 처리 장치)</strong>: 컴퓨터의 두뇌 역할을 하며 시스템 전반의 연산을 담당하는 핵심 하드웨어입니다.</li>
+                <li id="fn2"><strong>NVMe SSD (Non-Volatile Memory express Solid State Drive)</strong>: 기존 디스크 드라이브보다 훨씬 빠른 데이터 전송 속도를 제공하는 고성능 비휘발성 저장 장치 규격입니다.</li>
+                <li id="fn3"><strong>vCPU (Virtual CPU, 가상 중앙 처리 장치)</strong>: 물리적인 CPU 코어를 가상화 기술을 통해 논리적으로 나눈 단위로, 클라우드 환경에서 컴퓨팅 성능을 측정하는 기준이 됩니다.</li>
+                <li id="fn4"><strong>인메모리 데이터베이스 (In-Memory Database)</strong>: 디스크가 아닌 시스템 메모리(RAM)에 데이터를 저장하여 밀리초(ms) 단위의 초고속 데이터 응답 속도를 제공하는 데이터베이스입니다. (예: Redis, Memcached)</li>
+            </ol>
+        </footer>
+
+        <!-- Next Step Banner -->
+        <div class="aws-bg-navy text-white text-center py-6 px-4 font-bold text-lg md:text-xl relative overflow-hidden group cursor-pointer border-t-4 border-orange-500">
+            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition duration-300"></div>
+            Next Step: Amazon EBS(Elastic Block Store) 스토리지 유형과 스냅샷 <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition transform"></i>
+        </div>
+
+    </div>
+
+</body>
+</html>
