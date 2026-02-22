@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS 고가용성 아키텍처 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f0fdfa; /* Light teal background */
+            color: #334155;
+            line-height: 1.6;
+        }
+        .aws-teal { color: #14b8a6; }
+        .aws-bg-teal { background-color: #14b8a6; }
+        .aws-indigo { color: #312e81; }
+        .aws-bg-indigo { background-color: #312e81; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #e0f2fe; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .block-animation {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .block-animation:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 20px -8px rgba(49, 46, 129, 0.15);
+        }
+        
+        .gradient-border {
+            border: 2px solid transparent;
+            background-clip: padding-box, border-box;
+            background-origin: padding-box, border-box;
+            background-image: linear-gradient(#ffffff, #ffffff), linear-gradient(to right, #312e81, #14b8a6);
+        }
+
+        .expert-tip-bg {
+            background-image: repeating-linear-gradient(45deg, #f8fafc 0, #f8fafc 2px, transparent 2px, transparent 8px);
+        }
+    </style>
+</head>
+<body class="antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-100">
+        
+        <!-- Header Section -->
+        <header class="aws-bg-indigo text-white p-8 md:p-12 relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                <i class="fas fa-infinity text-9xl"></i>
+            </div>
+            <div class="relative z-10">
+                <span class="aws-bg-teal text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">Architecture & Reliability (Expert Level)</span>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 leading-tight">중단 없는 서비스의 완성:<br><span class="text-teal-400">AWS 고가용성</span> 아키텍처 심화</h1>
+                <p class="text-lg md:text-xl text-indigo-100 max-w-3xl">
+                    <a href="https://aws.amazon.com/ko/architecture/well-architected/" target="_blank" class="underline hover:text-white font-medium">AWS Well-Architected 프레임워크</a>의 핵심인 <strong>고가용성(High Availability)</strong>은 일부 컴포넌트에 장애가 발생하더라도 전체 시스템이 지속적으로 정상 운영되는 능력을 의미합니다. 단일 장애점(SPOF, Single Point of Failure)을 제거하고, 트래픽을 지능적으로 분산하며, 수요에 맞춰 인프라를 탄력적으로 조정하는 실무 설계 기법과 전문가 레벨의 최적화 전략을 학습합니다.
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-8 md:p-12 space-y-16">
+
+            <!-- Section 1: Multi-AZ -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-teal-400 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-building-shield text-indigo-600 mr-3"></i>다중 가용 영역 (Multi-AZ) 배포 및 RTO/RPO 전략
+                    </h2>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-4">
+                        물리적인 데이터 센터는 화재, 지진, 대규모 정전 등의 재난으로부터 완전히 자유로울 수 없습니다. AWS는 이를 해결하기 위해 하나의 <strong>리전(Region, 물리적 지리 위치)</strong> 내에 독립된 전력망과 네트워킹을 갖춘 여러 개의 <strong>AZ(Availability Zone, 가용 영역)</strong>를 제공합니다. 시스템을 최소 2개 이상의 AZ에 분산 배치하는 것이 고가용성의 첫걸음입니다.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 mb-6">
+                        <div class="bg-indigo-50 p-5 rounded-lg border border-indigo-100 relative overflow-hidden flex flex-col">
+                            <div class="absolute -right-4 -bottom-4 text-indigo-200/50">
+                                <i class="fas fa-toggle-on text-6xl"></i>
+                            </div>
+                            <h4 class="font-bold text-indigo-900 mb-2 text-lg relative z-10">Active-Active (액티브-액티브)</h4>
+                            <p class="text-sm text-slate-700 relative z-10 flex-grow">
+                                여러 AZ에 배치된 모든 서버가 동시에 트래픽을 처리하는 방식입니다. 웹 서버나 API 서버(Stateless)<sup><a href="#fn1" class="text-teal-600 font-bold">1</a></sup> 아키텍처에 주로 사용되며, 리소스 활용률이 가장 높습니다.
+                            </p>
+                        </div>
+                        
+                        <div class="bg-teal-50 p-5 rounded-lg border border-teal-100 relative overflow-hidden flex flex-col">
+                            <div class="absolute -right-4 -bottom-4 text-teal-200/50">
+                                <i class="fas fa-database text-6xl"></i>
+                            </div>
+                            <h4 class="font-bold text-teal-900 mb-2 text-lg relative z-10">Active-Passive (액티브-패시브)</h4>
+                            <p class="text-sm text-slate-700 relative z-10 flex-grow">
+                                주(Primary) 노드가 모든 트래픽을 처리하고, 예비(Standby) 노드는 데이터만 동기화하며 대기하다가 장애 발생 시 즉각 역할을 넘겨받는(Failover, 장애 조치) 방식입니다. 주로 관계형 데이터베이스(RDS)에서 사용됩니다.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Architect Tip Box -->
+                    <div class="bg-slate-800 text-white p-5 rounded-lg shadow-inner expert-tip-bg relative">
+                        <h4 class="font-bold text-amber-400 mb-2 flex items-center"><i class="fas fa-user-tie mr-2"></i>수석 아키텍트의 실전 설계 팁: 동기화 지연 시간</h4>
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            AZ 간의 물리적 거리는 보통 100km 이내로 설계되어 1~2ms(밀리초) 수준의 초저지연 네트워킹을 제공합니다. 그러나 완벽한 '0(Zero)'은 아닙니다. 데이터베이스를 Active-Active로 구성하거나 강력한 <strong>동기식 복제(Synchronous Replication)</strong>를 사용할 경우, 이 1~2ms의 지연 시간이 트랜잭션 병목(Bottleneck)을 유발할 수 있습니다. <strong>RTO(Recovery Time Objective, 복구 시간 목표)</strong>와 <strong>RPO(Recovery Point Objective, 복구 지점 목표)<sup><a href="#fn4" class="text-teal-400 font-bold">4</a></sup></strong>를 비즈니스 요구사항과 대조하여 비동기식(Asynchronous) 복제 적용 여부를 결정해야 합니다.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: ELB & Advanced Routing -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-teal-400 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-scale-balanced text-indigo-600 mr-3"></i>ELB (Elastic Load Balancing) 심화 제어
+                    </h2>
+                </div>
+
+                <div class="space-y-6">
+                    <p class="text-slate-700 leading-relaxed px-2">
+                        다수의 EC2 인스턴스로 들어오는 애플리케이션 트래픽을 자동으로 분산하여, 단일 서버에 부하가 집중되는 것을 막고 장애가 발생한 서버를 트래픽 경로에서 제외합니다. 이를 위해 <strong>Health Check(상태 검사)</strong>를 지속적으로 수행합니다.
+                    </p>
+
+                    <!-- ELB Types -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-xl font-bold mb-4">ALB</div>
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">Application Load Balancer</h3>
+                            <p class="text-sm text-slate-600 mb-3">
+                                OSI 7계층(애플리케이션 계층)에서 동작하며, HTTP 및 HTTPS 트래픽의 고급 라우팅에 최적화되어 있습니다. 마이크로서비스 및 컨테이너 기반 아키텍처에 주로 사용됩니다.
+                            </p>
+                            <div class="bg-slate-50 p-2 rounded text-xs text-slate-500 border border-slate-100">
+                                <strong>주요 기능:</strong> 경로 기반 라우팅 (예: <code>/api/*</code>는 서버A로, <code>/image/*</code>는 서버B로 전달)
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                            <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-xl font-bold mb-4">NLB</div>
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">Network Load Balancer</h3>
+                            <p class="text-sm text-slate-600 mb-3">
+                                OSI 4계층(전송 계층)에서 동작하며, TCP, UDP, TLS 트래픽 라우팅에 사용됩니다. 초당 수백만 개의 요청을 처리할 수 있는 <strong>초고성능, 초저지연</strong> 로드 밸런서입니다.
+                            </p>
+                            <div class="bg-slate-50 p-2 rounded text-xs text-slate-500 border border-slate-100">
+                                <strong>주요 기능:</strong> 고정 IP(Elastic IP) 부여 가능, 대규모 실시간 게임 서버 등 통신에 최적화
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced ELB Features -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 class="text-lg font-bold text-indigo-900 mb-4 border-b border-slate-100 pb-2">전문가 수준의 ELB 세부 제어 기능</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-bold text-teal-700 text-sm flex items-center"><i class="fas fa-shuffle mr-2"></i>Cross-Zone Load Balancing (교차 영역 로드 밸런싱)</h4>
+                                <p class="text-sm text-slate-600">각 AZ에 배치된 인스턴스의 개수가 불균형할 때, 로드 밸런서가 AZ의 경계를 무시하고 등록된 모든 인스턴스에 균등하게 트래픽을 분산하는 기능입니다. ALB는 기본적으로 활성화되어 있으며, NLB는 비활성화되어 있습니다. (NLB에서 활성화 시 교차 영역 데이터 전송 비용이 발생하므로 주의가 필요합니다.)</p>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-teal-700 text-sm flex items-center"><i class="fas fa-hourglass-half mr-2"></i>Deregistration Delay (등록 취소 지연 / Connection Draining)</h4>
+                                <p class="text-sm text-slate-600">특정 인스턴스를 서비스에서 제외(종료 또는 배포)할 때, <strong>기존에 맺어져 있던 활성 연결(Active Connection)이 강제로 끊어지지 않도록 지정된 시간(예: 300초) 동안 대기</strong>해주는 기능입니다. 사용자 경험(UX)을 해치지 않고 무중단 배포를 달성하는 핵심 기능입니다.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Practical Example Block -->
+                    <div class="gradient-border rounded-xl overflow-hidden shadow-lg mt-4 bg-white">
+                        <div class="bg-slate-800 px-5 py-3 flex justify-between items-center">
+                            <h4 class="font-bold text-teal-400 text-sm"><i class="fas fa-stethoscope mr-2"></i>실무 작업 예제: 대상 그룹 상태 검사 및 등록 취소 지연 최적화</h4>
+                            <span class="text-xs text-slate-400 font-mono">AWS CLI</span>
+                        </div>
+                        <div class="p-5">
+                            <p class="text-sm text-slate-600 mb-4">
+                                기본 상태 검사 설정은 장애를 인지하는 데 시간이 오래 걸릴 수 있습니다. 실무에서는 <strong>장애 감지 시간(Failover Time)</strong>을 최소화하고, 배포 시 세션 끊김을 방지하기 위해 다음과 같이 튜닝합니다.
+                            </p>
+                            <pre class="bg-slate-900 p-4 rounded-lg text-teal-300 font-mono text-sm overflow-x-auto shadow-inner border border-slate-700"><code>aws elbv2 modify-target-group \
+    --target-group-arn arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:targetgroup/my-web-targets/6d0ecf831eec9f09 \
+    --health-check-interval-seconds 10 \     <span class="text-slate-500"># (기본 30초 -> 10초) 검사 주기 단축</span>
+    --healthy-threshold-count 2 \            <span class="text-slate-500"># (기본 5회 -> 2회) 정상 판정 기준 완화</span>
+    --unhealthy-threshold-count 2            <span class="text-slate-500"># 20초 만에 비정상 판정 및 신규 트래픽 차단</span>
+
+aws elbv2 modify-target-group-attributes \
+    --target-group-arn arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:targetgroup/my-web-targets/6d0ecf831eec9f09 \
+    --attributes Key=deregistration_delay.timeout_seconds,Value=60 <span class="text-slate-500"># 등록 취소 지연을 60초로 설정 (기본 300초)</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Route 53 (DNS Failover) -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-teal-400 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-globe text-indigo-600 mr-3"></i>Amazon Route 53 기반의 글로벌 장애 조치 (DNS Failover)
+                    </h2>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-4">
+                        AZ 수준의 고가용성을 넘어, <strong>리전 전체 장애(Region-wide Outage)</strong>에 대비하기 위해서는 최상위 관문인 DNS(Domain Name System) 계층에서의 트래픽 제어가 필요합니다. <a href="https://aws.amazon.com/ko/route53/" target="_blank" class="text-teal-600 underline font-bold">Amazon Route 53</a>은 100% SLA(서비스 수준 약정)를 보장하는 관리형 DNS 서비스입니다.
+                    </p>
+                    
+                    <ul class="space-y-4 text-sm text-slate-700">
+                        <li class="flex items-start">
+                            <i class="fas fa-heart-pulse text-rose-500 text-lg mr-3 mt-1"></i>
+                            <div>
+                                <strong class="text-slate-900 block mb-1">Route 53 Health Checks (상태 검사)</strong>
+                                전 세계 여러 위치의 AWS 검사기(Checker)가 지정된 엔드포인트(웹 서버, ELB 등)의 상태를 주기적으로 감시합니다. 엔드포인트가 응답하지 않으면 해당 IP 주소를 DNS 응답에서 자동으로 제거합니다.
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-route text-indigo-500 text-lg mr-3 mt-1"></i>
+                            <div>
+                                <strong class="text-slate-900 block mb-1">Failover Routing Policy (장애 조치 라우팅 정책)</strong>
+                                평상시에는 기본(Primary) 리전(예: 서울)의 로드 밸런서로 트래픽을 보내다가, 서울 리전에 장애가 감지되면 즉각 예비(Secondary) 리전(예: 도쿄)이나 S3에 호스팅된 '장애 안내 페이지(Sorry Page)'로 트래픽을 우회시킵니다.
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Section 4: Auto Scaling -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-teal-400 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-arrows-down-to-people text-indigo-600 mr-3"></i>Auto Scaling (오토 스케일링, 자동 크기 조정) 심화
+                    </h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        트래픽 변동에 따라 EC2 인스턴스의 개수를 자동으로 늘리거나(<strong>Scale-out, 스케일 아웃</strong>) 줄이는(<strong>Scale-in, 스케일 인</strong>)<sup><a href="#fn2" class="text-teal-600 font-bold">2</a></sup> 서비스입니다. ELB와 결합하여 고가용성을 보장하는 동시에, 불필요한 서버 자원을 회수하여 비용을 최적화(Cost Optimization)합니다.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="p-4 bg-slate-50 border border-slate-100 rounded-lg text-center">
+                            <i class="fas fa-bullseye text-3xl text-indigo-400 mb-3"></i>
+                            <h4 class="font-bold text-slate-800 mb-1">대상 추적 (Target Tracking)</h4>
+                            <p class="text-xs text-slate-600">가장 많이 쓰이는 실무 표준 방식입니다. "평균 CPU 사용률을 50%로 유지해라"라고 지시하면 알아서 서버 증감을 수행합니다.</p>
+                        </div>
+                        <div class="p-4 bg-slate-50 border border-slate-100 rounded-lg text-center">
+                            <i class="fas fa-calendar-check text-3xl text-indigo-400 mb-3"></i>
+                            <h4 class="font-bold text-slate-800 mb-1">예약 조정 (Scheduled)</h4>
+                            <p class="text-xs text-slate-600">이벤트 시간이나 트래픽 급증 시간(예: 수강 신청일 오전 9시)이 명확히 정해져 있을 때, 미리 서버를 띄워두는 방식입니다.</p>
+                        </div>
+                        <div class="p-4 bg-slate-50 border border-slate-100 rounded-lg text-center">
+                            <i class="fas fa-brain text-3xl text-indigo-400 mb-3"></i>
+                            <h4 class="font-bold text-slate-800 mb-1">예측 조정 (Predictive)</h4>
+                            <p class="text-xs text-slate-600">머신 러닝(Machine Learning) 알고리즘이 과거의 트래픽 패턴을 분석하여 다가올 부하를 예측하고 선제적으로 서버를 늘립니다.</p>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-indigo-900 mb-4 border-b border-slate-100 pb-2">전문가 수준의 Auto Scaling 제어</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-anchor text-teal-600 mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm mb-1">Lifecycle Hooks (수명 주기 후크)</h4>
+                                <p class="text-sm text-slate-600">인스턴스가 시작되거나 종료될 때 잠시 <strong>대기 상태(Wait State)</strong>로 멈춰두는 기능입니다. 스케일 인(축소)으로 서버가 종료되기 직전에 내부에 남아있는 로그 파일을 S3로 안전하게 추출하거나, 스케일 아웃(확장) 시 메모리 캐시를 사전에 웜업(Warm-up)할 시간을 벌어주는 고급 아키텍처 패턴입니다.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-layer-group text-teal-600 mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm mb-1">Mixed Instances Policy (혼합 인스턴스 정책)</h4>
+                                <p class="text-sm text-slate-600">하나의 Auto Scaling 그룹 내에서 기본(On-Demand) 인스턴스와 저렴한 스팟(Spot) 인스턴스를 비율로 섞어 쓰는 방식입니다. (예: 온디맨드 30%, 스팟 70%). 고가용성을 유지하면서도 컴퓨팅 비용을 극적으로 절감하는 아키텍트의 필수 기법입니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cost & Warning Section -->
+            <section>
+                <div class="bg-rose-50 border-l-8 border-rose-600 rounded-r-xl p-6 shadow-md relative overflow-hidden mt-12">
+                    <div class="absolute -right-6 -top-6 text-rose-200/50 transform rotate-12">
+                        <i class="fas fa-file-invoice-dollar text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-black text-rose-800 mb-6 flex items-center border-b border-rose-200 pb-3">
+                            <i class="fas fa-engine-warning mr-3 animate-pulse"></i> 고가용성 설계 시 과금 및 아키텍처 주의사항 (필독)
+                        </h2>
+                        
+                        <div class="space-y-5">
+                            <!-- Multi-AZ NAT Gateway Warning -->
+                            <div class="bg-white p-5 rounded-lg border border-rose-200 flex items-start shadow-sm hover:shadow-md transition">
+                                <div class="text-rose-600 font-bold text-2xl mr-4 mt-1"><i class="fas fa-sitemap"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-rose-900 text-lg mb-2">다중 AZ 배포 시 NAT Gateway 비용 함정</h4>
+                                    <p class="text-sm text-slate-700 leading-relaxed">
+                                        Private 서브넷에 위치한 인스턴스가 인터넷과 통신하려면 NAT Gateway가 필요합니다. <strong>완벽한 고가용성을 위해서는 각 AZ마다 별도의 NAT Gateway를 생성</strong>해야 합니다. (예: 2개 AZ 사용 시 NAT Gateway 2개 필요). 이 경우 <span class="bg-rose-100 text-rose-800 font-bold px-1 rounded">NAT Gateway 시간당 유지 비용이 2배로 발생</span>하며, 비용 절감을 위해 다른 AZ의 NAT를 공유하여 사용할 경우 <strong>교차 AZ 데이터 전송 비용(GB당 $0.01)</strong>이 트래픽 양에 비례하여 대량으로 추가 발생합니다. 비용과 가용성 사이의 트레이드오프(Trade-off)를 명확히 계산해야 합니다.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Cross-Zone Data Transfer Cost Warning -->
+                            <div class="bg-white p-5 rounded-lg border border-rose-200 flex items-start shadow-sm hover:shadow-md transition">
+                                <div class="text-rose-600 font-bold text-2xl mr-4 mt-1"><i class="fas fa-network-wired"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-rose-900 text-lg mb-2">교차 영역(Cross-Zone) 데이터 전송 과금 주의</h4>
+                                    <p class="text-sm text-slate-700 leading-relaxed">
+                                        하나의 리전 안이라 하더라도 <strong>서로 다른 AZ(가용 영역) 간에 데이터를 주고받을 때는 GB당 데이터 전송 요금이 청구</strong>됩니다. ALB를 통한 교차 영역 로드 밸런싱 자체의 트래픽은 무료이지만, EC2 서버와 Multi-AZ로 구성된 RDS 데이터베이스 간의 통신이 AZ를 횡단할 경우 숨겨진 비용이 발생합니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- ELB Billing Warning -->
+                            <div class="bg-white p-5 rounded-lg border border-rose-200 flex items-start shadow-sm hover:shadow-md transition">
+                                <div class="text-rose-600 font-bold text-2xl mr-4 mt-1"><i class="fas fa-money-bill-transfer"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-rose-900 text-lg mb-2">ELB 유지 비용 및 LCU(로드 밸런서 용량 단위) 과금</h4>
+                                    <p class="text-sm text-slate-700 leading-relaxed">
+                                        ELB는 생성되어 있는 시간 자체에 대한 <strong>기본 시간당 요금(약 $0.0225)</strong>이 부과됩니다. 트래픽이 전혀 없어도 비용이 발생합니다. 또한 처리되는 데이터 트래픽 양, 새 연결 수 등에 따라 <strong>LCU(Load Balancer Capacity Units)<sup><a href="#fn3" class="text-teal-600 font-bold">3</a></sup></strong>라는 단위로 추가 요금이 합산되어 청구됩니다. 실습 후 방치된 ELB는 은밀한 과금 폭탄의 주범이 됩니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footnotes Section -->
+        <footer class="bg-slate-50 border-t border-slate-200 p-8 text-sm text-slate-500">
+            <h4 class="font-bold text-slate-700 mb-3 border-b border-slate-300 pb-2 inline-block">주석 및 용어 설명</h4>
+            <ol class="list-decimal list-inside space-y-3 ml-2">
+                <li id="fn1"><strong>Stateless (무상태성)</strong>: 서버가 클라이언트의 세션 상태(예: 로그인 정보, 장바구니 등)를 내부 메모리에 저장하지 않는 설계 방식입니다. 상태 정보를 외부의 캐시(Redis 등)나 데이터베이스에 저장하므로, 트래픽을 어떤 서버로 분산시켜도 문제가 발생하지 않아 Auto Scaling에 필수적인 요건입니다.</li>
+                <li id="fn2"><strong>Scale-out / Scale-in (수평적 확장/축소)</strong>: 서버의 대수를 늘리거나 줄여서 처리 용량을 조절하는 방식입니다. 반대로 기존 서버의 성능 자체(CPU/RAM 사양)를 올리는 것은 Scale-up(스케일 업), 낮추는 것은 Scale-down(스케일 다운)이라고 합니다. 클라우드는 Scale-out 방식에 최적화되어 있습니다.</li>
+                <li id="fn3"><strong>LCU (Load Balancer Capacity Units, 로드 밸런서 용량 단위)</strong>: ALB 사용 요금을 측정하는 메트릭입니다. 초당 새 연결 수, 활성 연결 수, 처리된 바이트(대역폭), 규칙 평가 수 등 4가지 차원을 측정하여 가장 높게 사용된 차원을 기준으로 과금합니다.</li>
+                <li id="fn4"><strong>RTO/RPO</strong>: RTO(Recovery Time Objective, 복구 시간 목표)는 장애 발생 시 서비스를 다시 살려내는 데까지 허용되는 최대 시간입니다. RPO(Recovery Point Objective, 복구 지점 목표)는 장애 발생 시 감수할 수 있는 데이터 손실의 최대 허용 시점(예: 최근 5분 이내의 데이터는 소실되어도 무방함)을 의미합니다.</li>
+            </ol>
+        </footer>
+
+        <!-- Next Step Banner -->
+        <div class="aws-bg-indigo text-teal-400 text-center py-6 px-4 font-bold text-lg md:text-xl relative overflow-hidden group cursor-pointer border-t-4 border-teal-500">
+            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 transition duration-300"></div>
+            Next Step: Amazon RDS 다중 AZ 배포 및 데이터베이스 복제 전략 <i class="fas fa-arrow-right ml-2 text-white group-hover:translate-x-2 transition transform"></i>
+        </div>
+
+    </div>
+
+</body>
+</html>
