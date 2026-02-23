@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAT Gateway 아키텍처 및 Terraform 자동화 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc; /* Light slate background */
+            color: #334155;
+            line-height: 1.6;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .block-animation {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .block-animation:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.15);
+        }
+        
+        .expert-tip-bg {
+            background: linear-gradient(135deg, #31103f 0%, #1e1b4b 100%);
+            border-left: 4px solid #d946ef; /* Fuchsia 500 */
+        }
+
+        .diagram-line {
+            stroke-dasharray: 6;
+            animation: dash 15s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -100; }
+        }
+
+        /* Terraform syntax highlighting colors */
+        .tf-keyword { color: #c678dd; }
+        .tf-string { color: #98c379; }
+        .tf-type { color: #e5c07b; }
+        .tf-comment { color: #5c6370; font-style: italic; }
+        .tf-property { color: #d19a66; }
+        .tf-variable { color: #61afef; }
+    </style>
+</head>
+<body class="antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        <!-- Header Section -->
+        <header class="bg-slate-900 text-white p-8 md:p-12 relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                <i class="fas fa-network-wired text-9xl text-fuchsia-500"></i>
+            </div>
+            <div class="relative z-10">
+                <span class="bg-fuchsia-900 text-fuchsia-300 border border-fuchsia-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">Infrastructure Architecture (Expert Practical)</span>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 leading-tight">NAT Gateway 심층 아키텍처:<br><span class="text-fuchsia-400">비용과 고가용성의 균형</span></h1>
+                <p class="text-lg md:text-xl text-slate-300 max-w-3xl">
+                    <a href="https://aws.amazon.com/ko/vpc/" target="_blank" class="underline hover:text-white font-medium">NAT Gateway(네트워크 주소 변환 게이트웨이)</a>는 Private Subnet(프라이빗 서브넷)의 자원이 안전하게 외부와 통신하도록 돕는 핵심 서비스입니다. 단일 구성(비용 최적화)부터 다중 구성(고가용성), 그리고 Private NAT(프라이빗 주소 변환)를 활용한 하이브리드 구성까지 AWS CLI(명령줄 인터페이스)와 Terraform(테라폼) 스크립트를 통해 전문가 수준으로 설계하고 배포합니다.
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-8 md:p-12 space-y-16">
+
+            <!-- Section: 1 NAT Gateway -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-fuchsia-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-money-bill-wave text-fuchsia-600 mr-3"></i>단일 NAT Gateway 구성 (비용 최적화 모델)
+                    </h2>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation mb-6">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        개발(Dev) 또는 테스트 환경에서 비용을 최소화하기 위해 <strong>단 하나의 NAT Gateway를 여러 AZ(Availability Zone, 가용 영역)가 공유</strong>하는 모델입니다. 유지 비용을 절반으로 줄일 수 있지만, NAT가 위치한 AZ에 장애가 발생하면 전체 프라이빗 서브넷의 외부 통신이 단절되는 <strong>SPOF(Single Point of Failure, 단일 장애점)</strong>가 존재합니다.
+                    </p>
+
+                    <!-- Diagram: 1 NAT -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6 overflow-x-auto">
+                        <div class="min-w-[600px] text-center relative">
+                            <div class="flex gap-4">
+                                <!-- AZ A -->
+                                <div class="flex-1 border-2 border-slate-300 bg-slate-100/50 rounded-lg p-4 relative">
+                                    <div class="text-xs font-bold text-slate-500 mb-4">AZ: ap-northeast-2a</div>
+                                    <div class="border border-blue-300 bg-blue-50 p-3 rounded mb-4">
+                                        <div class="text-xs font-bold text-blue-800 mb-2">Public Subnet</div>
+                                        <div class="bg-fuchsia-100 border border-fuchsia-300 rounded p-2 text-xs font-bold text-fuchsia-800 shadow-sm flex items-center justify-center relative z-10">
+                                            <i class="fas fa-network-wired mr-1"></i> NAT GW (EIP 연결)
+                                        </div>
+                                    </div>
+                                    <div class="border border-emerald-300 bg-emerald-50 p-3 rounded">
+                                        <div class="text-xs font-bold text-emerald-800 mb-2">Private Subnet A</div>
+                                        <div class="bg-white border border-emerald-200 rounded p-1 text-[10px] text-slate-600">RT: 0.0.0.0/0 &rarr; NAT GW</div>
+                                    </div>
+                                </div>
+                                <!-- AZ B -->
+                                <div class="flex-1 border-2 border-slate-300 bg-slate-100/50 rounded-lg p-4 relative">
+                                    <div class="text-xs font-bold text-slate-500 mb-4">AZ: ap-northeast-2b</div>
+                                    <div class="border border-blue-300 bg-blue-50 p-3 rounded mb-4 h-[76px] flex items-center justify-center">
+                                        <div class="text-xs font-bold text-slate-400 italic">NAT 미배치 (비용 절감)</div>
+                                    </div>
+                                    <div class="border border-emerald-300 bg-emerald-50 p-3 rounded relative">
+                                        <div class="text-xs font-bold text-emerald-800 mb-2">Private Subnet B</div>
+                                        <div class="bg-white border border-emerald-200 rounded p-1 text-[10px] text-slate-600">RT: 0.0.0.0/0 &rarr; AZ-A의 NAT GW</div>
+                                        
+                                        <!-- Cross AZ Line -->
+                                        <svg class="absolute -top-16 -left-24 w-24 h-24 pointer-events-none" style="z-index: 20;">
+                                            <path d="M 10 90 Q 50 10 90 10" fill="transparent" stroke="#d946ef" stroke-width="2" marker-end="url(#arrowhead-fuchsia)" class="diagram-line"/>
+                                            <defs>
+                                                <marker id="arrowhead-fuchsia" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                                    <polygon points="0 0, 10 3.5, 0 7" fill="#d946ef" />
+                                                </marker>
+                                            </defs>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Warning -->
+                    <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded text-sm text-rose-800 shadow-sm mb-6 flex items-start">
+                        <i class="fas fa-file-invoice-dollar text-2xl mr-3 mt-1 text-rose-600"></i>
+                        <div>
+                            <strong class="block text-base mb-1">비용 경고: 교차 영역(Cross-AZ) 데이터 전송 요금</strong>
+                            AZ-B의 Private Subnet이 AZ-A의 NAT Gateway를 이용할 경우, 데이터가 AZ 경계를 넘어가므로 <strong>교차 AZ 데이터 전송 요금(GB당 $0.01)</strong>이 발생합니다. 트래픽이 적은 개발 환경에서는 NAT 유지비를 아끼는 것이 이득이지만, 대용량 트래픽이 발생하는 운영 환경에서는 오히려 데이터 전송 요금이 NAT 유지비를 초과할 수 있습니다.
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- AWS CLI -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700">
+                                <h4 class="font-bold text-fuchsia-400 text-sm"><i class="fas fa-terminal mr-2"></i>AWS CLI</h4>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-emerald-400 overflow-x-auto">
+                                <pre><code><span class="text-slate-400"># 1. 탄력적 IP(EIP) 할당</span>
+aws ec2 allocate-address --domain vpc
+<span class="text-slate-400"># eipalloc-1234</span>
+
+<span class="text-slate-400"># 2. AZ-A의 퍼블릭 서브넷에 NAT 생성</span>
+aws ec2 create-nat-gateway \
+  --subnet-id subnet-public-a \
+  --allocation-id eipalloc-1234
+<span class="text-slate-400"># nat-0abcd</span>
+
+<span class="text-slate-400"># 3. 양쪽 Private 라우팅 테이블 업데이트</span>
+aws ec2 create-route \
+  --route-table-id rtb-private-a \
+  --destination-cidr-block 0.0.0.0/0 \
+  --nat-gateway-id nat-0abcd
+
+aws ec2 create-route \
+  --route-table-id rtb-private-b \
+  --destination-cidr-block 0.0.0.0/0 \
+  --nat-gateway-id nat-0abcd</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Terraform -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between">
+                                <h4 class="font-bold text-fuchsia-400 text-sm"><i class="fas fa-code mr-2"></i>Terraform</h4>
+                                <span class="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded">HCL</span>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-slate-300 overflow-x-auto">
+                                <pre><code><span class="tf-keyword">resource</span> <span class="tf-string">"aws_eip"</span> <span class="tf-string">"nat"</span> {
+  <span class="tf-property">domain</span> = <span class="tf-string">"vpc"</span>
+}
+
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_nat_gateway"</span> <span class="tf-string">"single"</span> {
+  <span class="tf-property">allocation_id</span> = <span class="tf-variable">aws_eip</span>.<span class="tf-variable">nat</span>.<span class="tf-variable">id</span>
+  <span class="tf-property">subnet_id</span>     = <span class="tf-variable">aws_subnet</span>.<span class="tf-variable">public_a</span>.<span class="tf-variable">id</span>
+}
+
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_route"</span> <span class="tf-string">"private_a_internet"</span> {
+  <span class="tf-property">route_table_id</span>         = <span class="tf-variable">aws_route_table</span>.<span class="tf-variable">priv_a</span>.<span class="tf-variable">id</span>
+  <span class="tf-property">destination_cidr_block</span> = <span class="tf-string">"0.0.0.0/0"</span>
+  <span class="tf-property">nat_gateway_id</span>         = <span class="tf-variable">aws_nat_gateway</span>.<span class="tf-variable">single</span>.<span class="tf-variable">id</span>
+}
+
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_route"</span> <span class="tf-string">"private_b_internet"</span> {
+  <span class="tf-property">route_table_id</span>         = <span class="tf-variable">aws_route_table</span>.<span class="tf-variable">priv_b</span>.<span class="tf-variable">id</span>
+  <span class="tf-property">destination_cidr_block</span> = <span class="tf-string">"0.0.0.0/0"</span>
+  <span class="tf-property">nat_gateway_id</span>         = <span class="tf-variable">aws_nat_gateway</span>.<span class="tf-variable">single</span>.<span class="tf-variable">id</span>
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: 2 NAT Gateways -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-fuchsia-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-shield-halved text-fuchsia-600 mr-3"></i>다중 NAT Gateway 구성 (고가용성 운영 표준 모델)
+                    </h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        운영(Production) 환경의 실무 표준입니다. <strong>각 가용 영역(AZ)마다 독립적인 NAT Gateway를 배치</strong>하고, 각 AZ의 프라이빗 서브넷은 자신이 속한 AZ의 NAT를 통해 외부로 통신합니다. 특정 AZ에 장애가 발생하더라도 다른 AZ의 통신에는 전혀 영향을 미치지 않는 완벽한 <strong>고가용성(High Availability)</strong>을 달성합니다.
+                    </p>
+
+                    <!-- Diagram: 2 NATs -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6 overflow-x-auto">
+                        <div class="min-w-[600px] text-center relative">
+                            <div class="flex gap-4">
+                                <!-- AZ A -->
+                                <div class="flex-1 border-2 border-slate-300 bg-slate-100/50 rounded-lg p-4 relative">
+                                    <div class="text-xs font-bold text-slate-500 mb-4">AZ: ap-northeast-2a</div>
+                                    <div class="border border-blue-300 bg-blue-50 p-3 rounded mb-4">
+                                        <div class="text-xs font-bold text-blue-800 mb-2">Public Subnet A</div>
+                                        <div class="bg-fuchsia-100 border border-fuchsia-300 rounded p-2 text-xs font-bold text-fuchsia-800 shadow-sm flex items-center justify-center">
+                                            <i class="fas fa-network-wired mr-1"></i> NAT GW 1
+                                        </div>
+                                    </div>
+                                    <div class="border border-emerald-300 bg-emerald-50 p-3 rounded relative">
+                                        <div class="text-xs font-bold text-emerald-800 mb-2">Private Subnet A</div>
+                                        <div class="bg-white border border-emerald-200 rounded p-1 text-[10px] text-slate-600">RT: 0.0.0.0/0 &rarr; NAT GW 1</div>
+                                    </div>
+                                </div>
+                                <!-- AZ B -->
+                                <div class="flex-1 border-2 border-slate-300 bg-slate-100/50 rounded-lg p-4 relative">
+                                    <div class="text-xs font-bold text-slate-500 mb-4">AZ: ap-northeast-2b</div>
+                                    <div class="border border-blue-300 bg-blue-50 p-3 rounded mb-4">
+                                        <div class="text-xs font-bold text-blue-800 mb-2">Public Subnet B</div>
+                                        <div class="bg-fuchsia-100 border border-fuchsia-300 rounded p-2 text-xs font-bold text-fuchsia-800 shadow-sm flex items-center justify-center">
+                                            <i class="fas fa-network-wired mr-1"></i> NAT GW 2
+                                        </div>
+                                    </div>
+                                    <div class="border border-emerald-300 bg-emerald-50 p-3 rounded relative">
+                                        <div class="text-xs font-bold text-emerald-800 mb-2">Private Subnet B</div>
+                                        <div class="bg-white border border-emerald-200 rounded p-1 text-[10px] text-slate-600">RT: 0.0.0.0/0 &rarr; NAT GW 2</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- AWS CLI -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700">
+                                <h4 class="font-bold text-fuchsia-400 text-sm"><i class="fas fa-terminal mr-2"></i>AWS CLI</h4>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-emerald-400 overflow-x-auto">
+                                <pre><code><span class="text-slate-400"># 1. 탄력적 IP 2개 할당</span>
+aws ec2 allocate-address --domain vpc # eip-a
+aws ec2 allocate-address --domain vpc # eip-b
+
+<span class="text-slate-400"># 2. 각 AZ의 퍼블릭 서브넷에 NAT 생성</span>
+aws ec2 create-nat-gateway \
+  --subnet-id subnet-public-a --allocation-id eip-a
+aws ec2 create-nat-gateway \
+  --subnet-id subnet-public-b --allocation-id eip-b
+
+<span class="text-slate-400"># 3. 각 Private 라우팅 테이블 독립적 업데이트</span>
+aws ec2 create-route \
+  --route-table-id rtb-private-a \
+  --destination-cidr-block 0.0.0.0/0 \
+  --nat-gateway-id nat-a
+
+aws ec2 create-route \
+  --route-table-id rtb-private-b \
+  --destination-cidr-block 0.0.0.0/0 \
+  --nat-gateway-id nat-b</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Terraform -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between">
+                                <h4 class="font-bold text-fuchsia-400 text-sm"><i class="fas fa-code mr-2"></i>Terraform (반복문 활용)</h4>
+                                <span class="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded">HCL</span>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-slate-300 overflow-x-auto">
+                                <pre><code><span class="tf-comment"># count를 활용한 다중 생성 자동화</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_eip"</span> <span class="tf-string">"nat"</span> {
+  <span class="tf-property">count</span>  = <span class="tf-property">2</span>
+  <span class="tf-property">domain</span> = <span class="tf-string">"vpc"</span>
+}
+
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_nat_gateway"</span> <span class="tf-string">"multi"</span> {
+  <span class="tf-property">count</span>         = <span class="tf-property">2</span>
+  <span class="tf-property">allocation_id</span> = <span class="tf-variable">aws_eip</span>.<span class="tf-variable">nat</span>[<span class="tf-property">count</span>.<span class="tf-property">index</span>].<span class="tf-variable">id</span>
+  <span class="tf-property">subnet_id</span>     = <span class="tf-variable">aws_subnet</span>.<span class="tf-variable">public</span>[<span class="tf-property">count</span>.<span class="tf-property">index</span>].<span class="tf-variable">id</span>
+}
+
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_route"</span> <span class="tf-string">"private_routes"</span> {
+  <span class="tf-property">count</span>                  = <span class="tf-property">2</span>
+  <span class="tf-property">route_table_id</span>         = <span class="tf-variable">aws_route_table</span>.<span class="tf-variable">private</span>[<span class="tf-property">count</span>.<span class="tf-property">index</span>].<span class="tf-variable">id</span>
+  <span class="tf-property">destination_cidr_block</span> = <span class="tf-string">"0.0.0.0/0"</span>
+  <span class="tf-property">nat_gateway_id</span>         = <span class="tf-variable">aws_nat_gateway</span>.<span class="tf-variable">multi</span>[<span class="tf-property">count</span>.<span class="tf-property">index</span>].<span class="tf-variable">id</span>
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: 3 NAT Gateways (Hybrid) -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-fuchsia-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-layer-group text-fuchsia-600 mr-3"></i>3 NAT 혼합 구성 (퍼블릭 2개 + 프라이빗 1개)
+                    </h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        대규모 하이브리드 클라우드 환경에서 사용되는 수석 아키텍트 레벨의 설계입니다. 인터넷 아웃바운드를 위한 <strong>퍼블릭 NAT Gateway 2개(고가용성)</strong>와, 온프레미스(IDC)나 타사망 연결 시 IP 대역 충돌(Overlapping CIDR)을 방지하거나 내부 IP를 마스킹하기 위한 <strong>프라이빗 NAT Gateway(Private NAT Gateway) 1개</strong>를 결합합니다.
+                    </p>
+
+                    <!-- Expert Tip -->
+                    <div class="bg-slate-900 text-white p-5 rounded-lg shadow-inner expert-tip-bg mb-6">
+                        <h4 class="font-bold text-fuchsia-400 mb-2 flex items-center"><i class="fas fa-key mr-2"></i>Private NAT Gateway의 핵심 원리</h4>
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            Private NAT Gateway는 인터넷 게이트웨이(IGW)와 연결되지 않으며, <strong>탄력적 IP(EIP)를 필요로 하지 않습니다.</strong> 오직 내부 사설망(Transit Gateway, Direct Connect 전용선 등)과 통신할 때 출발지 IP(Source IP)를 NAT 자체의 사설 IP로 변환(SNAT)하여 내부 네트워크 토폴로지를 숨기거나 IP 충돌 문제를 우회하는 특수 목적의 라우팅 컴포넌트입니다.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- AWS CLI -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700">
+                                <h4 class="font-bold text-fuchsia-400 text-sm"><i class="fas fa-terminal mr-2"></i>AWS CLI</h4>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-emerald-400 overflow-x-auto">
+                                <pre><code><span class="text-slate-400"># 1. 2개의 Public NAT 생성 (EIP 필수)</span>
+aws ec2 create-nat-gateway \
+  --subnet-id subnet-public-1 --allocation-id eip-1
+aws ec2 create-nat-gateway \
+  --subnet-id subnet-public-2 --allocation-id eip-2
+
+<span class="text-slate-400"># 2. 1개의 Private NAT 생성 (EIP 불필요)</span>
+<span class="text-slate-400"># connectivity-type을 private으로 명시</span>
+aws ec2 create-nat-gateway \
+  --subnet-id subnet-private-routing \
+  <span class="text-rose-400">--connectivity-type private</span>
+
+<span class="text-slate-400"># 3. 온프레미스망(예: 172.16.0.0/12) 라우팅을</span>
+<span class="text-slate-400"># TGW가 아닌 Private NAT로 먼저 보내도록 설정</span>
+aws ec2 create-route \
+  --route-table-id rtb-app-subnet \
+  --destination-cidr-block 172.16.0.0/12 \
+  --nat-gateway-id nat-private</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Terraform -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between">
+                                <h4 class="font-bold text-fuchsia-400 text-sm"><i class="fas fa-code mr-2"></i>Terraform</h4>
+                                <span class="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded">HCL</span>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-slate-300 overflow-x-auto">
+                                <pre><code><span class="tf-comment"># Public NAT Gateways 생략 (이전 예제와 동일)</span>
+
+<span class="tf-comment"># Private NAT Gateway 구성</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_nat_gateway"</span> <span class="tf-string">"private_nat"</span> {
+  <span class="tf-property">subnet_id</span>         = <span class="tf-variable">aws_subnet</span>.<span class="tf-variable">private_transit</span>.<span class="tf-variable">id</span>
+  
+  <span class="tf-comment"># 핵심 속성: EIP 대신 private 명시</span>
+  <span class="tf-property">connectivity_type</span> = <span class="tf-string">"private"</span>
+  
+  <span class="tf-property">tags</span> = { <span class="tf-property">Name</span> = <span class="tf-string">"Internal-NAT-GW"</span> }
+}
+
+<span class="tf-comment"># 애플리케이션 서브넷 -> 온프레미스 트래픽 라우팅</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_route"</span> <span class="tf-string">"to_on_premise"</span> {
+  <span class="tf-property">route_table_id</span>         = <span class="tf-variable">aws_route_table</span>.<span class="tf-variable">app</span>.<span class="tf-variable">id</span>
+  <span class="tf-property">destination_cidr_block</span> = <span class="tf-string">"172.16.0.0/12"</span>
+  <span class="tf-property">nat_gateway_id</span>         = <span class="tf-variable">aws_nat_gateway</span>.<span class="tf-variable">private_nat</span>.<span class="tf-variable">id</span>
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footnotes Section -->
+        <footer class="bg-slate-50 border-t border-slate-200 p-8 text-sm text-slate-500">
+            <h4 class="font-bold text-slate-700 mb-3 border-b border-slate-300 pb-2 inline-block">주석 및 용어 설명</h4>
+            <ol class="list-decimal list-inside space-y-3 ml-2">
+                <li id="fn1"><strong>SPOF (Single Point of Failure, 단일 장애점)</strong>: 시스템 구성 요소 중에서 동작하지 않으면 전체 시스템이 중단되는 요소를 말합니다. 고가용성 설계의 가장 중요한 원칙은 이 SPOF를 찾아내고 이중화하여 제거하는 것입니다.</li>
+                <li id="fn2"><strong>EIP (Elastic IP, 탄력적 IP)</strong>: 동적으로 변하지 않는 고정된 공인 IPv4 주소입니다. 인터넷 게이트웨이와 통신하는 Public NAT Gateway는 외부에서 인식할 수 있는 고정된 공인 IP가 반드시 필요하므로 EIP를 할당받아야 합니다.</li>
+                <li id="fn3"><strong>SNAT (Source Network Address Translation, 출발지 네트워크 주소 변환)</strong>: 패킷이 라우터를 통과할 때 패킷의 출발지 IP 주소를 라우터(여기서는 NAT GW)의 IP 주소로 변경하는 기술입니다. 내부 사설망의 구조를 외부(인터넷 또는 타사망)로부터 숨기는 보안 효과를 제공합니다.</li>
+            </ol>
+        </footer>
+
+        <!-- Next Step Banner -->
+        <div class="bg-slate-900 text-fuchsia-400 text-center py-6 px-4 font-bold text-lg md:text-xl relative overflow-hidden group cursor-pointer border-t-4 border-fuchsia-500">
+            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition duration-300"></div>
+            Next Step: AWS Transit Gateway 심화 라우팅 및 검사(Inspection) VPC 아키텍처 구성 <i class="fas fa-arrow-right ml-2 text-white group-hover:translate-x-2 transition transform"></i>
+        </div>
+
+    </div>
+
+</body>
+</html>
