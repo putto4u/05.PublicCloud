@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS VPC 피어링 구축 실습 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #ecfdf5; }
+        ::-webkit-scrollbar-thumb { background: #6ee7b7; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+        
+        .block-animation {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .block-animation:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(6, 78, 59, 0.15);
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.3);
+        }
+
+        .diagram-line {
+            stroke-dasharray: 6;
+            animation: dash 15s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -100; }
+        }
+
+        .code-block {
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
+        
+        .expert-tip-bg {
+            background: linear-gradient(135deg, #022c22 0%, #064e3b 100%);
+            border-left: 4px solid #10b981;
+        }
+
+        /* YAML syntax highlighting colors */
+        .yaml-key { color: #61afef; }
+        .yaml-value { color: #98c379; }
+        .yaml-comment { color: #6b7280; font-style: italic; }
+        .yaml-func { color: #c678dd; }
+    </style>
+</head>
+<body class="antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        <!-- Header Section -->
+        <header class="bg-slate-900 text-white p-8 md:p-12 relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                <i class="fas fa-plug text-9xl text-emerald-500"></i>
+            </div>
+            <div class="relative z-10">
+                <span class="bg-emerald-900 text-emerald-300 border border-emerald-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">Hands-on Lab (Expert Practical)</span>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 leading-tight">프라이빗 네트워크 직접 연결:<br><span class="text-emerald-400">VPC Peering 구축 실무</span></h1>
+                <p class="text-lg md:text-xl text-slate-300 max-w-3xl">
+                    개발용 VPC(Virtual Private Cloud, 가상 프라이빗 클라우드)와 데이터베이스용 VPC를 분리하여 운영하는 실무 환경을 가정합니다. 두 VPC를 인터넷 구간 없이 안전하고 빠르게 연결하는 <strong>VPC Peering(VPC 피어링)</strong>의 전체 구축 과정과 라우팅(Routing) 설정, 보안 그룹(Security Group) 제어까지 스텝바이스텝으로 마스터합니다.
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-8 md:p-12 space-y-16">
+
+            <!-- Section: Scenario & Diagram -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-emerald-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-map-location-dot text-slate-600 mr-3"></i>실습 시나리오 및 아키텍처 도식화
+                    </h2>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation mb-6">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        <strong>목표:</strong> App VPC에 있는 애플리케이션 서버가 DB VPC에 있는 데이터베이스 서버로 사설 IP(Private IP)를 사용하여 안전하게 Ping(ICMP) 통신 및 접속이 가능하도록 인프라를 구성합니다.
+                    </p>
+
+                    <!-- Custom Architecture Diagram -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-8 mb-6 overflow-x-auto relative flex justify-center">
+                        <div class="flex items-center gap-2 min-w-[800px]">
+                            
+                            <!-- VPC A -->
+                            <div class="border-2 border-blue-400 bg-blue-50 rounded-xl p-5 w-80 shadow-md relative">
+                                <div class="absolute -top-3 left-4 bg-blue-600 text-white px-3 py-1 text-xs font-bold rounded shadow">App VPC</div>
+                                <div class="text-xs font-mono text-slate-500 mb-4 text-right">CIDR: 10.1.0.0/16</div>
+                                
+                                <div class="bg-white border border-blue-200 rounded-lg p-4 mb-4 relative z-10 shadow-sm">
+                                    <div class="text-xs font-bold text-slate-700 mb-2 border-b pb-1">라우팅 테이블 (Route Table)</div>
+                                    <div class="text-[11px] text-slate-600 font-mono">
+                                        10.1.0.0/16 &rarr; Local<br>
+                                        <span class="text-rose-600 font-bold bg-rose-50 px-1 mt-1 inline-block rounded">10.2.0.0/16 &rarr; pcx-1234</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-blue-100 border border-blue-300 rounded-lg p-3 text-center">
+                                    <i class="fas fa-server text-blue-600 text-2xl mb-1"></i>
+                                    <div class="text-xs font-bold text-slate-800">App Server (EC2)</div>
+                                    <div class="text-[10px] text-slate-500 font-mono">IP: 10.1.1.50</div>
+                                </div>
+                            </div>
+
+                            <!-- Peering Connection -->
+                            <div class="flex flex-col items-center px-4 relative z-0">
+                                <div class="text-[10px] font-bold text-emerald-700 mb-1 bg-emerald-100 px-2 py-1 rounded-full border border-emerald-300">VPC Peering</div>
+                                <svg width="120" height="24" class="text-emerald-500">
+                                    <line x1="0" y1="12" x2="120" y2="12" stroke="currentColor" stroke-width="4" class="diagram-line"/>
+                                    <polygon points="0,12 12,6 12,18" fill="currentColor" />
+                                    <polygon points="120,12 108,6 108,18" fill="currentColor" />
+                                </svg>
+                                <div class="text-xs font-mono text-slate-600 font-bold mt-1 bg-white border px-2 py-0.5 rounded shadow-sm">pcx-1234abcd</div>
+                            </div>
+
+                            <!-- VPC B -->
+                            <div class="border-2 border-purple-400 bg-purple-50 rounded-xl p-5 w-80 shadow-md relative">
+                                <div class="absolute -top-3 right-4 bg-purple-600 text-white px-3 py-1 text-xs font-bold rounded shadow">DB VPC</div>
+                                <div class="text-xs font-mono text-slate-500 mb-4 text-left">CIDR: 10.2.0.0/16</div>
+                                
+                                <div class="bg-white border border-purple-200 rounded-lg p-4 mb-4 relative z-10 shadow-sm">
+                                    <div class="text-xs font-bold text-slate-700 mb-2 border-b pb-1">라우팅 테이블 (Route Table)</div>
+                                    <div class="text-[11px] text-slate-600 font-mono">
+                                        10.2.0.0/16 &rarr; Local<br>
+                                        <span class="text-rose-600 font-bold bg-rose-50 px-1 mt-1 inline-block rounded">10.1.0.0/16 &rarr; pcx-1234</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-purple-100 border border-purple-300 rounded-lg p-3 text-center">
+                                    <i class="fas fa-database text-purple-600 text-2xl mb-1"></i>
+                                    <div class="text-xs font-bold text-slate-800">DB Server (EC2/RDS)</div>
+                                    <div class="text-[10px] text-slate-500 font-mono">IP: 10.2.1.100</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 1 & 2: Creation & Peering -->
+            <section>
+                <div class="space-y-8">
+                    <!-- Step 1 -->
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full step-number flex items-center justify-center font-bold text-xl shrink-0 mt-1">1</div>
+                        <div class="w-full">
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">기본 네트워크 인프라 구성</h3>
+                            <p class="text-sm text-slate-600 mb-4">IP 대역이 서로 겹치지 않는(Non-overlapping CIDR) 두 개의 VPC와 서브넷을 생성합니다. 겹치는 IP 대역이 있으면 피어링 연결을 시도할 때 즉시 에러가 발생하며 거부됩니다.</p>
+                            
+                            <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                                <div class="bg-slate-800 px-4 py-2 border-b border-slate-700 flex justify-between">
+                                    <span class="text-emerald-400 text-xs font-bold"><i class="fas fa-terminal mr-2"></i>AWS CLI 스크립트</span>
+                                </div>
+                                <div class="p-4 text-xs text-slate-300 overflow-x-auto code-block leading-relaxed">
+<pre><code><span class="text-slate-500"># App VPC (10.1.0.0/16) 및 서브넷 생성</span>
+aws ec2 create-vpc --cidr-block 10.1.0.0/16 --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=App-VPC}]'
+aws ec2 create-subnet --vpc-id vpc-app --cidr-block 10.1.1.0/24 --availability-zone ap-northeast-2a
+
+<span class="text-slate-500"># DB VPC (10.2.0.0/16) 및 서브넷 생성</span>
+aws ec2 create-vpc --cidr-block 10.2.0.0/16 --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=DB-VPC}]'
+aws ec2 create-subnet --vpc-id vpc-db --cidr-block 10.2.1.0/24 --availability-zone ap-northeast-2c</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full step-number flex items-center justify-center font-bold text-xl shrink-0 mt-1">2</div>
+                        <div class="w-full">
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">피어링 연결 요청 및 수락</h3>
+                            <p class="text-sm text-slate-600 mb-4">VPC 피어링은 <strong>요청(Request)</strong>과 <strong>수락(Accept)</strong>이라는 양방향 핸드쉐이크 과정을 거칩니다. 악의적인 네트워크 연결을 방지하기 위한 보안 메커니즘입니다. (아래는 실무 표준인 AWS CloudFormation의 YAML 템플릿 형식입니다.)</p>
+                            
+                            <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                                <div class="bg-slate-800 px-4 py-2 border-b border-slate-700 flex justify-between">
+                                    <span class="text-emerald-400 text-xs font-bold"><i class="fas fa-file-code mr-2"></i>AWS CloudFormation (YAML) 코드 적용</span>
+                                    <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded">YAML</span>
+                                </div>
+                                <div class="p-4 text-[13px] text-slate-300 overflow-x-auto code-block leading-relaxed">
+<pre><code><span class="yaml-comment"># App VPC 측에서 Peering 요청을 생성하는 리소스 정의</span>
+<span class="yaml-key">AppToDbPeeringConnection:</span>
+  <span class="yaml-key">Type:</span> <span class="yaml-value">'AWS::EC2::VPCPeeringConnection'</span>
+  <span class="yaml-key">Properties:</span>
+    <span class="yaml-key">VpcId:</span> <span class="yaml-func">!Ref</span> <span class="yaml-value">AppVpcId</span>    <span class="yaml-comment"># 요청자 VPC ID</span>
+    <span class="yaml-key">PeerVpcId:</span> <span class="yaml-func">!Ref</span> <span class="yaml-value">DbVpcId</span>   <span class="yaml-comment"># 수락자 (연결 대상) VPC ID</span>
+    
+    <span class="yaml-comment"># 동일 계정 및 동일 리전인 경우, 생성 시 자동 수락 처리됨</span>
+    <span class="yaml-key">Tags:</span>
+      - <span class="yaml-key">Key:</span> <span class="yaml-value">Name</span>
+        <span class="yaml-key">Value:</span> <span class="yaml-value">App-to-DB-Peering</span></code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Routing (Crucial) -->
+            <section>
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xl shrink-0 mt-1 shadow-[0_0_15px_rgba(225,29,72,0.5)]">3</div>
+                    <div class="w-full">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">라우팅 테이블(Route Table) 설정 <span class="text-rose-600 text-sm ml-2">(가장 많이 하는 실수)</span></h3>
+                        <p class="text-sm text-slate-600 mb-4">피어링 연결(Connection)이 'Active(활성)' 상태가 되었다고 해서 통신이 되는 것이 아닙니다. <strong>반드시 양쪽 VPC의 라우팅 테이블에 서로의 네트워크 대역으로 가는 이정표(Route)를 추가</strong>해야 합니다. 편도만 설정하면 패킷이 돌아오지 못해 통신(Ping 등)이 실패합니다.</p>
+                        
+                        <div class="flex flex-col gap-6">
+                            <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                                <div class="bg-blue-900/50 px-4 py-2 border-b border-slate-700">
+                                    <span class="text-blue-300 text-xs font-bold">App VPC &rarr; DB VPC (가는 길)</span>
+                                </div>
+                                <div class="p-4 text-[13px] text-slate-300 overflow-x-auto code-block leading-relaxed">
+<pre><code><span class="yaml-key">RouteToDb:</span>
+  <span class="yaml-key">Type:</span> <span class="yaml-value">'AWS::EC2::Route'</span>
+  <span class="yaml-key">Properties:</span>
+    <span class="yaml-key">RouteTableId:</span> <span class="yaml-func">!Ref</span> <span class="yaml-value">AppRouteTableId</span>
+    
+    <span class="yaml-comment"># 목적지: DB VPC의 전체 IP 대역</span>
+    <span class="yaml-key">DestinationCidrBlock:</span> <span class="yaml-value">'10.2.0.0/16'</span>
+    
+    <span class="yaml-comment"># 타겟: 생성된 피어링 커넥션 (pcx-...)</span>
+    <span class="yaml-key">VpcPeeringConnectionId:</span> <span class="yaml-func">!Ref</span> <span class="yaml-value">AppToDbPeeringConnection</span></code></pre>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                                <div class="bg-purple-900/50 px-4 py-2 border-b border-slate-700">
+                                    <span class="text-purple-300 text-xs font-bold">DB VPC &rarr; App VPC (오는 길)</span>
+                                </div>
+                                <div class="p-4 text-[13px] text-slate-300 overflow-x-auto code-block leading-relaxed">
+<pre><code><span class="yaml-key">RouteToApp:</span>
+  <span class="yaml-key">Type:</span> <span class="yaml-value">'AWS::EC2::Route'</span>
+  <span class="yaml-key">Properties:</span>
+    <span class="yaml-key">RouteTableId:</span> <span class="yaml-func">!Ref</span> <span class="yaml-value">DbRouteTableId</span>
+    
+    <span class="yaml-comment"># 목적지: App VPC의 전체 IP 대역</span>
+    <span class="yaml-key">DestinationCidrBlock:</span> <span class="yaml-value">'10.1.0.0/16'</span>
+    
+    <span class="yaml-comment"># 타겟: 동일한 피어링 커넥션 (pcx-...)</span>
+    <span class="yaml-key">VpcPeeringConnectionId:</span> <span class="yaml-func">!Ref</span> <span class="yaml-value">AppToDbPeeringConnection</span></code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 4 & 5: Security Group & Test -->
+            <section>
+                <div class="space-y-8">
+                    <!-- Step 4 -->
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full step-number flex items-center justify-center font-bold text-xl shrink-0 mt-1">4</div>
+                        <div class="w-full">
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">보안 그룹(Security Group) 정책 개방</h3>
+                            <p class="text-sm text-slate-600 mb-4">네트워크 길(라우팅)이 뚫렸어도 인스턴스 앞단의 방화벽인 보안 그룹이 막혀있으면 통신이 거부됩니다. DB 서버의 보안 그룹 인바운드(Inbound) 규칙에 App VPC의 IP 대역으로부터 들어오는 통신을 허용해야 합니다.</p>
+                            
+                            <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm text-sm">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-50 text-slate-600">
+                                        <tr>
+                                            <th class="p-2 border-b">대상 서버</th>
+                                            <th class="p-2 border-b">타입 (Type)</th>
+                                            <th class="p-2 border-b">포트 (Port)</th>
+                                            <th class="p-2 border-b">소스 (Source)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="p-2 border-b font-bold text-slate-800">DB Server SG</td>
+                                            <td class="p-2 border-b text-emerald-600 font-bold">All ICMP - IPv4</td>
+                                            <td class="p-2 border-b">-</td>
+                                            <td class="p-2 border-b font-mono text-blue-600">10.1.0.0/16 <span class="text-xs text-slate-500">(App VPC 대역)</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-2 border-b font-bold text-slate-800">DB Server SG</td>
+                                            <td class="p-2 border-b text-emerald-600 font-bold">MySQL/Aurora</td>
+                                            <td class="p-2 border-b">3306</td>
+                                            <td class="p-2 border-b font-mono text-blue-600">10.1.0.0/16</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5 -->
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full bg-slate-800 text-emerald-400 flex items-center justify-center font-bold text-xl shrink-0 mt-1 shadow-lg">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="w-full">
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">통신 검증 (Ping Test)</h3>
+                            <p class="text-sm text-slate-600 mb-4">App 서버에 SSH로 접속한 뒤, DB 서버의 <strong>사설 IP(Private IP)</strong>를 향해 Ping 명령어를 실행하여 응답이 오는지 확인합니다.</p>
+                            
+                            <div class="bg-black text-emerald-400 p-4 rounded-lg font-mono text-sm shadow-inner border border-slate-700">
+                                $ ping 10.2.1.100<br>
+                                PING 10.2.1.100 (10.2.1.100) 56(84) bytes of data.<br>
+                                64 bytes from 10.2.1.100: icmp_seq=1 ttl=255 time=1.24 ms<br>
+                                64 bytes from 10.2.1.100: icmp_seq=2 ttl=255 time=1.10 ms<br>
+                                <span class="text-slate-400">--- 10.2.1.100 ping statistics ---<br>
+                                2 packets transmitted, 2 received, 0% packet loss</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cost & Warning Section -->
+            <section>
+                <div class="bg-amber-50 border-l-8 border-amber-500 rounded-r-xl p-6 shadow-md relative overflow-hidden mt-12">
+                    <div class="absolute -right-6 -top-6 text-amber-200/50 transform rotate-12">
+                        <i class="fas fa-file-invoice-dollar text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-black text-amber-800 mb-4 flex items-center">
+                            <i class="fas fa-engine-warning mr-3 animate-pulse"></i> 실무 과금 및 아키텍처 주의사항 (필독)
+                        </h2>
+                        
+                        <ul class="space-y-4 text-slate-700">
+                            <li class="flex items-start">
+                                <i class="fas fa-money-bill-wave text-amber-600 mt-1 mr-3 text-lg"></i>
+                                <div>
+                                    <strong class="text-amber-900 block mb-1">데이터 전송(Data Transfer) 비용 발생</strong>
+                                    VPC 피어링 연결을 생성하고 유지하는 것 자체는 <strong>무료</strong>입니다. 하지만 피어링을 통과하는 트래픽은 데이터 전송 요금이 청구됩니다. 동일 리전(Region) 내라도 <strong>서로 다른 AZ(가용 영역) 간 통신이라면 GB당 $0.01</strong>이 양방향으로 발생합니다. 데이터베이스 대규모 백업 시 숨겨진 비용이 될 수 있습니다.
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-globe text-amber-600 mt-1 mr-3 text-lg"></i>
+                                <div>
+                                    <strong class="text-amber-900 block mb-1">교차 리전 피어링(Cross-Region Peering) 제약</strong>
+                                    서로 다른 리전(예: 서울과 도쿄)을 피어링할 경우, 보안 그룹에서 상대방의 보안 그룹 ID(예: <code>sg-1234</code>)를 직접 참조할 수 없습니다. 어쩔 수 없이 상대방 VPC의 IP 대역(CIDR) 전체를 열어주어야 하므로 보안 규칙 설계 시 세심한 주의가 필요합니다.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Next Step Banner -->
+        <div class="bg-slate-900 text-emerald-400 text-center py-6 px-4 font-bold text-lg md:text-xl relative overflow-hidden group cursor-pointer border-t-4 border-emerald-500">
+            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition duration-300"></div>
+            Next Step: AWS Transit Gateway 기반 다중 VPC 허브 앤 스포크 구축 실습 <i class="fas fa-arrow-right ml-2 text-white group-hover:translate-x-2 transition transform"></i>
+        </div>
+
+    </div>
+
+</body>
+</html>
