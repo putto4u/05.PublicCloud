@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS ELB 아키텍처 및 Terraform 자동화 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .block-animation {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .block-animation:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.15);
+        }
+        
+        .expert-tip-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1e2f 100%);
+            border-left: 4px solid #3b82f6; /* Blue 500 */
+        }
+
+        .diagram-line {
+            stroke-dasharray: 6;
+            animation: dash 15s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -100; }
+        }
+
+        /* Terraform syntax highlighting colors */
+        .tf-keyword { color: #c678dd; }
+        .tf-string { color: #98c379; }
+        .tf-type { color: #e5c07b; }
+        .tf-comment { color: #5c6370; font-style: italic; }
+        .tf-property { color: #d19a66; }
+        .tf-variable { color: #61afef; }
+    </style>
+</head>
+<body class="antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        <!-- Header Section -->
+        <header class="bg-slate-900 text-white p-8 md:p-12 relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                <i class="fas fa-scale-balanced text-9xl text-blue-500"></i>
+            </div>
+            <div class="relative z-10">
+                <span class="bg-blue-900 text-blue-300 border border-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">Traffic Management (Expert Practical)</span>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 leading-tight">지능형 트래픽 분산 설계:<br><span class="text-blue-400">AWS ELB 아키텍처 실무</span></h1>
+                <p class="text-lg md:text-xl text-slate-300 max-w-3xl">
+                    <a href="https://aws.amazon.com/ko/elasticloadbalancing/" target="_blank" class="underline hover:text-white font-medium">ELB(Elastic Load Balancing, 탄력적 로드 밸런싱)</a>는 애플리케이션의 가용성과 내결함성을 결정짓는 핵심 관문입니다. 대상(Target)이 2개인 기초 이중화부터, 3개를 활용한 경로 기반 라우팅(Path-based Routing), 그리고 5개 이상의 대규모 트래픽을 처리하는 Auto Scaling(자동 크기 조정) 연동까지 전문가 수준의 인프라 코드를 작성합니다.
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-8 md:p-12 space-y-16">
+
+            <!-- Section 1: 2 Targets -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-blue-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-server text-blue-600 mr-3"></i>1. 인스턴스 2개 로드 밸런싱 (기본 고가용성)
+                    </h2>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation mb-6">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        가장 기본적인 <strong>Active-Active(액티브-액티브) 이중화</strong> 모델입니다. 외부에서 들어오는 HTTP/HTTPS 트래픽을 ALB(Application Load Balancer, 애플리케이션 로드 밸런서)가 접수하여, 두 개의 서로 다른 AZ(가용 영역)에 배치된 인스턴스로 균등하게 라운드 로빈(Round Robin)<sup><a href="#fn1" class="text-blue-500 font-bold">1</a></sup> 방식으로 분산합니다.
+                    </p>
+
+                    <!-- Diagram: 2 Targets -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6 overflow-x-auto">
+                        <div class="min-w-[600px] text-center relative flex flex-col items-center">
+                            
+                            <!-- ALB -->
+                            <div class="bg-blue-600 text-white font-bold px-8 py-3 rounded-lg shadow-lg mb-8 relative z-10 flex items-center">
+                                <i class="fas fa-diagram-project mr-2"></i> ALB (인터넷 연결)
+                            </div>
+
+                            <!-- Arrows -->
+                            <div class="flex w-full justify-center gap-32 absolute top-[45px] z-0">
+                                <svg width="100" height="60" class="text-blue-400">
+                                    <path d="M 50 0 Q 50 30 10 60" fill="transparent" stroke="currentColor" stroke-width="2" marker-end="url(#arrow-blue)" class="diagram-line"/>
+                                </svg>
+                                <svg width="100" height="60" class="text-blue-400">
+                                    <path d="M 50 0 Q 50 30 90 60" fill="transparent" stroke="currentColor" stroke-width="2" marker-end="url(#arrow-blue)" class="diagram-line"/>
+                                    <defs>
+                                        <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                            <polygon points="0 0, 10 3.5, 0 7" fill="#60a5fa" />
+                                        </marker>
+                                    </defs>
+                                </svg>
+                            </div>
+
+                            <!-- Targets -->
+                            <div class="flex gap-8 mt-4 w-full justify-center relative z-10">
+                                <div class="border-2 border-emerald-400 bg-emerald-50 rounded-lg p-4 w-48 shadow-sm">
+                                    <div class="text-[10px] font-bold text-slate-500 mb-1">AZ: ap-northeast-2a</div>
+                                    <div class="bg-white border border-emerald-300 rounded p-3 text-sm font-bold text-emerald-800">
+                                        <i class="fas fa-server mr-1"></i> 웹 서버 1
+                                    </div>
+                                </div>
+                                <div class="border-2 border-emerald-400 bg-emerald-50 rounded-lg p-4 w-48 shadow-sm">
+                                    <div class="text-[10px] font-bold text-slate-500 mb-1">AZ: ap-northeast-2b</div>
+                                    <div class="bg-white border border-emerald-300 rounded p-3 text-sm font-bold text-emerald-800">
+                                        <i class="fas fa-server mr-1"></i> 웹 서버 2
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 border-t-2 border-dashed border-slate-300 w-full pt-2">
+                                <div class="text-xs font-bold text-slate-500">Target Group (대상 그룹) 1개</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- AWS CLI -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700">
+                                <h4 class="font-bold text-blue-400 text-sm"><i class="fas fa-terminal mr-2"></i>AWS CLI</h4>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-emerald-400 overflow-x-auto">
+                                <pre><code><span class="text-slate-400"># 1. 대상 그룹(Target Group) 생성</span>
+aws elbv2 create-target-group \
+  --name web-tg \
+  --protocol HTTP --port 80 \
+  --vpc-id vpc-12345
+
+<span class="text-slate-400"># 2. 인스턴스 2개를 대상 그룹에 등록 (Register)</span>
+aws elbv2 register-targets \
+  --target-group-arn arn:aws:elasticloadbalancing:... \
+  --targets Id=i-11111111 Id=i-22222222
+
+<span class="text-slate-400"># 3. 로드 밸런서 생성 (2개 AZ 서브넷 지정)</span>
+aws elbv2 create-load-balancer \
+  --name web-alb \
+  --subnets subnet-pub-a subnet-pub-b \
+  --security-groups sg-12345
+
+<span class="text-slate-400"># 4. 리스너 생성 (80포트 트래픽을 대상 그룹으로 전달)</span>
+aws elbv2 create-listener \
+  --load-balancer-arn arn:aws:... \
+  --protocol HTTP --port 80 \
+  --default-actions Type=forward,TargetGroupArn=arn:aws:...</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Terraform -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between">
+                                <h4 class="font-bold text-blue-400 text-sm"><i class="fas fa-code mr-2"></i>Terraform</h4>
+                                <span class="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded">HCL</span>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-slate-300 overflow-x-auto">
+                                <pre><code><span class="tf-comment"># ALB 생성</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_lb"</span> <span class="tf-string">"main"</span> {
+  <span class="tf-property">name</span>               = <span class="tf-string">"web-alb"</span>
+  <span class="tf-property">load_balancer_type</span> = <span class="tf-string">"application"</span>
+  <span class="tf-property">subnets</span>            = [<span class="tf-variable">aws_subnet</span>.<span class="tf-variable">pub_a</span>.<span class="tf-variable">id</span>, <span class="tf-variable">aws_subnet</span>.<span class="tf-variable">pub_b</span>.<span class="tf-variable">id</span>]
+  <span class="tf-property">security_groups</span>    = [<span class="tf-variable">aws_security_group</span>.<span class="tf-variable">alb_sg</span>.<span class="tf-variable">id</span>]
+}
+
+<span class="tf-comment"># 대상 그룹 생성</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_lb_target_group"</span> <span class="tf-string">"web"</span> {
+  <span class="tf-property">name</span>     = <span class="tf-string">"web-tg"</span>
+  <span class="tf-property">port</span>     = <span class="tf-property">80</span>
+  <span class="tf-property">protocol</span> = <span class="tf-string">"HTTP"</span>
+  <span class="tf-property">vpc_id</span>   = <span class="tf-variable">aws_vpc</span>.<span class="tf-variable">main</span>.<span class="tf-variable">id</span>
+}
+
+<span class="tf-comment"># 인스턴스 2개 연결 (count 배열 순회)</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_lb_target_group_attachment"</span> <span class="tf-string">"web_attach"</span> {
+  <span class="tf-property">count</span>            = <span class="tf-property">2</span>
+  <span class="tf-property">target_group_arn</span> = <span class="tf-variable">aws_lb_target_group</span>.<span class="tf-variable">web</span>.<span class="tf-variable">arn</span>
+  <span class="tf-property">target_id</span>        = <span class="tf-variable">aws_instance</span>.<span class="tf-variable">web</span>[<span class="tf-property">count</span>.<span class="tf-property">index</span>].<span class="tf-variable">id</span>
+}
+
+<span class="tf-comment"># 리스너 생성</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_lb_listener"</span> <span class="tf-string">"front_end"</span> {
+  <span class="tf-property">load_balancer_arn</span> = <span class="tf-variable">aws_lb</span>.<span class="tf-variable">main</span>.<span class="tf-variable">arn</span>
+  <span class="tf-property">port</span>              = <span class="tf-string">"80"</span>
+  <span class="tf-property">protocol</span>          = <span class="tf-string">"HTTP"</span>
+  <span class="tf-keyword">default_action</span> {
+    <span class="tf-property">type</span>             = <span class="tf-string">"forward"</span>
+    <span class="tf-property">target_group_arn</span> = <span class="tf-variable">aws_lb_target_group</span>.<span class="tf-variable">web</span>.<span class="tf-variable">arn</span>
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: 3 Targets -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-blue-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-code-branch text-emerald-600 mr-3"></i>2. 인스턴스 3개 로드 밸런싱 (경로 기반 라우팅)
+                    </h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        단순히 서버 대수만 늘리는 것이 아니라, 마이크로서비스(MSA) 환경에서 흔히 쓰이는 <strong>Path-based Routing(경로 기반 라우팅)<sup><a href="#fn2" class="text-blue-500 font-bold">2</a></sup></strong>을 적용하여 3대의 인스턴스를 관리합니다. 일반 웹 요청(<code>/</code>)은 2대의 프론트엔드 서버로, API 요청(<code>/api/*</code>)은 1대의 백엔드 API 전용 서버로 분리하여 지능적으로 트래픽을 전달합니다.
+                    </p>
+
+                    <!-- Diagram: 3 Targets -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6 overflow-x-auto">
+                        <div class="min-w-[650px] text-center relative flex flex-col items-center">
+                            
+                            <!-- ALB -->
+                            <div class="bg-blue-600 text-white font-bold px-8 py-3 rounded-lg shadow-lg mb-8 z-10">
+                                <i class="fas fa-filter mr-2"></i> ALB (경로 기반 라우팅 규칙)
+                            </div>
+
+                            <!-- Flex container for branches -->
+                            <div class="flex gap-12 w-full justify-center">
+                                <!-- Branch 1: Front-end -->
+                                <div class="flex flex-col items-center">
+                                    <div class="bg-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-700 mb-2">기본 경로 ( /* )</div>
+                                    <div class="border-2 border-slate-300 rounded-lg p-4 w-[300px]">
+                                        <div class="text-xs font-bold text-slate-500 mb-3">대상 그룹 A (프론트엔드)</div>
+                                        <div class="flex gap-4 justify-center">
+                                            <div class="bg-white border border-emerald-400 rounded p-3 text-sm font-bold text-emerald-800 shadow-sm">
+                                                <i class="fas fa-desktop mr-1"></i> 서버 1
+                                            </div>
+                                            <div class="bg-white border border-emerald-400 rounded p-3 text-sm font-bold text-emerald-800 shadow-sm">
+                                                <i class="fas fa-desktop mr-1"></i> 서버 2
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Branch 2: API -->
+                                <div class="flex flex-col items-center">
+                                    <div class="bg-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-700 mb-2">API 경로 ( /api/* )</div>
+                                    <div class="border-2 border-slate-300 rounded-lg p-4 w-[180px]">
+                                        <div class="text-xs font-bold text-slate-500 mb-3">대상 그룹 B (백엔드)</div>
+                                        <div class="flex justify-center">
+                                            <div class="bg-white border border-indigo-400 rounded p-3 text-sm font-bold text-indigo-800 shadow-sm">
+                                                <i class="fas fa-cogs mr-1"></i> API 서버 3
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expert Tip -->
+                    <div class="bg-slate-900 text-white p-5 rounded-lg shadow-inner expert-tip-bg mb-6">
+                        <h4 class="font-bold text-blue-400 mb-2 flex items-center"><i class="fas fa-lightbulb mr-2 text-yellow-400"></i>수석 아키텍트의 실전 설계 팁: 리스너 규칙 우선순위</h4>
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            ALB의 리스너(Listener)에 다수의 라우팅 규칙을 추가할 때는 <strong>우선순위(Priority)</strong>가 매우 중요합니다. 구체적인 경로(예: <code>/api/*</code>)일수록 우선순위 숫자를 낮게(예: 10) 주어 먼저 평가되게 하고, 포괄적인 경로(예: <code>/*</code>)는 기본 작업(Default Action)으로 제일 마지막에 평가되도록 설정해야 라우팅 충돌이 발생하지 않습니다.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- AWS CLI -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700">
+                                <h4 class="font-bold text-blue-400 text-sm"><i class="fas fa-terminal mr-2"></i>AWS CLI (리스너 규칙)</h4>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-emerald-400 overflow-x-auto">
+                                <pre><code><span class="text-slate-400"># 1. 2개의 대상 그룹 생성 생략 (web-tg, api-tg)</span>
+<span class="text-slate-400"># 2. 리스너 생성 시 기본 작업으로 web-tg 연결</span>
+
+<span class="text-slate-400"># 3. 리스너에 규칙(Rule) 추가 (/api/* 경로는 api-tg로)</span>
+aws elbv2 create-rule \
+  --listener-arn arn:aws:... \
+  --priority 10 \
+  --conditions Field=path-pattern,Values='/api/*' \
+  --actions Type=forward,TargetGroupArn=arn:aws:...api-tg</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Terraform -->
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between">
+                                <h4 class="font-bold text-blue-400 text-sm"><i class="fas fa-code mr-2"></i>Terraform</h4>
+                                <span class="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded">HCL</span>
+                            </div>
+                            <div class="p-4 font-mono text-xs text-slate-300 overflow-x-auto">
+                                <pre><code><span class="tf-comment"># 리스너의 기본 동작은 대상 그룹 A(프론트엔드)로 포워딩</span>
+<span class="tf-comment"># ... (aws_lb_listener 기본 설정 생략) ...</span>
+
+<span class="tf-comment"># 리스너 라우팅 규칙(Rule) 추가</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_lb_listener_rule"</span> <span class="tf-string">"api_routing"</span> {
+  <span class="tf-property">listener_arn</span> = <span class="tf-variable">aws_lb_listener</span>.<span class="tf-variable">front_end</span>.<span class="tf-variable">arn</span>
+  <span class="tf-property">priority</span>     = <span class="tf-property">10</span>
+
+  <span class="tf-keyword">action</span> {
+    <span class="tf-property">type</span>             = <span class="tf-string">"forward"</span>
+    <span class="tf-property">target_group_arn</span> = <span class="tf-variable">aws_lb_target_group</span>.<span class="tf-variable">api_tg</span>.<span class="tf-variable">arn</span>
+  }
+
+  <span class="tf-keyword">condition</span> {
+    <span class="tf-keyword">path_pattern</span> {
+      <span class="tf-property">values</span> = [<span class="tf-string">"/api/*"</span>]
+    }
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: 5 Targets (Auto Scaling) -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-blue-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-arrows-down-to-people text-indigo-600 mr-3"></i>3. 인스턴스 5개 이상 로드 밸런싱 (Auto Scaling 연동)
+                    </h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        서버 대수가 5개 이상으로 늘어나는 대규모 환경에서는 인스턴스를 하나하나 수동으로 대상 그룹에 등록(Attachment)하는 것은 절대 금물입니다. 서버의 증감과 교체가 빈번하므로, <strong>Auto Scaling Group(ASG, 오토 스케일링 그룹)</strong>을 대상 그룹에 직접 연동하여 인스턴스의 생성과 삭제 시 로드 밸런서 등록을 100% 자동화해야 합니다.
+                    </p>
+
+                    <!-- Diagram: 5 Targets with ASG -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-8 mb-6 relative">
+                        <div class="flex flex-col items-center">
+                            <!-- ALB to Target Group -->
+                            <div class="bg-blue-600 text-white font-bold px-8 py-2 rounded shadow mb-4 z-10">ALB</div>
+                            <i class="fas fa-arrow-down text-slate-400 mb-4 text-xl"></i>
+                            
+                            <!-- Target Group Box -->
+                            <div class="border-2 border-dashed border-blue-400 bg-blue-50/50 rounded-xl p-6 w-full max-w-3xl relative">
+                                <div class="absolute -top-3 left-6 bg-white px-2 text-blue-700 font-bold text-sm border border-blue-200 rounded">Target Group</div>
+                                
+                                <!-- ASG Box -->
+                                <div class="border-2 border-indigo-400 bg-indigo-50 rounded-lg p-6 relative mt-4">
+                                    <div class="absolute -top-3 right-6 bg-white px-2 text-indigo-700 font-bold text-sm border border-indigo-200 rounded shadow-sm">Auto Scaling Group (Desired: 5)</div>
+                                    
+                                    <div class="flex flex-wrap justify-center gap-4">
+                                        <div class="bg-white border border-emerald-400 rounded p-2 text-xs font-bold text-emerald-800 shadow-sm w-20 text-center"><i class="fas fa-server mb-1"></i><br>인스턴스1</div>
+                                        <div class="bg-white border border-emerald-400 rounded p-2 text-xs font-bold text-emerald-800 shadow-sm w-20 text-center"><i class="fas fa-server mb-1"></i><br>인스턴스2</div>
+                                        <div class="bg-white border border-emerald-400 rounded p-2 text-xs font-bold text-emerald-800 shadow-sm w-20 text-center"><i class="fas fa-server mb-1"></i><br>인스턴스3</div>
+                                        <div class="bg-white border border-emerald-400 rounded p-2 text-xs font-bold text-emerald-800 shadow-sm w-20 text-center"><i class="fas fa-server mb-1"></i><br>인스턴스4</div>
+                                        <div class="bg-white border border-emerald-400 rounded p-2 text-xs font-bold text-emerald-800 shadow-sm w-20 text-center"><i class="fas fa-server mb-1"></i><br>인스턴스5</div>
+                                    </div>
+                                    <div class="mt-4 text-center text-[10px] text-slate-500 font-bold">인스턴스가 생성되면 자동으로 Target Group에 등록됨</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Billed Service Warning -->
+                    <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded text-sm text-rose-800 shadow-sm mb-6 flex items-start">
+                        <i class="fas fa-file-invoice-dollar text-2xl mr-3 mt-1 text-rose-600"></i>
+                        <div>
+                            <strong class="block text-base mb-1">비용 경고: ALB 기본 요금 및 LCU(로드 밸런서 용량 단위) 과금</strong>
+                            ALB는 트래픽이 없어도 <strong>생성되어 있는 시간당 약 $0.0225의 기본 요금</strong>이 부과됩니다. 또한 처리하는 5대의 인스턴스로 분산되는 새 연결 수, 활성 연결 수, 처리된 바이트(대역폭) 등에 따라 <strong>LCU(Load Balancer Capacity Units)<sup><a href="#fn3" class="text-blue-500 font-bold">3</a></sup></strong> 단위로 동적 요금이 추가 청구됩니다. 실습용으로 생성한 로드 밸런서는 실습 종료 후 반드시 삭제해야 합니다.
+                        </div>
+                    </div>
+
+                    <!-- Terraform Code -->
+                    <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                        <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                            <h4 class="font-bold text-blue-400 text-sm"><i class="fas fa-code mr-2"></i>Terraform 스크립트 (ASG 연동)</h4>
+                            <span class="text-xs font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded">HCL</span>
+                        </div>
+                        <div class="p-4 font-mono text-xs text-slate-300 overflow-x-auto leading-relaxed">
+                            <pre><code><span class="tf-comment"># 1. 오토 스케일링 그룹(ASG) 생성 시 직접 대상 그룹(Target Group) 지정</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_autoscaling_group"</span> <span class="tf-string">"web_asg"</span> {
+  <span class="tf-property">name</span>                = <span class="tf-string">"web-scaling-group"</span>
+  <span class="tf-property">vpc_zone_identifier</span> = [<span class="tf-variable">aws_subnet</span>.<span class="tf-variable">priv_a</span>.<span class="tf-variable">id</span>, <span class="tf-variable">aws_subnet</span>.<span class="tf-variable">priv_b</span>.<span class="tf-variable">id</span>]
+  
+  <span class="tf-property">desired_capacity</span>    = <span class="tf-property">5</span>   <span class="tf-comment"># 목표 인스턴스 5개</span>
+  <span class="tf-property">min_size</span>            = <span class="tf-property">2</span>
+  <span class="tf-property">max_size</span>            = <span class="tf-property">10</span>
+  
+  <span class="tf-property">launch_template</span> {
+    <span class="tf-property">id</span>      = <span class="tf-variable">aws_launch_template</span>.<span class="tf-variable">web_template</span>.<span class="tf-variable">id</span>
+    <span class="tf-property">version</span> = <span class="tf-string">"$Latest"</span>
+  }
+
+  <span class="tf-comment"># 핵심: 인스턴스가 프로비저닝되면 자동으로 ALB 대상 그룹에 등록되도록 연동</span>
+  <span class="tf-property">target_group_arns</span> = [<span class="tf-variable">aws_lb_target_group</span>.<span class="tf-variable">web_tg</span>.<span class="tf-variable">arn</span>]
+  
+  <span class="tf-comment"># 상태 검사 유형을 EC2 기본 검사에서 ELB 상태 검사로 상향 (전문가 팁)</span>
+  <span class="tf-property">health_check_type</span> = <span class="tf-string">"ELB"</span>
+  <span class="tf-property">health_check_grace_period</span> = <span class="tf-property">300</span>
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footnotes Section -->
+        <footer class="bg-slate-50 border-t border-slate-200 p-8 text-sm text-slate-500">
+            <h4 class="font-bold text-slate-700 mb-3 border-b border-slate-300 pb-2 inline-block">주석 및 용어 설명</h4>
+            <ol class="list-decimal list-inside space-y-3 ml-2">
+                <li id="fn1"><strong>라운드 로빈 (Round Robin)</strong>: 로드 밸런서가 연결된 여러 대의 서버에 요청을 순서대로 하나씩 공평하게 배분하는 가장 기본적인 트래픽 분산 알고리즘입니다.</li>
+                <li id="fn2"><strong>경로 기반 라우팅 (Path-based Routing)</strong>: 사용자가 요청한 URL의 경로(예: <code>/images/</code>, <code>/api/</code>)를 분석하여 각각 다른 서버 그룹(대상 그룹)으로 트래픽을 전달하는 고급 라우팅 기법입니다. ALB(Application Load Balancer)가 OSI 7계층(애플리케이션 계층)에서 동작하기 때문에 가능합니다.</li>
+                <li id="fn3"><strong>LCU (Load Balancer Capacity Units, 로드 밸런서 용량 단위)</strong>: ALB 사용 요금을 측정하는 메트릭입니다. 초당 새 연결 수, 활성 연결 수, 처리된 바이트(대역폭), 규칙 평가 수 등 4가지 차원을 지속적으로 측정하여 그 중 가장 높게 사용된 차원을 기준으로 동적 과금합니다.</li>
+            </ol>
+        </footer>
+
+        <!-- Next Step Banner -->
+        <div class="bg-slate-900 text-blue-400 text-center py-6 px-4 font-bold text-lg md:text-xl relative overflow-hidden group cursor-pointer border-t-4 border-blue-500">
+            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition duration-300"></div>
+            Next Step: Amazon CloudFront와 ALB 연동을 통한 글로벌 CDN 구축 전략 <i class="fas fa-arrow-right ml-2 text-white group-hover:translate-x-2 transition transform"></i>
+        </div>
+
+    </div>
+
+</body>
+</html>
