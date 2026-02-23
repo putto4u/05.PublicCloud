@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS VPC 피어링 아키텍처 및 Terraform 실무 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #fef3c7; }
+        ::-webkit-scrollbar-thumb { background: #fcd34d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+        
+        .block-animation {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .block-animation:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(120, 53, 15, 0.15);
+        }
+        
+        .expert-tip-bg {
+            background: linear-gradient(135deg, #451a03 0%, #1c1917 100%);
+            border-left: 4px solid #f59e0b; /* Amber 500 */
+        }
+
+        .diagram-line {
+            stroke-dasharray: 6;
+            animation: dash 15s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -100; }
+        }
+
+        /* Terraform syntax highlighting colors */
+        .tf-keyword { color: #c678dd; }
+        .tf-string { color: #98c379; }
+        .tf-property { color: #d19a66; }
+        .tf-variable { color: #61afef; }
+        .tf-comment { color: #6b7280; font-style: italic; }
+    </style>
+</head>
+<body class="antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        <!-- Header Section -->
+        <header class="bg-slate-900 text-white p-8 md:p-12 relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                <i class="fas fa-handshake text-9xl text-amber-500"></i>
+            </div>
+            <div class="relative z-10">
+                <span class="bg-amber-900 text-amber-300 border border-amber-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">Network Interconnectivity (Expert Practical)</span>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 leading-tight">프라이빗 네트워크의 직접 연결:<br><span class="text-amber-400">VPC Peering 심층 분석</span></h1>
+                <p class="text-lg md:text-xl text-slate-300 max-w-3xl">
+                    <a href="https://docs.aws.amazon.com/ko_kr/vpc/latest/peering/what-is-vpc-peering.html" target="_blank" class="underline hover:text-white font-medium">VPC Peering(VPC 피어링)</a>은 서로 다른 두 개의 VPC 간에 인터넷을 거치지 않고 AWS의 고속 프라이빗 백본(Backbone) 네트워크를 통해 트래픽을 라우팅할 수 있게 해주는 가장 기본적이고 강력한 네트워크 연결 서비스입니다.
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-8 md:p-12 space-y-16">
+
+            <!-- Concept Section -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-amber-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-brain text-amber-600 mr-3"></i>VPC Peering의 3대 핵심 원칙
+                    </h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-lg flex items-center justify-center text-xl font-bold mb-4"><i class="fas fa-ban"></i></div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">No Overlapping CIDR</h3>
+                        <p class="text-sm text-slate-600">피어링을 맺으려는 두 VPC의 IP 주소 대역(CIDR 블록)이 단 1개의 IP라도 겹치면 연결 생성이 원천적으로 불가능합니다. 사전 IP 주소 체계 설계가 필수입니다.</p>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center text-xl font-bold mb-4"><i class="fas fa-lock"></i></div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">Non-Transitive Routing</h3>
+                        <p class="text-sm text-slate-600"><strong>전이적 라우팅 불가.</strong> A와 B가 연결되고, B와 C가 연결되었다고 해서 A와 C가 통신할 수 없습니다. A와 C가 통신하려면 별도의 1:1 피어링(A-C)을 맺어야 합니다.</p>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-xl font-bold mb-4"><i class="fas fa-globe"></i></div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">Cross-Region / Account</h3>
+                        <p class="text-sm text-slate-600">같은 AWS 계정이나 리전뿐만 아니라, 완전히 다른 물리적 국가(예: 서울-도쿄)에 있거나 전혀 다른 회사의 AWS 계정과도 안전하게 피어링을 맺을 수 있습니다.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Example 1: Basic 1:1 Peering -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-amber-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-network-wired text-amber-600 mr-3"></i>실무 예제 1: 기본 1:1 피어링 (동일 계정, 동일 리전)
+                    </h2>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation mb-6">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        가장 흔하게 사용되는 패턴입니다. 개발 서버가 위치한 <code>App VPC</code>와 공용 데이터베이스가 위치한 <code>DB VPC</code>를 연결합니다. 하나의 테라폼 코드에서 요청(Request)과 수락(Accept)을 동시에 처리할 수 있습니다.
+                    </p>
+
+                    <!-- Diagram -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6 flex justify-center items-center gap-4 overflow-x-auto">
+                        <div class="border-2 border-blue-400 bg-blue-50 rounded-lg p-4 w-48 text-center shadow-sm">
+                            <div class="text-xs font-bold text-blue-800 mb-1">App VPC (Requester)</div>
+                            <div class="text-xs font-mono text-slate-500 mb-3">10.1.0.0/16</div>
+                            <div class="bg-white border border-slate-200 rounded p-2 text-[10px] text-slate-600 shadow-inner">RT: 10.2.0.0/16 &rarr; pcx-01</div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="text-[10px] font-bold text-slate-500 mb-1">Peering: pcx-01</div>
+                            <svg width="80" height="20" class="text-amber-500">
+                                <line x1="0" y1="10" x2="80" y2="10" stroke="currentColor" stroke-width="3" class="diagram-line"/>
+                                <polygon points="0,10 10,5 10,15" fill="currentColor" />
+                                <polygon points="80,10 70,5 70,15" fill="currentColor" />
+                            </svg>
+                        </div>
+                        <div class="border-2 border-emerald-400 bg-emerald-50 rounded-lg p-4 w-48 text-center shadow-sm">
+                            <div class="text-xs font-bold text-emerald-800 mb-1">DB VPC (Accepter)</div>
+                            <div class="text-xs font-mono text-slate-500 mb-3">10.2.0.0/16</div>
+                            <div class="bg-white border border-slate-200 rounded p-2 text-[10px] text-slate-600 shadow-inner">RT: 10.1.0.0/16 &rarr; pcx-01</div>
+                        </div>
+                    </div>
+
+                    <!-- Terraform Code -->
+                    <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                        <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                            <h4 class="font-bold text-amber-400 text-sm"><i class="fas fa-code mr-2"></i>Terraform: 1:1 Peering</h4>
+                            <span class="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded">HCL</span>
+                        </div>
+                        <div class="p-4 font-mono text-sm text-slate-300 overflow-x-auto leading-relaxed">
+                            <pre><code><span class="tf-comment"># ==========================================</span>
+<span class="tf-comment"># 1. VPC Peering 연결 생성 (동일 계정/리전이므로 auto_accept 사용 가능)</span>
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_vpc_peering_connection"</span> <span class="tf-string">"app_to_db"</span> {
+  <span class="tf-property">vpc_id</span>      = <span class="tf-variable">aws_vpc</span>.<span class="tf-variable">app_vpc</span>.<span class="tf-variable">id</span>    <span class="tf-comment"># 요청자 (Requester)</span>
+  <span class="tf-property">peer_vpc_id</span> = <span class="tf-variable">aws_vpc</span>.<span class="tf-variable">db_vpc</span>.<span class="tf-variable">id</span>     <span class="tf-comment"># 수락자 (Accepter)</span>
+  <span class="tf-property">auto_accept</span> = <span class="tf-keyword">true</span>                  <span class="tf-comment"># 피어링 자동 수락 활성화</span>
+
+  <span class="tf-property">tags</span> = { <span class="tf-property">Name</span> = <span class="tf-string">"Peering-App-to-DB"</span> }
+}
+
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-comment"># 2. App VPC 라우팅 테이블 업데이트 (DB로 가는 길 추가)</span>
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_route"</span> <span class="tf-string">"app_to_db_route"</span> {
+  <span class="tf-property">route_table_id</span>            = <span class="tf-variable">aws_route_table</span>.<span class="tf-variable">app_rt</span>.<span class="tf-variable">id</span>
+  <span class="tf-property">destination_cidr_block</span>    = <span class="tf-variable">aws_vpc</span>.<span class="tf-variable">db_vpc</span>.<span class="tf-property">cidr_block</span> <span class="tf-comment"># 10.2.0.0/16</span>
+  <span class="tf-property">vpc_peering_connection_id</span> = <span class="tf-variable">aws_vpc_peering_connection</span>.<span class="tf-variable">app_to_db</span>.<span class="tf-variable">id</span>
+}
+
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-comment"># 3. DB VPC 라우팅 테이블 업데이트 (App으로 돌아가는 길 추가)</span>
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_route"</span> <span class="tf-string">"db_to_app_route"</span> {
+  <span class="tf-property">route_table_id</span>            = <span class="tf-variable">aws_route_table</span>.<span class="tf-variable">db_rt</span>.<span class="tf-variable">id</span>
+  <span class="tf-property">destination_cidr_block</span>    = <span class="tf-variable">aws_vpc</span>.<span class="tf-variable">app_vpc</span>.<span class="tf-property">cidr_block</span> <span class="tf-comment"># 10.1.0.0/16</span>
+  <span class="tf-property">vpc_peering_connection_id</span> = <span class="tf-variable">aws_vpc_peering_connection</span>.<span class="tf-variable">app_to_db</span>.<span class="tf-variable">id</span>
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Example 2: Cross-Region / Cross-Account -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-amber-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-earth-asia text-amber-600 mr-3"></i>실무 예제 2: 교차 리전(Cross-Region) 피어링
+                    </h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        글로벌 서비스 운영이나 재해 복구(DR)를 위해 서울 리전(ap-northeast-2)과 도쿄 리전(ap-northeast-1)의 VPC를 연결합니다. 서로 다른 리전을 제어하기 위해 테라폼에서 <strong>Provider Alias(공급자 별칭)</strong>를 사용하여 명시적으로 권한을 분리해야 합니다. (이 경우 <code>auto_accept = true</code>는 작동하지 않으므로 수락자 리소스를 별도로 작성해야 합니다.)
+                    </p>
+
+                    <!-- Terraform Code -->
+                    <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                        <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+                            <h4 class="font-bold text-amber-400 text-sm"><i class="fas fa-code mr-2"></i>Terraform: Cross-Region Peering</h4>
+                            <span class="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded">HCL</span>
+                        </div>
+                        <div class="p-4 font-mono text-sm text-slate-300 overflow-x-auto leading-relaxed">
+                            <pre><code><span class="tf-comment"># ==========================================</span>
+<span class="tf-comment"># 0. Provider 별칭(Alias) 설정: 테라폼이 두 리전을 동시에 제어하도록 선언</span>
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-keyword">provider</span> <span class="tf-string">"aws"</span> {
+  <span class="tf-property">region</span> = <span class="tf-string">"ap-northeast-2"</span> <span class="tf-comment"># 기본 프로바이더 (서울)</span>
+}
+
+<span class="tf-keyword">provider</span> <span class="tf-string">"aws"</span> {
+  <span class="tf-property">alias</span>  = <span class="tf-string">"tokyo"</span>
+  <span class="tf-property">region</span> = <span class="tf-string">"ap-northeast-1"</span> <span class="tf-comment"># 별칭 프로바이더 (도쿄)</span>
+}
+
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-comment"># 1. 서울 리전에서 피어링 요청 (Requester)</span>
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_vpc_peering_connection"</span> <span class="tf-string">"seoul_req"</span> {
+  <span class="tf-property">vpc_id</span>        = <span class="tf-variable">aws_vpc</span>.<span class="tf-variable">seoul_vpc</span>.<span class="tf-variable">id</span>
+  <span class="tf-property">peer_vpc_id</span>   = <span class="tf-variable">aws_vpc</span>.<span class="tf-variable">tokyo_vpc</span>.<span class="tf-variable">id</span>
+  <span class="tf-property">peer_region</span>   = <span class="tf-string">"ap-northeast-1"</span> <span class="tf-comment"># 타겟 리전 명시</span>
+  
+  <span class="tf-comment"># 주의: 교차 리전에서는 auto_accept가 불가능함</span>
+}
+
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-comment"># 2. 도쿄 리전에서 피어링 수락 (Accepter)</span>
+<span class="tf-comment"># ==========================================</span>
+<span class="tf-keyword">resource</span> <span class="tf-string">"aws_vpc_peering_connection_accepter"</span> <span class="tf-string">"tokyo_acc"</span> {
+  <span class="tf-property">provider</span>                  = <span class="tf-variable">aws</span>.<span class="tf-variable">tokyo</span> <span class="tf-comment"># 별칭 프로바이더 사용 필수!</span>
+  <span class="tf-property">vpc_peering_connection_id</span> = <span class="tf-variable">aws_vpc_peering_connection</span>.<span class="tf-variable">seoul_req</span>.<span class="tf-variable">id</span>
+  <span class="tf-property">auto_accept</span>               = <span class="tf-keyword">true</span>    <span class="tf-comment"># 수락자 측에서 승인</span>
+}
+
+<span class="tf-comment"># (라우팅 테이블 추가 코드는 예제 1과 동일하므로 생략)</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Example 3: Non-Transitive limitations -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-amber-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-triangle-exclamation text-amber-600 mr-3"></i>실무 예제 3: 전이적 라우팅 불가(Non-Transitive)의 이해
+                    </h2>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm block-animation">
+                    <p class="text-slate-700 leading-relaxed mb-6">
+                        가장 많이 겪는 아키텍처 설계 오류입니다. 중앙 관리용 VPC(A)를 두고 여러 서비스 VPC(B, C)를 피어링으로 연결한 <strong>가상 허브 앤 스포크</strong> 모델을 만들었다고 가정해 봅시다. A와 B, A와 C는 통신이 되지만, <strong>B와 C는 A를 거쳐서 통신할 수 없습니다.</strong> B와 C가 통신하려면 B-C 간에 직접 피어링을 맺거나, AWS Transit Gateway(전송 게이트웨이)로 아키텍처를 업그레이드해야 합니다.
+                    </p>
+
+                    <!-- Diagram: Non-transitive -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-8 mb-6 relative">
+                        <!-- VPC A (Center) -->
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-100 border-2 border-blue-400 rounded-lg p-4 text-center z-10 w-32 shadow-md">
+                            <div class="font-bold text-blue-800">VPC A</div>
+                            <div class="text-[10px] text-slate-500">(Mgmt)</div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-32 relative z-0">
+                            <!-- VPC B -->
+                            <div class="bg-emerald-50 border-2 border-emerald-400 rounded-lg p-4 text-center shadow-sm relative">
+                                <div class="font-bold text-emerald-800">VPC B</div>
+                                <div class="text-[10px] text-slate-500">(Service 1)</div>
+                                <!-- Line B to A -->
+                                <svg class="absolute top-1/2 -right-16 transform -translate-y-1/2 w-16 h-4 text-amber-500 pointer-events-none">
+                                    <line x1="0" y1="2" x2="100%" y2="2" stroke="currentColor" stroke-width="2" />
+                                    <text x="50%" y="-2" font-size="10" fill="#f59e0b" text-anchor="middle">OK</text>
+                                </svg>
+                            </div>
+
+                            <!-- VPC C -->
+                            <div class="bg-purple-50 border-2 border-purple-400 rounded-lg p-4 text-center shadow-sm relative">
+                                <div class="font-bold text-purple-800">VPC C</div>
+                                <div class="text-[10px] text-slate-500">(Service 2)</div>
+                                <!-- Line A to C -->
+                                <svg class="absolute top-1/2 -left-16 transform -translate-y-1/2 w-16 h-4 text-amber-500 pointer-events-none">
+                                    <line x1="0" y1="2" x2="100%" y2="2" stroke="currentColor" stroke-width="2" />
+                                    <text x="50%" y="-2" font-size="10" fill="#f59e0b" text-anchor="middle">OK</text>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <!-- Blocked Path Arc -->
+                        <svg class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 20;">
+                            <path d="M 220 50 Q 350 -40 480 50" fill="transparent" stroke="#ef4444" stroke-width="3" stroke-dasharray="8"/>
+                            <text x="350" y="30" font-size="14" font-weight="bold" fill="#ef4444" text-anchor="middle">통신 불가 (전이적 라우팅 차단)</text>
+                        </svg>
+                    </div>
+
+                    <!-- Expert Tip -->
+                    <div class="bg-slate-900 text-white p-5 rounded-lg shadow-inner expert-tip-bg">
+                        <h4 class="font-bold text-amber-400 mb-2 flex items-center"><i class="fas fa-lightbulb mr-2 text-yellow-400"></i>수석 아키텍트의 실전 설계 팁: 확장성 한계 극복</h4>
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            VPC 개수가 4~5개를 넘어가 서로 모두 통신해야 하는 상황(Full-Mesh)이 되면 피어링 연결 개수는 기하급수적으로 늘어납니다 (N*(N-1)/2 공식). 즉, 10개의 VPC를 연결하려면 45개의 피어링과 라우팅 테이블 관리가 필요합니다. 이 시점부터는 VPC Peering을 폐기하고 중앙 집중형 라우터인 <strong>AWS Transit Gateway</strong>로 아키텍처를 즉시 마이그레이션해야 운영 오버헤드를 막을 수 있습니다.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cost & Warning Section -->
+            <section>
+                <div class="bg-rose-50 border-l-8 border-rose-600 rounded-r-xl p-6 shadow-md relative overflow-hidden mt-12">
+                    <div class="absolute -right-6 -top-6 text-rose-200/50 transform rotate-12">
+                        <i class="fas fa-file-invoice-dollar text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-black text-rose-800 mb-6 flex items-center border-b border-rose-200 pb-3">
+                            <i class="fas fa-engine-warning mr-3 animate-pulse"></i> 피어링 구성 시 과금 및 보안 주의사항 (필독)
+                        </h2>
+                        
+                        <div class="space-y-5">
+                            <div class="bg-white p-5 rounded-lg border border-rose-200 flex items-start shadow-sm hover:shadow-md transition">
+                                <div class="text-rose-600 font-bold text-2xl mr-4 mt-1"><i class="fas fa-coins"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-rose-900 text-lg mb-2">데이터 전송(Data Transfer) 요금</h4>
+                                    <p class="text-sm text-slate-700 leading-relaxed">
+                                        VPC Peering <strong>연결 자체를 생성하고 유지하는 것은 무료</strong>입니다. 하지만 피어링을 통과하는 트래픽에는 요금이 발생합니다. 같은 리전 내의 서로 다른 AZ 간 통신이라면 <strong>양방향으로 데이터 전송 요금(GB당 $0.01)</strong>이 부과되며, 교차 리전(Cross-Region) 피어링의 경우 해당 리전 간의 표준 데이터 전송 요금(더 비쌈)이 적용됩니다. 대규모 데이터 백업 시 요금 폭탄에 주의하십시오.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-5 rounded-lg border border-rose-200 flex items-start shadow-sm hover:shadow-md transition">
+                                <div class="text-rose-600 font-bold text-2xl mr-4 mt-1"><i class="fas fa-shield-halved"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-rose-900 text-lg mb-2">보안 그룹(Security Group) 상호 참조 제약</h4>
+                                    <p class="text-sm text-slate-700 leading-relaxed">
+                                        동일 리전 내의 피어링된 VPC 간에는 상대방 VPC의 인스턴스 보안 그룹 ID(예: <code>sg-1234abcd</code>)를 내 보안 그룹의 '인바운드 소스'로 직접 지정하여 정밀한 방화벽 규칙을 세울 수 있습니다. 하지만, <strong>교차 리전 피어링의 경우에는 보안 그룹 ID 참조가 불가능</strong>하므로 상대방의 IP 대역(CIDR) 전체를 열어주어야 하는 보안 취약점이 발생합니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footnotes Section -->
+        <footer class="bg-slate-50 border-t border-slate-200 p-8 text-sm text-slate-500">
+            <h4 class="font-bold text-slate-700 mb-3 border-b border-slate-300 pb-2 inline-block">주석 및 용어 설명</h4>
+            <ol class="list-decimal list-inside space-y-3 ml-2">
+                <li id="fn1"><strong>Provider Alias (공급자 별칭)</strong>: 테라폼에서 동일한 클라우드 프로바이더(예: AWS)를 사용하지만, 접속할 리전(Region)이나 계정(Account)이 다를 때 이를 구분하기 위해 부여하는 가상의 이름입니다. 글로벌 인프라 배포 시 필수적인 문법입니다.</li>
+                <li id="fn2"><strong>CIDR (Classless Inter-Domain Routing)</strong>: <code>10.1.0.0/16</code>과 같이 네트워크의 크기(사용 가능한 IP 주소의 수)를 정의하는 방식입니다. 인프라 설계 시 서로 다른 VPC 간에 이 범위가 겹치지 않도록 사전에 IP 설계(IP Addressing Plan)를 수립하는 것이 매우 중요합니다.</li>
+                <li id="fn3"><strong>Full-Mesh (풀 메시 토폴로지)</strong>: 네트워크 내의 모든 노드(여기서는 VPC)가 다른 모든 노드와 직접 1:1로 촘촘하게 연결된 형태를 말합니다. 내결함성은 최고 수준이지만 확장이 매우 어렵습니다.</li>
+            </ol>
+        </footer>
+
+        <!-- Next Step Banner -->
+        <div class="bg-slate-900 text-amber-400 text-center py-6 px-4 font-bold text-lg md:text-xl relative overflow-hidden group cursor-pointer border-t-4 border-amber-500">
+            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition duration-300"></div>
+            Next Step: AWS VPN 및 Direct Connect(전용선)를 활용한 하이브리드 클라우드 네트워크 연동 <i class="fas fa-arrow-right ml-2 text-white group-hover:translate-x-2 transition transform"></i>
+        </div>
+
+    </div>
+
+</body>
+</html>
