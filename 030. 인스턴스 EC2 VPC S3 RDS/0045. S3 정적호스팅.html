@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS S3 정적 웹 호스팅 실무 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #fff7ed; }
+        ::-webkit-scrollbar-thumb { background: #fdba74; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f97316; }
+        
+        .block-animation {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .block-animation:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(154, 52, 18, 0.15);
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.3);
+        }
+
+        .code-block {
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
+        
+        .expert-tip-bg {
+            background: linear-gradient(135deg, #431407 0%, #2a0a03 100%);
+            border-left: 4px solid #f97316;
+        }
+
+        /* Syntax highlighting colors */
+        .json-key { color: #61afef; }
+        .json-value { color: #98c379; }
+        .html-tag { color: #e06c75; }
+        .html-attr { color: #d19a66; }
+        .cli-cmd { color: #e5c07b; }
+        .comment { color: #6b7280; font-style: italic; }
+    </style>
+</head>
+<body class="antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        <!-- Header Section -->
+        <header class="bg-slate-900 text-white p-8 md:p-12 relative overflow-hidden">
+            <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                <i class="fas fa-bucket text-9xl text-orange-500"></i>
+            </div>
+            <div class="relative z-10">
+                <span class="bg-orange-900 text-orange-300 border border-orange-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block shadow-sm">Storage & Content Delivery (Expert Practical)</span>
+                <h1 class="text-3xl md:text-5xl font-bold mb-4 leading-tight">서버 없는 웹사이트 구축:<br><span class="text-orange-400">S3 정적 웹 호스팅 실무</span></h1>
+                <p class="text-lg md:text-xl text-slate-300 max-w-3xl">
+                    <a href="https://aws.amazon.com/ko/s3/" target="_blank" class="underline hover:text-white font-medium">Amazon S3(Simple Storage Service)</a>는 단순한 파일 저장소를 넘어, 서버(EC2) 없이도 HTML, CSS, JavaScript로 구성된 정적 웹사이트를 전 세계에 즉시 배포할 수 있는 강력한 호스팅 기능을 제공합니다. 이 실습에서는 템플릿 웹페이지를 생성하고 인터넷에 공개하는 전체 과정을 학습합니다.
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="p-8 md:p-12 space-y-16">
+
+            <!-- Section: Architecture Diagram -->
+            <section>
+                <div class="flex items-center mb-6 border-b-2 border-orange-500 pb-2 inline-block">
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-800 flex items-center">
+                        <i class="fas fa-sitemap text-slate-600 mr-3"></i>정적 웹 호스팅 아키텍처
+                    </h2>
+                </div>
+                
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-8 mb-6 overflow-x-auto flex justify-center items-center gap-6">
+                    <!-- User -->
+                    <div class="flex flex-col items-center">
+                        <div class="bg-white border-2 border-slate-300 rounded-full w-16 h-16 flex items-center justify-center shadow-md z-10">
+                            <i class="fas fa-user text-2xl text-slate-600"></i>
+                        </div>
+                        <div class="text-xs font-bold text-slate-700 mt-2">웹 브라우저</div>
+                    </div>
+
+                    <!-- Internet -->
+                    <div class="flex flex-col items-center">
+                        <div class="text-[10px] font-bold text-blue-600 mb-1">HTTP Request</div>
+                        <i class="fas fa-arrow-right text-blue-400 text-2xl"></i>
+                    </div>
+
+                    <!-- S3 Endpoint -->
+                    <div class="border-2 border-orange-400 bg-orange-50 rounded-xl p-5 w-64 text-center shadow-md relative">
+                        <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-orange-600 text-white px-3 py-1 text-xs font-bold rounded-full shadow">S3 Website Endpoint</div>
+                        
+                        <div class="bg-white border border-orange-200 rounded-lg p-3 mb-3 relative z-10 shadow-sm mt-2">
+                            <div class="text-[10px] text-slate-600 font-mono break-all">
+                                http://my-web.s3-website-ap-northeast-2.amazonaws.com
+                            </div>
+                        </div>
+
+                        <!-- Bucket Content -->
+                        <div class="bg-orange-100 border border-orange-300 rounded-lg p-3 text-left relative overflow-hidden">
+                            <i class="fas fa-bucket text-orange-200 text-5xl absolute -right-2 -bottom-2"></i>
+                            <div class="text-xs font-bold text-orange-900 mb-2 relative z-10 border-b border-orange-200 pb-1">Bucket: my-web</div>
+                            <ul class="text-[11px] text-slate-700 font-mono relative z-10 space-y-1">
+                                <li><i class="fas fa-file-code text-blue-500 mr-1"></i>index.html <span class="text-orange-600 font-bold">(기본 진입 문서)</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-2 flex items-center"><i class="fas fa-circle-info text-blue-500 mr-2"></i>정적(Static) 웹 호스팅이란?</h3>
+                    <p class="text-sm text-slate-700 leading-relaxed">
+                        PHP, JSP, Node.js처럼 서버 측에서 데이터를 처리(동적 렌더링)하여 페이지를 만들어내는 것이 아니라, 이미 완성된 형태의 파일(HTML, CSS, 이미지)을 사용자에게 그대로 전송하는 방식입니다. 블로그, 포트폴리오, 회사 소개 페이지, 혹은 React/Vue 등으로 빌드된 <strong>SPA(Single Page Application)</strong> 배포에 완벽하게 부합하며 서버 유지비가 거의 들지 않습니다.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Step 1: HTML Generation -->
+            <section>
+                <div class="flex items-start gap-4 mb-8">
+                    <div class="w-10 h-10 rounded-full step-number flex items-center justify-center font-bold text-xl shrink-0 mt-1">1</div>
+                    <div class="w-full">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">실습용 HTML 페이지 준비</h3>
+                        <p class="text-sm text-slate-600 mb-4">S3에 업로드할 샘플 웹페이지가 필요합니다. 대화형 AI(예: ChatGPT)에게 "반응형 회사 소개 랜딩 페이지 HTML 하나 만들어줘"라고 요청하면 쉽게 얻을 수 있습니다. 아래 제공된 <code>index.html</code> 코드를 복사하여 로컬 PC에 저장하십시오.</p>
+                        
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-2 border-b border-slate-700 flex justify-between items-center">
+                                <span class="text-orange-400 text-xs font-bold"><i class="fab fa-html5 mr-2"></i>index.html (샘플 파일)</span>
+                            </div>
+                            <div class="p-4 text-[12px] text-slate-300 overflow-x-auto code-block leading-relaxed h-48 overflow-y-scroll">
+<pre><code><span class="html-tag">&lt;!DOCTYPE html&gt;</span>
+<span class="html-tag">&lt;html <span class="html-attr">lang</span>="ko"&gt;</span>
+<span class="html-tag">&lt;head&gt;</span>
+    <span class="html-tag">&lt;meta <span class="html-attr">charset</span>="UTF-8"&gt;</span>
+    <span class="html-tag">&lt;title&gt;</span>AWS S3 호스팅 테스트<span class="html-tag">&lt;/title&gt;</span>
+    <span class="html-tag">&lt;style&gt;</span>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; text-align: center; padding-top: 100px; }
+        h1 { color: #ea580c; font-size: 3rem; }
+        .box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: inline-block; max-width: 600px; }
+    <span class="html-tag">&lt;/style&gt;</span>
+<span class="html-tag">&lt;/head&gt;</span>
+<span class="html-tag">&lt;body&gt;</span>
+    <span class="html-tag">&lt;div <span class="html-attr">class</span>="box"&gt;</span>
+        <span class="html-tag">&lt;h1&gt;</span>🚀 S3 정적 호스팅 성공!<span class="html-tag">&lt;/h1&gt;</span>
+        <span class="html-tag">&lt;p&gt;</span>이 페이지는 서버(EC2) 없이 Amazon S3 버킷에서 직접 전송되고 있습니다.<span class="html-tag">&lt;/p&gt;</span>
+        <span class="html-tag">&lt;p <span class="html-attr">style</span>="color: #64748b; font-size: 0.9em; margin-top: 20px;"&gt;</span>Powered by Cloud Infrastructure<span class="html-tag">&lt;/p&gt;</span>
+    <span class="html-tag">&lt;/div&gt;</span>
+<span class="html-tag">&lt;/body&gt;</span>
+<span class="html-tag">&lt;/html&gt;</span></code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Create Bucket & Enable Hosting -->
+                <div class="flex items-start gap-4 mb-8">
+                    <div class="w-10 h-10 rounded-full step-number flex items-center justify-center font-bold text-xl shrink-0 mt-1">2</div>
+                    <div class="w-full">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">S3 버킷 생성 및 호스팅 활성화</h3>
+                        <p class="text-sm text-slate-600 mb-4">버킷 이름은 <strong>전 세계에서 유일(Globally Unique)</strong>해야 하므로 본인의 이니셜이나 날짜를 조합하여 생성합니다. 생성 후 웹 호스팅 기능을 활성화하고 기본 진입 문서를 지정합니다.</p>
+                        
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-2 border-b border-slate-700">
+                                <span class="text-orange-400 text-xs font-bold"><i class="fas fa-terminal mr-2"></i>AWS CLI 명령</span>
+                            </div>
+                            <div class="p-4 text-[12px] text-slate-300 overflow-x-auto code-block leading-relaxed">
+<pre><code><span class="comment"># 1. 버킷 생성 (이름에 'my-web-bucket-본인이니셜' 등을 넣으세요)</span>
+<span class="cli-cmd">aws s3 mb</span> s3://my-web-bucket-2026
+
+<span class="comment"># 2. 웹사이트 호스팅 기능 활성화 (index 문서 단일 지정)</span>
+<span class="cli-cmd">aws s3 website</span> s3://my-web-bucket-2026 \
+    --index-document index.html</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Bucket Policy (Crucial) -->
+                <div class="flex items-start gap-4 mb-8">
+                    <div class="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xl shrink-0 mt-1 shadow-[0_0_15px_rgba(225,29,72,0.5)]">3</div>
+                    <div class="w-full">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">퍼블릭 액세스 차단 해제 및 버킷 정책 적용 <span class="text-rose-600 text-sm ml-2">(가장 중요한 설정)</span></h3>
+                        <p class="text-sm text-slate-600 mb-4">AWS S3는 보안을 위해 생성되는 즉시 모든 외부 접근을 차단합니다(Block Public Access). 웹사이트로 사용하려면 <strong>1) 이 차단 설정을 해제</strong>하고, <strong>2) 인터넷의 누구나(<code>*</code>) 파일을 읽을 수 있도록(<code>s3:GetObject</code>) 버킷 정책을 명시적으로 부여</strong>해야 합니다.</p>
+                        
+                        <!-- Expert Tip -->
+                        <div class="bg-slate-900 text-white p-5 rounded-lg shadow-inner expert-tip-bg mb-4">
+                            <h4 class="font-bold text-orange-400 mb-2 flex items-center"><i class="fas fa-triangle-exclamation mr-2 text-rose-400"></i>수석 아키텍트 보안 주의사항</h4>
+                            <p class="text-sm text-slate-300 leading-relaxed">
+                                퍼블릭 정책이 적용된 버킷에는 누구나 URL만 알면 접근하여 파일을 다운로드할 수 있습니다. <strong>절대로 데이터베이스 백업 파일, 개인 정보, API 키가 들어있는 설정 파일(.env)을 호스팅 버킷에 함께 업로드하지 마십시오.</strong>
+                            </p>
+                        </div>
+
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800 mb-4">
+                            <div class="bg-slate-800 px-4 py-2 border-b border-slate-700">
+                                <span class="text-orange-400 text-xs font-bold"><i class="fas fa-terminal mr-2"></i>퍼블릭 차단 해제 (CLI)</span>
+                            </div>
+                            <div class="p-4 text-[12px] text-slate-300 overflow-x-auto code-block leading-relaxed">
+<pre><code><span class="comment"># 퍼블릭 액세스 차단 (Block Public Access) 설정을 모두 false로 변경</span>
+<span class="cli-cmd">aws s3api put-public-access-block</span> \
+    --bucket my-web-bucket-2026 \
+    --public-access-block-configuration "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-2 border-b border-slate-700 flex justify-between">
+                                <span class="text-orange-400 text-xs font-bold"><i class="fas fa-file-code mr-2"></i>버킷 정책 (bucket-policy.json)</span>
+                                <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded">JSON</span>
+                            </div>
+                            <div class="p-4 text-[12px] text-slate-300 overflow-x-auto code-block leading-relaxed">
+<pre><code>{
+    <span class="json-key">"Version"</span>: <span class="json-value">"2012-10-17"</span>,
+    <span class="json-key">"Statement"</span>: [
+        {
+            <span class="json-key">"Sid"</span>: <span class="json-value">"PublicReadGetObject"</span>,
+            <span class="json-key">"Effect"</span>: <span class="json-value">"Allow"</span>,
+            <span class="json-key">"Principal"</span>: <span class="json-value">"*"</span>, <span class="comment">// 인터넷의 모든 익명 사용자 허용</span>
+            <span class="json-key">"Action"</span>: <span class="json-value">"s3:GetObject"</span>, <span class="comment">// 파일을 읽어가는 행위만 허용</span>
+            <span class="json-key">"Resource"</span>: <span class="json-value">"arn:aws:s3:::my-web-bucket-2026/*"</span>
+        }
+    ]
+}</code></pre>
+<div class="mt-3 border-t border-slate-700 pt-3 text-slate-400">
+<span class="comment"># 작성한 정책 파일을 S3에 적용</span>
+<span class="cli-cmd">aws s3api put-bucket-policy</span> --bucket my-web-bucket-2026 --policy file://bucket-policy.json
+</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Upload & Test -->
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 text-orange-400 flex items-center justify-center font-bold text-xl shrink-0 mt-1 shadow-lg">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                    </div>
+                    <div class="w-full">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">파일 업로드 및 브라우저 테스트</h3>
+                        <p class="text-sm text-slate-600 mb-4">미리 만들어둔 <code>index.html</code> 파일을 버킷에 복사한 후, S3에서 제공하는 엔드포인트(Endpoint) URL을 통해 브라우저에서 직접 접속해 봅니다.</p>
+                        
+                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800">
+                            <div class="bg-slate-800 px-4 py-2 border-b border-slate-700">
+                                <span class="text-orange-400 text-xs font-bold"><i class="fas fa-terminal mr-2"></i>파일 업로드 (CLI)</span>
+                            </div>
+                            <div class="p-4 text-[12px] text-slate-300 overflow-x-auto code-block leading-relaxed">
+<pre><code><span class="comment"># 로컬의 index.html을 S3 버킷 최상단에 복사</span>
+<span class="cli-cmd">aws s3 cp</span> index.html s3://my-web-bucket-2026/
+
+<span class="comment"># [접속 테스트 주소 형식]</span>
+<span class="comment"># http://{버킷이름}.s3-website-{리전코드}.amazonaws.com</span>
+<span class="comment"># 예시: http://my-web-bucket-2026.s3-website-ap-northeast-2.amazonaws.com</span></code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-4 border-2 border-dashed border-emerald-400 bg-emerald-50 rounded-lg text-center">
+                            <i class="fas fa-globe text-3xl text-emerald-500 mb-2"></i>
+                            <p class="text-sm text-slate-700 font-bold">브라우저 주소창에 위 URL을 입력하여<br>정상적으로 주황색 랜딩 페이지가 뜨는지 확인합니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cost & Warning Section -->
+            <section>
+                <div class="bg-rose-50 border-l-8 border-rose-500 rounded-r-xl p-6 shadow-md relative overflow-hidden mt-12">
+                    <div class="absolute -right-6 -top-6 text-rose-200/50 transform rotate-12">
+                        <i class="fas fa-file-invoice-dollar text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-black text-rose-800 mb-4 flex items-center">
+                            <i class="fas fa-engine-warning mr-3 animate-pulse"></i> 과금 및 보안 관리 (필독)
+                        </h2>
+                        
+                        <ul class="space-y-4 text-slate-700">
+                            <li class="flex items-start">
+                                <i class="fas fa-money-bill-wave text-rose-600 mt-1 mr-3 text-lg"></i>
+                                <div>
+                                    <strong class="text-rose-900 block mb-1">데이터 전송 요금(Data Transfer Out) 과금</strong>
+                                    S3에 데이터를 저장하는 비용은 매우 저렴(GB당 약 $0.025)하지만, <strong>인터넷으로 데이터가 빠져나가는 트래픽(사용자가 웹페이지를 볼 때 발생하는 트래픽)은 과금 대상(GB당 약 $0.09)</strong>입니다. 이미지나 동영상이 포함된 고용량 페이지를 S3에서 직접 호스팅하면 요금이 크게 발생할 수 있습니다.
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-bolt text-rose-600 mt-1 mr-3 text-lg"></i>
+                                <div>
+                                    <strong class="text-rose-900 block mb-1">HTTPS 미지원 제약</strong>
+                                    S3 정적 웹 호스팅 엔드포인트는 기본적으로 <strong>HTTP 접속만 지원</strong>하며, 자체적으로 HTTPS(보안 연결)나 커스텀 도메인(예: <code>www.mycompany.com</code>) 연결을 지원하지 않습니다. 이를 해결하려면 <strong>Amazon CloudFront(CDN)</strong> 서비스와 결합하여 배포해야만 실무 수준의 안전한 웹사이트가 완성됩니다.
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Next Step Banner -->
+        <div class="bg-slate-900 text-orange-400 text-center py-6 px-4 font-bold text-lg md:text-xl relative overflow-hidden group cursor-pointer border-t-4 border-orange-500">
+            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition duration-300"></div>
+            Next Step: Amazon CloudFront 연동을 통한 S3 웹사이트 HTTPS 적용 및 CDN 가속 <i class="fas fa-arrow-right ml-2 text-white group-hover:translate-x-2 transition transform"></i>
+        </div>
+
+    </div>
+
+</body>
+</html>
