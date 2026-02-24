@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IGW vs NAT Gateway 네트워크 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; color: #334155; }
+        .content-layer { background: white; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .concept-title { border-left: 5px solid #ff9900; padding-left: 1rem; }
+        .diff-table th { background-color: #232f3e; color: white; }
+        .footnote { font-size: 0.875rem; color: #64748b; line-height: 1.6; }
+        .highlight { color: #ff9900; font-weight: bold; }
+        .billing-warning { border: 2px solid #ef4444; background-color: #fef2f2; }
+        .danger-card { border-left: 5px solid #ef4444; background-color: #fff1f2; }
+        .evolution-card { border-left: 5px solid #10b981; background-color: #f0fdf4; }
+    </style>
+</head>
+<body class="py-12 px-4 md:px-0">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Main Title -->
+        <header class="text-center mb-16">
+            <h1 class="text-4xl font-black text-slate-900 mb-4 tracking-tight">
+                <span class="text-orange-500">IGW</span> vs <span class="text-blue-600">NAT Gateway</span>
+            </h1>
+            <p class="text-xl text-slate-500">AWS 네트워크 관문 서비스의 개념과 설계 차이점 분석</p>
+        </header>
+
+        <!-- Section 1: IGW -->
+        <section class="content-layer p-8 mb-10">
+            <h2 class="concept-title text-2xl font-bold mb-6 text-slate-800">1. IGW (Internet Gateway, 인터넷 게이트웨이)</h2>
+            <p class="mb-4 leading-relaxed">
+                **IGW**(Internet Gateway, 인터넷 게이트웨이)는 **VPC**(Virtual Private Cloud, 가상 사설 클라우드)와 인터넷 간의 통신을 가능하게 하는 수평 확장 가능하고 중복성이 확보된 고가용성 **VPC** 구성 요소입니다. 이는 네트워크 트래픽에 대한 가용성 위험이나 대역폭 제약 없이 원활한 통신을 제공합니다.
+            </p>
+            
+            <div class="bg-slate-50 p-6 rounded-lg mb-4 border border-slate-200">
+                <h3 class="font-bold mb-3 text-orange-600">주요 기능 및 특징</h3>
+                <ul class="list-disc list-inside space-y-2 text-slate-700">
+                    <li>**양방향 통신 지원:** 외부에서 내부로(**Inbound**, 인바운드) 및 내부에서 외부로(**Outbound**, 아웃바운드)의 통신이 모두 가능합니다.</li>
+                    <li>**대상:** **Public IP**(Public Internet Protocol, 공인 인터넷 규약 주소)를 가진 인스턴스에 직접 연결됩니다.</li>
+                    <li>**논리적 객체:** 물리적 장비가 아닌 소프트웨어 정의 네트워크로 구현되어 성능 한계가 거의 없습니다.</li>
+                </ul>
+            </div>
+            
+            <div class="footnote bg-orange-50 p-4 rounded border-l-4 border-orange-200">
+                <strong>[주석]</strong><br>
+                * **Inbound/Outbound (인바운드/아웃바운드):** 네트워크 경계를 기준으로 들어오는 트래픽(Inbound)과 나가는 트래픽(Outbound)을 의미합니다.<br>
+                * **Public IP (공인 IP):** 인터넷 전체에서 유일하게 식별될 수 있는 주소로, 외부 망에서 해당 서버를 찾기 위한 필수 주소입니다.
+            </div>
+        </section>
+
+        <!-- Diagram Section -->
+        <div class="text-center mb-10">
+            <p class="text-sm text-slate-400 mb-4">[그림: IGW와 NAT Gateway의 논리적 위치 및 흐름도]</p>
+            <svg width="100%" height="280" viewBox="0 0 800 280" class="mx-auto bg-white rounded-xl shadow-inner border border-slate-100">
+                <!-- Internet -->
+                <circle cx="400" cy="40" r="30" fill="#e2e8f0" stroke="#94a3b8" />
+                <text x="375" y="45" font-size="12" font-weight="bold">인터넷</text>
+
+                <!-- IGW -->
+                <rect x="360" y="90" width="80" height="30" rx="5" fill="#ff9900" />
+                <text x="385" y="110" fill="white" font-size="11" font-weight="bold">IGW</text>
+
+                <!-- Public Subnet -->
+                <rect x="100" y="150" width="280" height="100" rx="10" fill="#f0f9ff" stroke="#0ea5e9" stroke-dasharray="4" />
+                <text x="110" y="170" fill="#0369a1" font-weight="bold" font-size="12">퍼블릭 서브넷 (Public Subnet)</text>
+                <rect x="200" y="190" width="80" height="40" rx="5" fill="#0369a1" />
+                <text x="210" y="215" fill="white" font-size="10">NAT Gateway</text>
+
+                <!-- Private Subnet -->
+                <rect x="420" y="150" width="280" height="100" rx="10" fill="#f8fafc" stroke="#64748b" stroke-dasharray="4" />
+                <text x="430" y="170" fill="#334155" font-weight="bold" font-size="12">프라이빗 서브넷 (Private Subnet)</text>
+                <circle cx="560" cy="210" r="15" fill="#64748b" />
+                <text x="552" y="214" fill="white" font-size="9">DB</text>
+
+                <!-- Connectivity -->
+                <path d="M400 70V90" stroke="#94a3b8" stroke-width="2" />
+                <path d="M360 105H100V150" stroke="#ff9900" stroke-width="2" fill="none" />
+                <path d="M240 190V105H360" stroke="#ef4444" stroke-width="2" fill="none" />
+                <path d="M545 210H280" stroke="#ef4444" stroke-width="2" fill="none" stroke-dasharray="2" />
+            </svg>
+        </div>
+
+        <!-- Section 2: NAT Gateway -->
+        <section class="content-layer p-8 mb-10">
+            <h2 class="concept-title text-2xl font-bold mb-6 text-slate-800 border-blue-600">2. NAT Gateway (Network Address Translation Gateway, 네트워크 주소 변환 게이트웨이)</h2>
+            <p class="mb-6 leading-relaxed">
+                **NAT Gateway**(Network Address Translation Gateway, 네트워크 주소 변환 게이트웨이)는 프라이빗 서브넷의 인스턴스가 인터넷 또는 다른 **AWS** 서비스에 연결될 수 있게 하지만, 외부 인터넷에서 해당 인스턴스로의 직접적인 연결은 차단하는 고성능 매니지드 서비스입니다.
+            </p>
+
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <h3 class="font-bold mb-3 text-blue-700">주요 기능 및 특징</h3>
+                    <ul class="list-disc list-inside space-y-2 text-slate-700 text-sm">
+                        <li>**단방향 통신 특화:** 내부에서 밖으로 나가는 **Outbound**(아웃바운드) 요청만 가능합니다.</li>
+                        <li>**보안 강화:** 실제 서버의 사설 IP를 숨기고 게이트웨이의 공인 IP로 통신합니다.</li>
+                        <li>**AZ 종속성:** 가용 영역별로 생성하여 장애 격리를 유지합니다.</li>
+                    </ul>
+                </div>
+                <div class="danger-card p-6 rounded-lg border border-red-200">
+                    <h3 class="font-bold mb-3 text-red-700">부재 시 발생하는 문제점</h3>
+                    <ul class="list-disc list-inside space-y-2 text-slate-700 text-sm">
+                        <li>**패치/업데이트 불가:** OS 보안 업데이트 및 패키지 설치가 차단됩니다.</li>
+                        <li>**API 연동 실패:** 결제 모듈이나 외부 데이터 API 서버와 통신이 끊깁니다.</li>
+                        <li>**설계적 모순:** 외부 통신을 위해 보안이 중요한 자원을 퍼블릭으로 노출하게 됩니다.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Detailed Problem Analysis -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-bold text-slate-800">2.1 NAT 부재 시의 상세 영향 분석</h3>
+                <div class="border-l-4 border-slate-300 pl-4 py-2">
+                    <h4 class="font-bold text-slate-700">가. 소프트웨어 생명주기 관리 마비</h4>
+                    <p class="text-sm text-slate-600 mt-1">
+                        리눅스의 `yum install`이나 `apt-get`, 윈도우의 **Windows Update**(윈도우 업데이트) 서비스는 외부 리포지토리에 접속해야 합니다. **NAT**가 없으면 서버는 최신 보안 패치를 받을 수 없으며, 이는 장기적으로 심각한 보안 취약점을 초래합니다.
+                    </p>
+                </div>
+                <div class="border-l-4 border-slate-300 pl-4 py-2">
+                    <h4 class="font-bold text-slate-700">나. 외부 비즈니스 서비스 연동 불가</h4>
+                    <p class="text-sm text-slate-600 mt-1">
+                        현대의 애플리케이션은 **SaaS**(Software as a Service, 서비스형 소프트웨어) 형태의 외부 API(예: 결제 게이트웨이, 공공 데이터 포털)를 빈번하게 호출합니다. **Outbound**(아웃바운드) 경로가 없으면 이러한 비즈니스 로직이 모두 작동하지 않습니다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="footnote bg-blue-50 p-4 mt-6 rounded border-l-4 border-blue-200">
+                <strong>[주석]</strong><br>
+                * **SaaS (Software as a Service):** 클라우드 기반의 소프트웨어 제공 모델로, 사용자가 설치 없이 웹을 통해 소프트웨어를 이용하는 방식입니다.<br>
+                * **Repository (리포지토리, 저장소):** 소프트웨어 패키지들이 저장되어 있는 중앙 서버로, 업데이트 시 해당 위치에서 파일을 다운로드합니다.
+            </div>
+        </section>
+
+        <!-- Section 3: Evolution from On-premises -->
+        <section class="content-layer p-8 mb-10">
+            <h2 class="concept-title text-2xl font-bold mb-6 text-slate-800 border-green-600">3. 온프레미스 통합 장비에서 AWS 독립 서비스로의 진화 이유</h2>
+            <p class="mb-6 leading-relaxed">
+                전통적인 온프레미스(On-premises, 사내 구축형) 환경에서는 하나의 **L3 Switch**(Layer 3 Switch, 3계층 스위치)나 **Firewall**(파이어월, 방화벽) 장비가 모든 게이트웨이 역할을 통합 수행했습니다. 하지만 **AWS**가 이를 분리한 이유는 클라우드만의 **고가용성**과 **무한 확장**을 달성하기 위함입니다.
+            </p>
+
+            <div class="evolution-card p-6 rounded-lg border border-green-200 space-y-4">
+                <div>
+                    <h4 class="font-bold text-green-800">1) 가용 영역(AZ)의 완전한 격리와 독립성</h4>
+                    <p class="text-sm text-slate-700 mt-1">
+                        온프레미스 장비는 해당 장비가 고장 나면 전체 네트워크가 마비되는 **SPOF**(Single Point of Failure, 단일 장애점)가 됩니다. **AWS**는 **NAT Gateway**를 **AZ**(Availability Zone, 가용 영역)별로 독립 생성하게 하여, 한 데이터 센터의 장애가 다른 영역의 외부 통신에 영향을 주지 않도록 설계되었습니다.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-green-800">2) SDN 기반의 무한 확장성 확보</h4>
+                    <p class="text-sm text-slate-700 mt-1">
+                        통합 장비는 물리적 하드웨어의 성능(CPU, 메모리) 한계가 뚜렷합니다. **AWS**는 **IGW**를 소프트웨어로 정의된 논리적 계층(**SDN**, 소프트웨어 정의 네트워크)으로 분리하여 병목 현상 없이 수조 개의 패킷을 처리하게 하고, **NAT Gateway**는 별도의 매니지드 성능을 제공하여 각각의 역할에 최적화된 성능을 보장합니다.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-green-800">3) 보안 계층화 (Defense in Depth)</h4>
+                    <p class="text-sm text-slate-700 mt-1">
+                        게이트웨이를 분리하면 공격 표면이 줄어듭니다. **IGW**는 라우팅과 매핑에만 집중하고, **NAT Gateway**는 주소 변환과 단방향 통신 제어에 집중합니다. 이로써 한 서비스의 설정 오류가 전체 네트워크 보안을 붕괴시키는 리스크를 최소화합니다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="footnote bg-green-50 p-4 mt-6 rounded border-l-4 border-green-200">
+                <strong>[주석]</strong><br>
+                * **SPOF (Single Point of Failure):** 시스템 구성 요소 중, 동작하지 않으면 시스템 전체가 중단되는 핵심 지점을 의미합니다.<br>
+                * **Defense in Depth (심층 방어):** 하나의 방어선이 뚫리더라도 다음 방어선이 위협을 차단할 수 있도록 다중의 보안 계층을 두는 전략입니다.
+            </div>
+        </section>
+
+        <!-- Section 4: Difference Analysis -->
+        <section class="content-layer p-8 mb-10">
+            <h2 class="text-2xl font-bold mb-6 text-slate-800">4. IGW vs NAT Gateway 차이점 비교</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm diff-table border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-3 text-left">항목</th>
+                            <th class="p-3 text-left">IGW (인터넷 게이트웨이)</th>
+                            <th class="p-3 text-left">NAT Gateway (NAT 게이트웨이)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-slate-700">
+                        <tr class="border-b">
+                            <td class="p-4 font-bold bg-slate-50">통신 방향</td>
+                            <td class="p-4">양방향 (Inbound / Outbound)</td>
+                            <td class="p-4 text-red-600 font-bold">단방향 (Outbound Only)</td>
+                        </tr>
+                        <tr class="border-b">
+                            <td class="p-4 font-bold bg-slate-50">연결 대상</td>
+                            <td class="p-4">퍼블릭 IP 보유 인스턴스</td>
+                            <td class="p-4">프라이빗 IP 보유 인스턴스</td>
+                        </tr>
+                        <tr class="border-b">
+                            <td class="p-4 font-bold bg-slate-50">확장성</td>
+                            <td class="p-4">자동 무한 확장 (SDN 기반)</td>
+                            <td class="p-4">최대 45Gbps까지 자동 확장</td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 font-bold bg-slate-50">설치 위치</td>
+                            <td class="p-4">VPC 전체 (논리적)</td>
+                            <td class="p-4">특정 서브넷 내 (물리적 AZ 종속)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Billing Section -->
+        <section class="billing-warning p-6 rounded-xl mb-12">
+            <h2 class="text-xl font-extrabold text-red-700 mb-3 flex items-center gap-2">
+                <span>⚠</span> 중요: 과금 체계 안내 (Cost Management)
+            </h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="p-4 bg-white rounded shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-2">IGW 비용</h3>
+                    <p class="text-sm text-slate-600">**무료.** 생성 및 유지에 따른 비용이 없습니다. (단, 인터넷 데이터 전송료 별도)</p>
+                </div>
+                <div class="p-4 bg-white rounded shadow-sm border-2 border-red-200">
+                    <h3 class="font-bold text-red-600 mb-2">NAT Gateway 비용 (유료)</h3>
+                    <p class="text-sm text-slate-600">
+                        **시간당 요금 + 데이터 처리 요금.** <br>
+                        - 시간당 약 $0.045 (서울 리전 기준)<br>
+                        - 데이터 처리 GB당 약 $0.045
+                    </p>
+                </div>
+            </div>
+            <p class="mt-4 text-xs text-red-600 font-medium">* NAT Gateway는 인스턴스가 꺼져 있어도 게이트웨이가 생성되어 있으면 지속적으로 과금되므로 미사용 시 즉시 삭제가 권장됩니다.</p>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-slate-400 text-sm border-t pt-8 pb-12">
+            <p>IP 직업훈련 전문가 과정 - 클라우드 아키텍처 전공</p>
+            <p class="mt-4 font-bold text-slate-600">Next Step: VPC Endpoint를 통한 데이터 비용 최적화 설계</p>
+        </footer>
+    </div>
+
+</body>
+</html>
