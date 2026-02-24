@@ -244,8 +244,38 @@
                 <p><span class="flow-tag">5</span> <strong>IGW → Internet:</strong> 최종적으로 인터넷 게이트웨이를 통해 패킷이 공용 인터넷으로 나갑니다.</p>
             </div>
         </div>
+
+        <h3>3.3 TGW vs. IGW/NAT Gateway 역할 비교 및 상호보완성</h3>
+        <p class="mb-4">TGW를 사용하면 많은 네트워크 구성 요소가 통합되지만, TGW가 모든 게이트웨이의 기능을 대체하는 것은 아닙니다.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="concept-card border-t-4 border-t-slate-800">
+                <h4 class="font-bold mb-2">Transit Gateway (TGW)</h4>
+                <p class="text-xs text-slate-600 mb-2">역할: 중앙 우체국 (Router)</p>
+                <p class="text-xs">여러 사설 네트워크(VPC/VPN) 간의 패킷을 어디로 보낼지 결정하는 <strong>중앙 라우팅 허브</strong>입니다.</p>
+            </div>
+            <div class="concept-card border-t-4 border-t-green-600">
+                <h4 class="font-bold mb-2">Internet Gateway (IGW)</h4>
+                <p class="text-xs text-slate-600 mb-2">역할: 리전의 출입문 (Gate)</p>
+                <p class="text-xs">VPC와 공용 인터넷 사이의 물리적/논리적 <strong>통로 자체</strong>입니다. 문이 없으면 나갈 수 없습니다.</p>
+            </div>
+            <div class="concept-card border-t-4 border-t-emerald-500">
+                <h4 class="font-bold mb-2">NAT Gateway (NAT GW)</h4>
+                <p class="text-xs text-slate-600 mb-2">역할: 주소 변환기 (Converter)</p>
+                <p class="text-xs">사설 IP를 공인 IP로 <strong>변환(NAT)</strong>하여 인터넷 통신이 가능하게 만드는 변환 엔진입니다.</p>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <h4 class="font-bold mb-2"><i class="fa-solid fa-circle-question text-blue-700"></i> TGW가 인터넷 게이트웨이(IGW) 역할을 직접 할 수 없는 이유</h4>
+            <p class="text-sm">
+                TGW는 기본적으로 <strong>Layer 3 (3계층, 네트워크 계층)</strong> 라우터입니다. IP 패킷을 다음 목적지(Next Hop)로 전달하는 데 특화되어 있습니다. 반면, 인터넷 게이트웨이는 AWS 백본망과 공용 인터넷망을 잇는 고유의 접점(Point of Presence) 역할을 수행하며, NAT 게이트웨이는 IP 주소 변환 로직을 수행합니다. 
+                <br><br>
+                즉, <strong>TGW는 "어디로 갈지 알려주는 중앙 터미널"이지, "인터넷으로 나가는 문" 그 자체가 아닙니다.</strong> 따라서 TGW를 통해 인터넷으로 나가려면 반드시 IGW나 NAT GW가 설치된 VPC(Egress VPC)를 거쳐야만 합니다.
+            </p>
+        </div>
         <p class="text-sm text-slate-600 mt-4">
-            이 과정에서 각 구간의 <span class="term">Route Table (라우트 테이블, 경로 표)</span> 설정이 정확해야 데이터가 유실되지 않고 흐를 수 있습니다.
+            TGW는 인터넷 출구(IGW)까지 패킷을 배달해주는 역할을 할 뿐, 스스로 인터넷 통로가 되거나 주소 변환을 수행하지 않으므로 상호보완적으로 설계해야 합니다.
         </p>
     </section>
 
