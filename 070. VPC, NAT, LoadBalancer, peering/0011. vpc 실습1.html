@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPC 1:3 서브넷 아키텍처 전문가 실습 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Roboto+Mono:wght@400;600&display=swap');
+        :root {
+            --aws-orange: #FF9900;
+            --aws-blue: #232F3E;
+            --tf-purple: #7B42BC;
+            --tg-blue: #008AD7;
+        }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1e293b; line-height: 1.6; }
+        .code-font { font-family: 'Roboto Mono', monospace; font-size: 0.85rem; }
+        .section-card { background: white; border-radius: 1rem; box-shadow: 0 4px 20px -5px rgba(0,0,0,0.1); margin-bottom: 4rem; overflow: hidden; border: 1px solid #e2e8f0; }
+        .section-header { background: var(--aws-blue); color: white; padding: 1.5rem 2rem; }
+        .cli-block { background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 0.5rem; margin: 1rem 0; position: relative; }
+        .tf-block { background: #2d1b4d; color: #f3e8ff; padding: 1.5rem; border-radius: 0.5rem; margin: 1rem 0; position: relative; }
+        .tg-block { background: #0c4a6e; color: #e0f2fe; padding: 1.5rem; border-radius: 0.5rem; margin: 1rem 0; position: relative; }
+        .label-cli { position: absolute; top: 0; right: 0; background: #38bdf8; color: #0c4a6e; font-size: 0.7rem; font-weight: 800; padding: 0.25rem 0.75rem; border-bottom-left-radius: 0.5rem; }
+        .label-tf { position: absolute; top: 0; right: 0; background: #c084fc; color: #4c1d95; font-size: 0.7rem; font-weight: 800; padding: 0.25rem 0.75rem; border-bottom-left-radius: 0.5rem; }
+        .label-tg { position: absolute; top: 0; right: 0; background: #0ea5e9; color: #ffffff; font-size: 0.7rem; font-weight: 800; padding: 0.25rem 0.75rem; border-bottom-left-radius: 0.5rem; }
+        .explain-table th { background: #f1f5f9; text-align: left; padding: 0.75rem; font-size: 0.9rem; border-bottom: 2px solid #e2e8f0; }
+        .explain-table td { padding: 0.75rem; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; vertical-align: top; }
+        .billing-alert { border-left: 5px solid #ef4444; background: #fef2f2; padding: 1.5rem; border-radius: 0.5rem; margin: 2rem 0; }
+        .diagram-container { background: #ffffff; border: 1px solid #edf2f7; border-radius: 1rem; padding: 2rem; margin: 2rem 0; display: flex; justify-content: center; }
+    </style>
+</head>
+<body class="p-4 md:p-12">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="mb-16 text-center">
+            <div class="flex justify-center gap-4 mb-4">
+                <span class="bg-orange-500 text-white px-3 py-1 rounded text-xs font-bold">EXPERT PRACTICAL</span>
+                <span class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold">IaC & CLI</span>
+                <span class="bg-cyan-600 text-white px-3 py-1 rounded text-xs font-bold">Terragrunt</span>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-6">
+                VPC 1:3 서브넷 모범 사례 <br><span class="text-blue-600">아키텍처 구축 실습 가이드 (10.200 대역)</span>
+            </h1>
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto">
+                본 실습은 **VPC**(Virtual Private Cloud, 가상 사설 클라우드) 네트워크를 `10.200.0.0/16` 대역으로 설계하고, **Terragrunt**(테라그란트, 테라폼 래퍼 도구)를 활용하여 대규모 환경에서의 자동화된 인프라 구축 공정을 다룹니다.
+            </p>
+        </header>
+
+        <!-- Section 1: Architecture Design -->
+        <section class="section-card">
+            <div class="section-header">
+                <h2 class="text-2xl font-bold font-black">1. 아키텍처 설계 및 CIDR 정의 (10.200 Series)</h2>
+            </div>
+            <div class="p-8">
+                <p class="mb-6">
+                    효율적인 네트워크 관리를 위해 **CIDR**(Classless Inter-Domain Routing, 클래스 없는 도메인 간 라우팅) 범위를 `10.200.0.0/16`으로 확장하여 할당합니다.
+                </p>
+                
+                <div class="diagram-container">
+                    <svg width="600" height="400" viewBox="0 0 600 400" class="max-w-full">
+                        <rect x="20" y="20" width="560" height="360" rx="10" fill="none" stroke="#232F3E" stroke-width="2" stroke-dasharray="8 4"/>
+                        <text x="40" y="45" fill="#232F3E" font-weight="900">VPC (10.200.0.0/16)</text>
+
+                        <rect x="50" y="70" width="500" height="60" rx="5" fill="#e0f2fe" stroke="#0ea5e9"/>
+                        <text x="65" y="105" fill="#0369a1" font-weight="bold">퍼블릭 서브넷 (10.200.1.0/24) - 웹/NAT</text>
+
+                        <rect x="50" y="150" width="500" height="60" rx="5" fill="#f0fdf4" stroke="#22c55e"/>
+                        <text x="65" y="185" fill="#166534" font-weight="bold">프라이빗 앱 (10.200.2.0/24) - 비즈니스 로직</text>
+
+                        <rect x="50" y="230" width="500" height="60" rx="5" fill="#fff7ed" stroke="#f97316"/>
+                        <text x="65" y="265" fill="#9a3412" font-weight="bold">프라이빗 DB (10.200.3.0/24) - 데이터 계층</text>
+
+                        <rect x="50" y="310" width="500" height="60" rx="5" fill="#f8fafc" stroke="#64748b"/>
+                        <text x="65" y="345" fill="#334155" font-weight="bold">프라이빗 관리 (10.200.4.0/24) - 공유 서비스</text>
+                    </svg>
+                </div>
+
+                <div class="pro-tip">
+                    <strong>Expert Insight:</strong> 주소 대역을 `10.200.x.x`로 설정하는 것은 기존의 `10.0.x.x` 기본 대역과 충돌을 피하고, 대규모 하이브리드 클라우드 환경에서 식별력을 높이기 위한 실무적 선택입니다.
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: VPC & Subnet Creation -->
+        <section class="section-card">
+            <div class="section-header bg-slate-800">
+                <h2 class="text-2xl font-bold font-black">2. VPC 및 4개 서브넷 생성 실습</h2>
+            </div>
+            <div class="p-8">
+                <h3 class="text-xl font-bold mb-4 text-blue-700 underline">2.1 AWS CLI 기반 구축</h3>
+                <div class="cli-block code-font">
+                    <span class="label-cli">AWS CLI</span>
+                    # 1. VPC 생성 (10.200.0.0/16)<br>
+                    aws ec2 create-vpc --cidr-block 10.200.0.0/16 --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=Expert-VPC-200}]'<br><br>
+                    # 2. 4개 서브넷 순차 생성<br>
+                    aws ec2 create-subnet --vpc-id vpc-abcde --cidr-block 10.200.1.0/24 --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=Public-Sub}]'<br>
+                    aws ec2 create-subnet --vpc-id vpc-abcde --cidr-block 10.200.2.0/24 --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=App-Sub}]'<br>
+                    aws ec2 create-subnet --vpc-id vpc-abcde --cidr-block 10.200.3.0/24 --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=DB-Sub}]'<br>
+                    aws ec2 create-subnet --vpc-id vpc-abcde --cidr-block 10.200.4.0/24 --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=MGMT-Sub}]'
+                </div>
+
+                <h3 class="text-xl font-bold mb-4 text-purple-700 underline">2.2 Terraform IaC 기반 구축</h3>
+                <div class="tf-block code-font">
+                    <span class="label-tf">TERRAFORM</span>
+                    resource "aws_vpc" "main" {<br>
+                    &nbsp;&nbsp;cidr_block = "10.200.0.0/16"<br>
+                    &nbsp;&nbsp;tags = { Name = "Expert-VPC-200" }<br>
+                    }<br><br>
+                    variable "subnets" {<br>
+                    &nbsp;&nbsp;default = {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"public" = "10.200.1.0/24"<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"app"    = "10.200.2.0/24"<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"db"     = "10.200.3.0/24"<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"mgmt"   = "10.200.4.0/24"<br>
+                    &nbsp;&nbsp;}<br>
+                    }<br><br>
+                    resource "aws_subnet" "all" {<br>
+                    &nbsp;&nbsp;for_each   = var.subnets<br>
+                    &nbsp;&nbsp;vpc_id     = aws_vpc.main.id<br>
+                    &nbsp;&nbsp;cidr_block = each.value<br>
+                    &nbsp;&nbsp;tags       = { Name = "${each.key}-subnet" }<br>
+                    }
+                </div>
+
+                <table class="explain-table w-full">
+                    <thead>
+                        <tr>
+                            <th width="30%">기술 구문</th>
+                            <th>상세 기술 설명</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="code-font">cidr_block = "10.200.0.0/16"</td>
+                            <td>**CIDR**(클래스 없는 도메인 간 라우팅)을 지정하여 약 65,000개의 사설 IP를 확보합니다.</td>
+                        </tr>
+                        <tr>
+                            <td class="code-font">for_each = var.subnets</td>
+                            <td>**Terraform**(테라폼)의 반복문을 사용하여 코드량을 줄이고 유지보수성을 극대화합니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 3: Terragrunt Integration -->
+        <section class="section-card">
+            <div class="section-header bg-cyan-800">
+                <h2 class="text-2xl font-bold font-black">3. Terragrunt(테라그란트)를 활용한 인프라 관리</h2>
+            </div>
+            <div class="p-8">
+                <p class="mb-6">
+                    **Terragrunt**(테라그란트, 테라폼 래퍼 도구)는 테라폼의 **Remote State**(원격 상태 관리) 설정과 변수 관리를 자동화하여 코드를 **DRY**(Don't Repeat Yourself, 반복 금지)하게 유지해주는 도구입니다.
+                </p>
+
+                <h3 class="text-xl font-bold mb-4 text-cyan-700 underline">3.1 Root Configuration (terragrunt.hcl)</h3>
+                <div class="tg-block code-font">
+                    <span class="label-tg">TERRAGRUNT ROOT</span>
+                    # 원격 상태 관리(Remote State) 자동 설정<br>
+                    remote_state {<br>
+                    &nbsp;&nbsp;backend = "s3"<br>
+                    &nbsp;&nbsp;config = {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;bucket = "expert-tf-state-bucket"<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;key    = "${path_relative_to_include()}/terraform.tfstate"<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;region = "ap-northeast-2"<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;dynamodb_table = "terraform-locks"<br>
+                    &nbsp;&nbsp;}<br>
+                    }
+                </div>
+
+                <h3 class="text-xl font-bold mb-4 text-cyan-700 underline">3.2 Module Deployment (vpc/terragrunt.hcl)</h3>
+                <div class="tg-block code-font">
+                    <span class="label-tg">TERRAGRUNT MODULE</span>
+                    include "root" {<br>
+                    &nbsp;&nbsp;path = find_in_parent_folders()<br>
+                    }<br><br>
+                    terraform {<br>
+                    &nbsp;&nbsp;source = "git::https://github.com/expert/vpc-module.git//vpc?ref=v1.0.0"<br>
+                    }<br><br>
+                    inputs = {<br>
+                    &nbsp;&nbsp;vpc_cidr = "10.200.0.0/16"<br>
+                    &nbsp;&nbsp;name     = "expert-vpc"<br>
+                    }
+                </div>
+
+                <div class="bg-slate-100 p-6 rounded-lg mt-8">
+                    <h4 class="font-bold mb-4">Terragrunt 실행 프로세스 (Work-flow)</h4>
+                    <ol class="list-decimal list-inside space-y-2 text-sm">
+                        <li>**설치:** 사용 중인 환경의 패키지 관리자 또는 공식 바이너리를 통해 **Terragrunt**를 설치합니다.</li>
+                        <li>**초기화:** 설정 파일(`terragrunt.hcl`)이 위치한 디렉토리에서 <code class="code-font">terragrunt init</code>을 실행합니다.</li>
+                        <li>**계획 및 적용:** <code class="code-font">terragrunt plan</code>으로 변경 사항을 검토한 후, <code class="code-font">terragrunt apply</code>로 배포를 확정합니다.</li>
+                        <li>**전체 적용:** 여러 모듈을 동시에 배포할 경우 상위 디렉토리에서 <code class="code-font">terragrunt run-all apply</code>를 실행합니다.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Final Verification & Cleanup -->
+        <section class="section-card">
+            <div class="section-header bg-slate-900">
+                <h2 class="text-2xl font-bold font-black">4. 최종 검증 및 리소스 삭제</h2>
+            </div>
+            <div class="p-8">
+                <p class="mb-4">생성된 리소스가 `10.200.0.0` 대역으로 정상 배치되었는지 확인하고, 실습 종료 후 자원을 회수합니다.</p>
+                
+                <div class="cli-block code-font">
+                    <span class="label-cli">AWS CLI VERIFICATION</span>
+                    # 대역 기반 VPC ID 조회<br>
+                    aws ec2 describe-vpcs --filters "Name=cidr,Values=10.200.0.0/16" --query 'Vpcs[*].VpcId'
+                </div>
+
+                <div class="billing-alert">
+                    <h4 class="font-bold text-red-800 mb-2">⚠ 과금 방지를 위한 리소스 삭제 가이드</h4>
+                    <p class="text-sm mb-4">운영 환경이 아닌 경우, 불필요한 비용 발생을 막기 위해 반드시 리소스를 제거하십시오.</p>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <h5 class="font-bold text-slate-700 mb-2">A. AWS CLI 사용 시 (절차적 삭제)</h5>
+                            <div class="bg-white p-3 rounded border text-xs font-mono text-slate-600">
+                                # 모듈별 역순 삭제가 필요합니다.<br>
+                                aws ec2 delete-nat-gateway --nat-gateway-id nat-123<br>
+                                aws ec2 release-address --allocation-id eipalloc-123<br>
+                                aws ec2 delete-vpc --vpc-id vpc-abcde
+                            </div>
+                        </div>
+
+                        <div>
+                            <h5 class="font-bold text-cyan-700 mb-2">B. Terragrunt 사용 시 (선언적 삭제)</h5>
+                            <div class="bg-cyan-50 p-4 rounded border border-cyan-200">
+                                <p class="text-xs mb-3 text-cyan-900 font-bold underline">명령어 실행 위치: 각 모듈의 terragrunt.hcl 파일이 위치한 디렉토리</p>
+                                <code class="code-font bg-white p-2 rounded block text-cyan-600">terragrunt destroy</code>
+                                <p class="text-xs mt-3 text-cyan-800">※ 상위 디렉토리에서 모든 모듈을 한 번에 삭제하려면 <code class="code-font">terragrunt run-all destroy</code>를 사용하십시오.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Glossary & Footnotes -->
+        <footer class="mt-12 pt-8 border-t border-slate-200">
+            <h3 class="text-lg font-bold mb-4">용어 설명 (Glossary)</h3>
+            <ul class="text-sm space-y-2 text-slate-600">
+                <li>**VPC (Virtual Private Cloud, 가상 사설 클라우드):** AWS 내에서 논리적으로 격리된 사설 네트워크 공간입니다.</li>
+                <li>**Terragrunt (테라그란트):** 테라폼 설정을 더 효율적으로 관리하고 코드를 재사용할 수 있게 돕는 래퍼 도구입니다.</li>
+                <li>**Remote State (원격 상태 저장):** 팀 협업을 위해 인프라의 상태 정보를 S3 등의 원격 저장소에 관리하는 방식입니다.</li>
+                <li>**DRY (Don't Repeat Yourself, 반복 금지):** 동일한 코드의 중복을 피하고 재사용성을 높이는 소프트웨어 개발 원칙입니다.</li>
+            </ul>
+            <div class="text-center mt-12 text-xs text-slate-400">
+                © 2026 IP Expert Cloud Training Program | Next Step: VPC 보안 그룹 및 네트워크 ACL 계층화 설계
+            </div>
+        </footer>
+    </div>
+
+</body>
+</html>
