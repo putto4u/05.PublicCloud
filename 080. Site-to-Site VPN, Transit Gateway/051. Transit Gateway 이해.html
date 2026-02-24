@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Transit Gateway 전문가 과정 통합 교재</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1e293b; line-height: 1.8; }
+        .textbook-container { max-width: 1000px; margin: 40px auto; background: white; padding: 60px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border-radius: 12px; }
+        .term { font-weight: 700; color: #1d4ed8; }
+        .highlight-box { background-color: #f1f5f9; border-left: 5px solid #2563eb; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0; }
+        .diagram-container { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 40px; margin: 35px 0; text-align: center; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.05); }
+        .caution-panel { border: 2px solid #ef4444; background-color: #fff1f2; padding: 25px; border-radius: 10px; margin: 30px 0; }
+        .info-panel { border: 2px solid #0ea5e9; background-color: #f0f9ff; padding: 25px; border-radius: 10px; margin: 30px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 0.95rem; }
+        th, td { border: 1px solid #e2e8f0; padding: 15px; text-align: left; }
+        th { background-color: #f8fafc; color: #475569; font-weight: 700; }
+        .footnote { font-size: 0.85rem; color: #64748b; border-top: 2px solid #f1f5f9; margin-top: 50px; padding-top: 25px; }
+        .step-tag { display: inline-block; background: #2563eb; color: white; padding: 2px 10px; border-radius: 4px; font-size: 0.8rem; margin-right: 8px; vertical-align: middle; font-weight: bold; }
+        h2 { border-left: 6px solid #2563eb; padding-left: 15px; margin-top: 40px; }
+    </style>
+</head>
+<body>
+
+<div class="textbook-container">
+    <!-- 헤더 -->
+    <header class="mb-12 border-b-8 border-blue-600 pb-8 text-center">
+        <h1 class="text-4xl font-extrabold text-slate-900 mb-4">AWS Transit Gateway (TGW, 전송 게이트웨이) 완벽 가이드</h1>
+        <p class="text-xl text-slate-500 uppercase tracking-wide">기초 개념부터 엔터프라이즈 심화 아키텍처 설계까지</p>
+    </header>
+
+    <!-- 섹션 1: 배경 및 정의 -->
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">1. 클라우드 네트워킹의 진화와 TGW의 등장</h2>
+        <p class="mb-4">
+            초기 클라우드 환경에서는 <span class="term">VPC (Virtual Private Cloud, 가상 사설 클라우드)</span> 간의 연결을 위해 <span class="term">VPC Peering (가상 사설 클라우드 간 연결)</span>을 사용했습니다. 하지만 VPC의 개수가 늘어남에 따라 모든 VPC를 1:1로 연결해야 하는 <span class="term">Full Mesh (풀 메시, 망형)</span> 구조가 형성되어 관리 복잡성이 기하급수적으로 증가하게 되었습니다.
+        </p>
+        
+        <div class="highlight-box">
+            <strong>기술적 한계:</strong> VPC 피어링은 <span class="term">Transitive Routing (전이적 라우팅, 중간 거점 경유 라우팅)</span>을 지원하지 않습니다. 예를 들어, VPC A가 B와 연결되어 있고 B가 C와 연결되어 있어도 A에서 C로 직접 갈 수 있는 방법이 없습니다.
+        </div>
+        
+        <p class="mt-4">
+            이러한 문제를 해결하기 위해 등장한 것이 <span class="term">Transit Gateway (TGW, 전송 게이트웨이)</span>입니다. TGW는 수천 개의 VPC와 온프레미스 네트워크를 단일 지점에서 연결하는 **중앙 집중식 네트워크 허브** 역할을 수행합니다.
+        </p>
+    </section>
+
+    <!-- 섹션 2: 시각적 도식 비교 -->
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">2. 아키텍처의 혁신: Peering vs. TGW</h2>
+        
+        <div class="diagram-container">
+            <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+                <!-- 복잡한 메시 구조 (왼쪽) -->
+                <text x="150" y="30" font-weight="bold" font-size="16" text-anchor="middle">복잡한 메시 구조 (Peering)</text>
+                <circle cx="150" cy="200" r="110" fill="none" stroke="#cbd5e1" stroke-dasharray="4"/>
+                <rect x="130" y="100" width="40" height="40" rx="5" fill="#3b82f6"/>
+                <rect x="60" y="230" width="40" height="40" rx="5" fill="#3b82f6"/>
+                <rect x="200" y="230" width="40" height="40" rx="5" fill="#3b82f6"/>
+                <line x1="150" y1="140" x2="80" y2="230" stroke="#ef4444" stroke-width="2"/>
+                <line x1="150" y1="140" x2="220" y2="230" stroke="#ef4444" stroke-width="2"/>
+                <line x1="100" y1="250" x2="200" y2="250" stroke="#ef4444" stroke-width="2"/>
+                
+                <!-- 중앙 집중식 허브 (오른쪽) -->
+                <text x="550" y="30" font-weight="bold" font-size="16" text-anchor="middle">중앙 집중형 허브 (TGW)</text>
+                <rect x="525" y="175" width="50" height="50" rx="25" fill="#1e293b"/>
+                <text x="550" y="205" fill="white" font-size="12" font-weight="bold" text-anchor="middle">TGW</text>
+                
+                <rect x="530" y="80" width="40" height="40" rx="5" fill="#3b82f6"/> <!-- VPC 1 -->
+                <rect x="430" y="180" width="40" height="40" rx="5" fill="#3b82f6"/> <!-- VPC 2 -->
+                <rect x="630" y="180" width="40" height="40" rx="5" fill="#3b82f6"/> <!-- VPC 3 -->
+                <rect x="530" y="280" width="40" height="40" rx="5" fill="#10b981"/> <!-- 온프레미스 -->
+                
+                <line x1="550" y1="120" x2="550" y2="175" stroke="#3b82f6" stroke-width="2"/>
+                <line x1="470" y1="200" x2="525" y2="200" stroke="#3b82f6" stroke-width="2"/>
+                <line x1="575" y1="200" x2="630" y2="200" stroke="#3b82f6" stroke-width="2"/>
+                <line x1="550" y1="225" x2="550" y2="280" stroke="#3b82f6" stroke-width="2"/>
+            </svg>
+            <p class="text-sm text-slate-500 mt-4">Hub-and-Spoke (허브 앤 스포크, 바퀴살 구조) 모델을 통한 연결 단순화</p>
+        </div>
+    </section>
+
+    <!-- 섹션 3: 위치와 성격 (심화) -->
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">3. Transit Gateway의 구조적 실체</h2>
+        <p class="mb-4">
+            TGW를 설계할 때 가장 중요한 것은 TGW가 특정 VPC 내부에 생성되는 리소스가 아니라는 점을 이해하는 것입니다. TGW는 AWS **지역(Region) 단위로 생성되는 독립적인 가상 라우터 엔터티**입니다.
+        </p>
+        
+        <div class="info-panel">
+            <h3 class="font-bold text-sky-800 mb-2"><i class="fa-solid fa-circle-info"></i> 핵심 구조 이해</h3>
+            <ul class="list-disc ml-6 space-y-2">
+                <li><strong>VPC 외부 존재:</strong> 특정 VPC의 하위 구성 요소가 아닌 리전 레벨 리소스입니다.</li>
+                <li><strong>ENI (Elastic Network Interface, 탄력적 네트워크 인터페이스) 기반 연결:</strong> VPC와 통신하기 위해, 각 VPC의 서브넷 내부에 TGW 전용 ENI가 생성됩니다.</li>
+                <li><strong>AZ (Availability Zone, 가용 영역) 가용성:</strong> 높은 가용성을 위해 각 VPC 내의 여러 가용 영역에 서브넷을 지정하여 어태치먼트를 생성해야 합니다.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 섹션 4: 핵심 구성 요소 및 라우팅 흐름 -->
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">4. 구성 요소 및 이중 라우팅 계층</h2>
+        <p class="mb-6">패킷이 한 VPC에서 다른 VPC나 온프레미스로 이동하기 위해서는 다음과 같은 구성 요소들이 유기적으로 작동해야 합니다.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="p-5 border border-slate-200 rounded-lg">
+                <h3 class="font-bold text-lg mb-2 text-blue-700">Attachments (어태치먼트, 연결)</h3>
+                <p class="text-sm">VPC, VPN, <span class="term">Direct Connect (DX, 전용선 연결)</span> 등을 TGW에 물리/논리적으로 묶어주는 통로입니다.</p>
+            </div>
+            <div class="p-5 border border-slate-200 rounded-lg">
+                <h3 class="font-bold text-lg mb-2 text-blue-700">TGW Route Tables (경로 표)</h3>
+                <p class="text-sm">TGW가 패킷을 수신했을 때, 어느 어태치먼트로 보낼지 결정하는 내부 이정표입니다.</p>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <h4 class="font-bold mb-4 text-blue-800">라우팅 2단계 프로세스 (Double-layer Routing)</h4>
+            <ol class="space-y-4">
+                <li>
+                    <span class="step-tag">단계 1</span> <strong>VPC 라우팅 테이블 설정:</strong> 
+                    인스턴스가 외부로 패킷을 보낼 때, VPC 라우트 테이블에서 대상 네트워크의 <span class="term">Next Hop (다음 홉, 패킷이 거쳐야 하는 다음 경로)</span>을 TGW ID(tgw-xxxx)로 지정해야 합니다.
+                </li>
+                <li>
+                    <span class="step-tag">단계 2</span> <strong>TGW 라우팅 테이블 결정:</strong> 
+                    패킷이 TGW에 도착하면, TGW는 자체 라우팅 테이블을 조회하여 목적지에 해당하는 어태치먼트로 패킷을 전달합니다.
+                </li>
+            </ol>
+        </div>
+    </section>
+
+    <!-- 섹션 5: 비교 및 선택 기준 -->
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">5. VPC Peering vs. Transit Gateway 비교</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>구분</th>
+                    <th>VPC Peering (피어링)</th>
+                    <th>Transit Gateway (TGW)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>구조</strong></td>
+                    <td>1:1 직접 연결</td>
+                    <td>중앙 집중형 허브 (1:N)</td>
+                </tr>
+                <tr>
+                    <td><strong>전이적 라우팅</strong></td>
+                    <td>지원 안 함</td>
+                    <td>전체 지원</td>
+                </tr>
+                <tr>
+                    <td><strong>관리 한계</strong></td>
+                    <td>연결 수가 많아지면 관리가 불가능함</td>
+                    <td>단일 지점에서 수천 개 통합 관리</td>
+                </tr>
+                <tr>
+                    <td><strong>복잡성</strong></td>
+                    <td>높음 (N * (N-1) / 2)</td>
+                    <td>낮음 (N)</td>
+                </tr>
+                <tr>
+                    <td><strong>주요 대상</strong></td>
+                    <td>소규모 아키텍처, 비용 절감 우선</td>
+                    <td>대규모 엔터프라이즈, 하이브리드 구성</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 섹션 6: 과금 체계 -->
+    <section class="mb-16">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">6. 과금 체계 및 비용 최적화 (유료 서비스)</h2>
+        <div class="caution-panel">
+            <h3 class="font-bold text-red-600 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> 과금 핵심 주의사항</h3>
+            <p class="mb-4 text-sm font-medium">AWS Transit Gateway는 생성 및 연결이 완료된 시점부터 과금이 시작됩니다. 사용하지 않는 어태치먼트는 반드시 삭제하십시오.</p>
+            <ul class="list-disc ml-6 space-y-1 text-sm">
+                <li><strong>Attachment 점유 요금:</strong> 시간당 약 <strong>$0.05</strong> (연결당)</li>
+                <li><strong>데이터 처리 요금 (Data Processing):</strong> 1GB당 약 <strong>$0.02</strong> (통과하는 트래픽당)</li>
+            </ul>
+        </div>
+        
+        <div class="p-5 bg-slate-50 border rounded-lg">
+            <h4 class="font-bold mb-3">비용 계산 예시 (서울 리전 기준)</h4>
+            <p class="text-sm">VPC 3개를 TGW에 한 달(730시간) 동안 연결하고, 전체 200GB의 데이터를 처리할 경우:</p>
+            <div class="mt-4 font-mono bg-white p-4 rounded shadow-inner text-blue-700">
+                (3개 연결 × $0.05 × 730시간) + (200GB × $0.02) <br>
+                = $109.50 + $4.00 = <strong>총 $113.50 / 월</strong>
+            </div>
+        </div>
+    </section>
+
+    <!-- 주석 및 용어 정리 -->
+    <footer class="footnote">
+        <h4 class="font-bold mb-3 text-slate-700">심화 용어 및 주석 정리</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <p><strong>VPC (Virtual Private Cloud, 가상 사설 클라우드):</strong> AWS 클라우드 내에서 사용자가 정의한 논리적으로 격리된 가상 네트워크 섹션입니다.</p>
+                <p class="mt-2"><strong>ENI (Elastic Network Interface, 탄력적 네트워크 인터페이스):</strong> VPC 내의 인스턴스에 IP 주소와 통신 기능을 부여하는 가상 네트워크 카드입니다.</p>
+                <p class="mt-2"><strong>Next Hop (다음 홉):</strong> 데이터 패킷이 목적지로 가기 위해 거쳐야 하는 네트워크 상의 다음 지점이나 장치를 의미합니다.</p>
+            </div>
+            <div>
+                <p><strong>Segmentation (세그멘테이션, 망 분리):</strong> 네트워크를 여러 개의 논리적인 조각으로 나누어 보안 및 관리 효율을 높이는 기법입니다.</p>
+                <p class="mt-2"><strong>BGP (Border Gateway Protocol, 경계 경로 프로토콜):</strong> 서로 다른 네트워크 시스템(AS) 간에 경로 정보를 교환하기 위한 표준 라우팅 프로토콜입니다.</p>
+                <p class="mt-2"><strong>High Availability (HA, 고가용성):</strong> 시스템이 오랜 기간 동안 지속적으로 정상 운영될 수 있는 성질을 뜻합니다.</p>
+            </div>
+        </div>
+        <div class="mt-10 pt-6 border-t text-center text-xs text-slate-400">
+            © 2026 전문 기술 교육 시리즈 | AWS 클라우드 아키텍처 전문가 과정 | 출처: <a href="https://docs.aws.amazon.com/vpc/latest/tgw/what-is-transit-gateway.html" class="underline">AWS 공식 문서</a>
+        </div>
+    </footer>
+</div>
+
+</body>
+</html>
