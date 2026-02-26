@@ -1,0 +1,122 @@
+#!/bin/bash
+
+aws ec2 create-default-vpc
+
+# 1. 타겟 VPC ID를 명시적으로 변수에 선언합니다.
+VPC_ID="vpc-0abcdef1234567890"
+
+# 2. IGW 생성 명령을 실행하고, 반환된 ID 텍스트를 IGW_ID 변수에 저장합니다.
+IGW_ID=$(aws ec2 create-internet-gateway --query 'InternetGateway.InternetGatewayId' --output text)
+
+# 3. 변수에 값이 정상적으로 할당되었는지 화면에 출력하여 검증합니다.
+echo "새로 생성된 IGW ID: $IGW_ID"
+
+# 4. 할당받은 IGW_ID 변수와 VPC_ID 변수를 호출($)하여 부착(Attach) 명령을 수행합니다.
+aws ec2 attach-internet-gateway \
+    --internet-gateway-id "$IGW_ID" \
+    --vpc-id "$VPC_ID"
+
+echo "인터넷 게이트웨이 연결이 완료되었습니다."
+
+-----------------------------------------------------------------
+## AWS CLI 결괏값을 쉘 변수로 할당 및 파이프라인 연동 기법
+
+클라우드 인프라 구축을 자동화하기 위해서는 앞선 명령어의 실행 결과를 시스템 메모리에 임시로 저장하고, 이를 다음 명령어의 매개변수(Parameter)로 동적으로 넘겨주는 스크립팅 기법이 필수적입니다. 리눅스의 **Bash Shell** (배시 쉘, 기본 명령줄 인터페이스) 환경에서는 **Command Substitution** (커맨드 서브스티튜션, 명령어 치환) 문법을 사용하여 이를 구현합니다.
+
+---
+
+### 1. 쉘 변수를 활용한 동적 자원 연결 스크립트
+
+명령어를 실행할 때 `$()` 기호를 사용하면, 괄호 안의 명령어가 먼저 실행된 후 그 결과 문자열이 지정된 변수에 할당됩니다.
+
+```bash
+#!/bin/bash
+
+# 1. 타겟 VPC ID를 명시적으로 변수에 선언합니다.
+VPC_ID="vpc-0abcdef1234567890"
+
+# 2. IGW 생성 명령을 실행하고, 반환된 ID 텍스트를 IGW_ID 변수에 저장합니다.
+IGW_ID=$(aws ec2 create-internet-gateway --query 'InternetGateway.InternetGatewayId' --output text)
+
+# 3. 변수에 값이 정상적으로 할당되었는지 화면에 출력하여 검증합니다.
+echo "새로 생성된 IGW ID: $IGW_ID"
+
+# 4. 할당받은 IGW_ID 변수와 VPC_ID 변수를 호출($)하여 부착(Attach) 명령을 수행합니다.
+aws ec2 attach-internet-gateway \
+    --internet-gateway-id "$IGW_ID" \
+    --vpc-id "$VPC_ID"
+
+echo "인터넷 게이트웨이 연결이 완료되었습니다."
+
+```
+
+#### 문법 상세 분석
+
+* **`변수명=$(명령어)` 형식:** `aws ec2 create...` 명령이 [AWS API](https://aws.amazon.com/api-gateway/) 서버와 통신하여 반환한 텍스트 결과값(예: `igw-0123...`)을 캡처하여 좌측의 `IGW_ID` 변수에 담습니다.
+* **`"$변수명"` 호출:** 변수를 사용할 때는 앞에 `$` 기호를 붙입니다. 이때 큰따옴표(`""`)로 묶어주는 것이 실무 표준인데, 변수 값 내부에 공백이 있을 경우 발생할 수 있는 구문 오류를 방지하기 위함입니다.
+
+---
+
+### 2. 실전 팁: 전문가의 방어적 스크립팅 (Defensive Scripting)
+
+단순히 변수에 값을 넣고 다음 명령을 실행하는 것은 위험할 수 있습니다. 만약 AWS 권한 문제나 네트워크 오류로 인해 **IGW** (Internet Gateway, 인터넷 게이트웨이) 생성이 실패하여 변수가 비어있는(Null) 상태가 되면, 다음 `attach-internet-gateway` 명령은 심각한 시스템 오류를 발생시킵니다.
+
+따라서 현업 아키텍트는 변수 할당 직후 반드시 **무결성 검증 로직**을 추가합니다.
+
+```bash
+# 변수 할당
+IGW_ID=$(aws ec2 create-internet-gateway --query 'InternetGateway.InternetGatewayId' --output text)
+
+# 변수값 검증 (비어있는지 확인)
+if [ -z "$IGW_ID" ]; then
+  echo "오류: IGW 생성에 실패하여 스크립트를 중단합니다."
+  exit 1
+fi
+
+# 정상일 경우 다음 단계 진행
+aws ec2 attach-internet-gateway --internet-gateway-id "$IGW_ID" --vpc-id "$VPC_ID"
+
+```
+
+---
+
+### 3. 자주 오해하거나 실수하는 부분
+
+* **변수 선언 시 띄어쓰기 금지:** 리눅스 쉘에서는 `IGW_ID = $(...)` 처럼 `=` 기호 양옆에 공백을 넣으면 에러가 발생합니다. 반드시 `IGW_ID=$(...)` 처럼 붙여 써야 합니다.
+* **작은따옴표(`''`)와 큰따옴표(`""`)의 혼동:** 변수를 호출할 때 `'$IGW_ID'` 처럼 작은따옴표를 사용하면, 쉘은 이를 변수로 인식하지 않고 `$IGW_ID`라는 일반 문자열 자체로 취급합니다. 반드시 큰따옴표를 사용해야 값이 치환됩니다.
+
+---
+
+> **주석 (Footnotes)**
+> * **Bash Shell (Bourne Again Shell):** 리눅스 및 유닉스 시스템에서 사용자와 커널 간의 인터페이스 역할을 하는 가장 표준적인 명령어 해석기입니다.
+> * **Command Substitution (명령어 치환):** 특정 명령어의 표준 출력(Standard Output) 결과를 다른 명령어의 인자(Argument)나 변숫값으로 대치하는 쉘 스크립트 기법입니다.
+> * **API (Application Programming Interface):** 소프트웨어 응용 프로그램들이 서로 통신할 수 있도록 해주는 규칙과 프로토콜의 집합입니다.
+> 
+> 
+
+---
+
+**비용 및 유료 전환 안내**
+
+* 쉘 스크립트 작성 및 실행 자체는 로컬 또는 클라우드 컴퓨팅 환경 내에서 이루어지며, [AWS CLI](https://aws.amazon.com/cli/)를 통해 자원을 제어하는 호출 행위는 **무료**입니다.
+* 생성된 인프라 리소스에 대한 과금 규칙은 기존과 동일하게 적용됩니다.
+
+Next Step: Shell Script 배열(Array)을 이용한 다중 서브넷 일괄 생성 및 라우팅 자동화
+
+
+
+---------------------------
+aws ec2 create-internet-gateway --query 'InternetGateway.InternetGatewayId' --output text
+# 변수받기
+
+# IGW를 특정 VPC에 연결
+aws ec2 attach-internet-gateway \
+    --internet-gateway-id igw-0123456789abcdef0 \
+    --vpc-id vpc-0abcdef1234567890
+
+#연결확인
+aws ec2 describe-internet-gateways --internet-gateway-ids igw-0123456789abcdef0
+
+
+# 기본 라우팅테이블 복원
+aws ec2 create-route --route-table-id <기본-rtb-id> --destination-cidr-block 0.0.0.0/0 --gateway-id <연결된-igw-id>
