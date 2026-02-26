@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Site-to-Site VPN 전문가 가이드</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#f8fafc',
+                primaryTextColor: '#1e293b',
+                primaryBorderColor: '#cbd5e1',
+                lineColor: '#3b82f6',
+                secondaryColor: '#eff6ff',
+                tertiaryColor: '#fff7ed',
+                fontFamily: 'Pretendard, sans-serif',
+                fontSize: '20px' /* 도식 내 기본 폰트 크기 강제 확대 */
+            },
+            flowchart: { 
+                curve: 'basis',
+                nodeSpacing: 100, /* 노드 간격 대폭 확대 */
+                rankSpacing: 100,
+                useMaxWidth: false /* 동적 축소 방지 (정적 크기 유지) */
+            },
+            sequence: { 
+                useMaxWidth: false, /* 동적 축소 방지 */
+                actorFontSize: 20,
+                messageFontSize: 18,
+                noteFontSize: 18
+            }
+        });
+    </script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        :root {
+            --primary-dark: #0f172a;
+            --primary-blue: #2563eb;
+            --accent-gold: #d97706;
+            --bg-light: #f8fafc;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --success-bg: #f0fdf4;
+            --success-border: #22c55e;
+            --warning-bg: #fffbeb;
+            --warning-border: #f59e0b;
+            --danger-bg: #fef2f2;
+            --danger-border: #ef4444;
+            --info-bg: #eff6ff;
+            --info-border: #3b82f6;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            line-height: 1.85;
+            color: var(--text-main);
+            max-width: 1050px;
+            margin: 0 auto;
+            padding: 20px 30px;
+            background-color: var(--bg-light);
+            letter-spacing: -0.02em;
+        }
+
+        /* Sectioning for Page Breaks */
+        section {
+            min-height: 85vh;
+            padding-top: 60px;
+            padding-bottom: 60px;
+            margin-bottom: 50px;
+            border-bottom: 2px dashed #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 3.2em;
+            color: var(--primary-dark);
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 80px;
+            position: relative;
+            padding-bottom: 30px;
+            line-height: 1.3;
+        }
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-gold));
+            border-radius: 3px;
+        }
+
+        h2 {
+            font-size: 2.2em;
+            color: var(--primary-dark);
+            margin-top: 0;
+            margin-bottom: 40px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--border-color);
+            display: flex;
+            align-items: center;
+        }
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 32px;
+            background-color: var(--primary-blue);
+            margin-right: 15px;
+            border-radius: 4px;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            color: var(--primary-dark);
+            margin-top: 50px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        p {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            color: var(--text-main);
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin-bottom: 30px;
+            padding-left: 25px;
+        }
+
+        li {
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        /* Layout & Cards */
+        .concept-box {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            margin: 40px 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .concept-box:hover {
+            box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+            transform: translateY(-2px);
+        }
+
+        /* Callouts */
+        .callout {
+            padding: 25px 30px;
+            margin: 40px 0;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            font-size: 1.05em;
+        }
+        .callout strong {
+            display: block;
+            font-size: 1.15em;
+            margin-bottom: 10px;
+        }
+        
+        .warning {
+            background-color: var(--danger-bg);
+            border-left: 8px solid var(--danger-border);
+        }
+        .warning strong { color: #b91c1c; }
+
+        .tip {
+            background-color: var(--info-bg);
+            border-left: 8px solid var(--info-border);
+        }
+        .tip strong { color: #1d4ed8; }
+
+        .mistake {
+            background-color: var(--warning-bg);
+            border-left: 8px solid var(--warning-border);
+        }
+        .mistake strong { color: #b45309; }
+
+        /* Code & Pre */
+        pre {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 1em;
+            line-height: 1.7;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+            border: 1px solid #333;
+        }
+        code {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            background-color: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            color: #be185d;
+            font-size: 0.95em;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+
+        /* Components */
+        .footnote {
+            font-size: 0.95em;
+            color: var(--text-muted);
+            background-color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--border-color);
+            margin-top: 25px;
+            line-height: 1.6;
+        }
+        
+        a {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+        a:hover {
+            border-bottom-color: var(--primary-blue);
+        }
+
+        /* Diagrams - Forced Static Size */
+        .diagram-container {
+            background-color: white;
+            padding: 50px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            margin: 50px 0;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: auto; /* 다이어그램이 넓어질 경우 가로 스크롤 허용 */
+            width: 100%;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+        /* CSS로 SVG의 최소 너비를 강제하여 화면이 작아도 글씨가 축소되지 않게 함 */
+        .mermaid svg {
+            min-width: 1000px !important; 
+            max-width: none !important;
+            height: auto !important;
+        }
+        .diagram-caption {
+            margin-top: 25px;
+            font-size: 1.1em;
+            color: var(--text-muted);
+            text-align: center;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 40px 0;
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid var(--border-color);
+        }
+        th, td {
+            padding: 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 1.05em;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: var(--primary-dark);
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+
+    <section id="title-page">
+        <h1>엔터프라이즈 클라우드 네트워크:<br>AWS Site-to-Site VPN 전문가 과정</h1>
+
+        <div class="callout warning">
+            <strong>[주의: 과금 발생 서비스]</strong>
+            AWS Site-to-Site VPN (Amazon Web Services Site-to-Site Virtual Private Network, 아마존 웹 서비스 사이트 간 가상 사설망) 연결은 생성되는 즉시 시간당 요금(리전별 상이, 일반적으로 시간당 약 $0.05)이 부과됩니다. 실습 완료 후 반드시 리소스를 삭제(Destroy)하여 불필요한 과금을 방지해야 합니다.
+        </div>
+    </section>
+
+    <section id="concept-theory">
+        <h2>개념과 이론 (Concept and Theory)</h2>
+
+        <div class="concept-box">
+            <h3>AWS Site-to-Site VPN의 정의</h3>
+            <p>
+                <strong>AWS Site-to-Site VPN (Amazon Web Services Site-to-Site Virtual Private Network, 아마존 웹 서비스 사이트 간 가상 사설망)</strong>은 기업의 온프레미스(On-Premise, 자체 데이터 센터나 사내망) 네트워크와 AWS 클라우드의 <strong>VPC (Virtual Private Cloud, 가상 프라이빗 클라우드)</strong> 간에 안전한 암호화 통신 터널을 제공하는 고가용성 관리형 서비스입니다.
+            </p>
+
+            <!-- 텍스트가 많은 1페이지에 이해를 돕기 위한 큼직하고 직관적인 개념 도식 추가 -->
+            <div class="diagram-container">
+                <div class="mermaid">
+                graph LR
+                    subgraph OnPrem [기업 내부망]
+                        A[고객 물리 라우터<br>On-Premise Router]
+                    end
+                    
+                    subgraph Internet [공용 인터넷 구간]
+                        B((강력하게 암호화된<br>IPsec VPN 터널))
+                    end
+                    
+                    subgraph AWS [AWS 클라우드]
+                        C[가상 프라이빗 게이트웨이<br>VGW]
+                    end
+                    
+                    A ===|인터넷 트래픽 인입| B
+                    B ===|안전한 통신 도달| C
+                    
+                    classDef default font-size:20px,font-family:Pretendard;
+                    classDef onprem fill:#f8fafc,stroke:#64748b,stroke-width:2px;
+                    classDef aws fill:#fff7ed,stroke:#f59e0b,stroke-width:2px;
+                    classDef tunnel fill:#eff6ff,stroke:#2563eb,stroke-width:4px,stroke-dasharray: 5 5;
+                    
+                    class OnPrem onprem;
+                    class AWS aws;
+                    class B tunnel;
+                </div>
+                <div class="diagram-caption">개념 도식: 공용 인터넷 구간을 통과하는 논리적인 암호화 터널의 구조</div>
+            </div>
+
+            <p>
+                데이터는 물리적인 전용선이 아닌 공용 인터넷망을 경로로 사용하지만, <strong>IPsec (Internet Protocol Security, 인터넷 프로토콜 보안)</strong> 표준 프로토콜을 사용하여 패킷 단위로 데이터를 강력하게 암호화하므로 전용선과 유사한 수준의 기밀성과 무결성을 보장받을 수 있습니다.
+            </p>
+            <div class="footnote">
+                * <strong>온프레미스 (On-Premise)</strong>: 클라우드 환경이 아닌 기업이 자체적으로 물리적 서버 장비를 보유하고 운영하는 전산실이나 데이터 센터를 의미합니다. 기업의 핵심 레거시 시스템이 주로 이곳에 위치합니다.
+            </div>
+        </div>
+
+        <div class="concept-box">
+            <h3>핵심 구성 요소 (Key Components)</h3>
+            <p>성공적인 VPN 연결을 확립하기 위해서는 양단(AWS 클라우드 측과 온프레미스 고객 측)에 논리적/물리적 게이트웨이가 명확하게 정의되어야 합니다.</p>
+            <ul>
+                <li><strong>CGW (Customer Gateway, 고객 게이트웨이)</strong>: 온프레미스 네트워크의 경계에 위치한 물리적 라우터 장비나 방화벽을 AWS 콘솔 내에서 논리적인 객체로 표현한 리소스입니다. 고객 라우터의 외부 공인 IP (Public IP) 주소와 <strong>ASN (Autonomous System Number, 자율 시스템 번호)</strong> 정보를 등록합니다.</li>
+                <li><strong>VGW (Virtual Private Gateway, 가상 프라이빗 게이트웨이)</strong>: 단일 <strong>VPC (Virtual Private Cloud, 가상 프라이빗 클라우드)</strong>의 엣지(Edge)에 위치하여 VPN 연결의 AWS 측 종단점(Endpoint) 역할을 하는 고가용성 관리형 라우터입니다.</li>
+                <li><strong>TGW (Transit Gateway, 전송 게이트웨이)</strong>: 수백 개의 <strong>VPC (Virtual Private Cloud, 가상 프라이빗 클라우드)</strong>와 온프레미스 네트워크를 중앙 집중식(Hub and Spoke)으로 연결하는 대규모 클라우드 라우터입니다. 엔터프라이즈급 아키텍처에서는 VGW 대신 TGW를 VPN 종단점으로 사용합니다.</li>
+                <li><strong>VPN Tunnel (VPN 터널)</strong>: CGW와 VGW(또는 TGW) 사이에 설정되는 암호화된 논리적 데이터 통로입니다. AWS는 엔터프라이즈 환경의 <strong>고가용성 (High Availability)</strong>을 충족하기 위해, 단일 VPN 연결 생성 시 물리적으로 분리된 두 개의 IPsec 터널을 기본 제공합니다.</li>
+            </ul>
+            <div class="footnote">
+                * <strong>ASN (Autonomous System Number, 자율 시스템 번호)</strong>: <strong>BGP (Border Gateway Protocol, 경계 경로 프로토콜)</strong> 라우팅을 사용할 때, 각각의 독립적인 거대 네트워크 영역(자율 시스템)을 식별하기 위해 전 세계적으로 또는 사설망 내에서 부여하는 고유 번호입니다.
+            </div>
+        </div>
+    </section>
+
+    <section id="security-routing">
+        <h2>보안 및 라우팅 심층 분석 (Security & Routing Analysis)</h2>
+
+        <div class="diagram-container">
+            <div class="mermaid">
+            sequenceDiagram
+                autonumber
+                participant Router as 고객 물리 라우터 (On-Premise)
+                participant AWS as AWS VGW (Cloud Endpoint)
+                
+                Note over Router, AWS: Phase 1: ISAKMP / IKE (보안 채널 형성)
+                Router->>AWS: 암호화 알고리즘, 해시 제안 (Proposal)
+                AWS-->>Router: 제안 수락 및 정책 일치 확인
+                Router->>AWS: 키 교환 (Diffie-Hellman) 및 상호 인증 (Pre-shared Key)
+                Note over Router, AWS: Phase 1 완료: 안전한 제어 채널 생성
+                
+                Note over Router, AWS: Phase 2: IPsec SA (실제 데이터 암호화 터널 형성)
+                Router->>AWS: 데이터 암호화 방식 제안 (ESP/AH)
+                AWS-->>Router: 제안 수락 및 세션 키 생성
+                Note over Router, AWS: Phase 2 완료: IPsec 터널 UP (활성화)
+                
+                rect rgb(239, 246, 255)
+                Router->>AWS: AES-256으로 암호화된 기업 내부 데이터 스트림 전송
+                end
+            </div>
+            <div class="diagram-caption">도식 1. IPsec (Internet Protocol Security, 인터넷 프로토콜 보안) VPN 터널 협상 과정 (IKE Phase 1 & 2)</div>
+        </div>
+
+        <div class="concept-box">
+            <h3>라우팅 방식: 정적 라우팅 vs 동적 라우팅</h3>
+            <p>안전한 터널이 생성된 후, 양측 네트워크 대역(CIDR)으로 트래픽을 정확히 보내기 위해서는 라우팅 정보가 필요합니다. 아키텍처 설계 시 반드시 다음 두 가지 방식 중 하나를 선택해야 합니다.</p>
+            <table>
+                <tr>
+                    <th>비교 항목</th>
+                    <th>정적 라우팅 (Static Routing)</th>
+                    <th>동적 라우팅 (Dynamic Routing / BGP)</th>
+                </tr>
+                <tr>
+                    <td><strong>동작 방식</strong></td>
+                    <td>네트워크 관리자가 수동으로 목적지 IP 대역(CIDR)을 콘솔에 하드코딩 입력</td>
+                    <td><strong>BGP (Border Gateway Protocol, 경계 경로 프로토콜)</strong>를 통해 양측 라우터가 네트워크 대역 정보를 자동으로 교환</td>
+                </tr>
+                <tr>
+                    <td><strong>장애 복구 (Failover)</strong></td>
+                    <td>활성 터널 장애 시, 대기 터널로 트래픽을 전환하기 위해 수동 개입이나 스크립트 필요</td>
+                    <td>활성 터널 장애 발생 시, 라우팅 테이블이 자동으로 업데이트되어 즉시 우회(Failover) 통신 재개</td>
+                </tr>
+                <tr>
+                    <td><strong>적합한 환경</strong></td>
+                    <td>고객 측 장비가 BGP를 지원하지 않는 소규모 네트워크 또는 일시적인 개발망 연결</td>
+                    <td><strong>무중단 서비스가 필수적인 엔터프라이즈 프로덕션 환경 (강력 권장)</strong></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="callout tip">
+            <strong>[실전 팁: 엔터프라이즈 아키텍트의 설계 표준]</strong>
+            실무 아키텍처를 설계할 때는 온프레미스 장비가 지원하는 한 반드시 <strong>동적 라우팅 (BGP)</strong>을 선택해야 합니다. 정적 라우팅은 두 개의 터널 중 하나가 물리적 이슈로 끊어졌을 때 트래픽 우회가 매끄럽게 이루어지지 않아 심각한 서비스 장애(Downtime, 다운타임)를 초래할 수 있습니다.
+        </div>
+    </section>
+
+    <section id="architecture-topology">
+        <h2>아키텍처 도식 (Architecture Topology)</h2>
+
+        <p>아래는 온프레미스 데이터 센터와 AWS 클라우드가 <strong>AWS Site-to-Site VPN (AWS 사이트 간 가상 사설망)</strong>을 통해 연결되는 엔터프라이즈급 논리적 아키텍처입니다. 하나의 VPN 연결 객체 내에 가용 영역(AZ)이 분리된 두 개의 물리적 종단점을 통해 두 개의 터널이 생성되어 <strong>단일 장애점(SPOF, Single Point of Failure)</strong>을 제거함을 주목하십시오.</p>
+
+        <div class="diagram-container">
+            <div class="mermaid">
+            graph LR
+                subgraph OnPrem[기업 데이터 센터 On-Premise]
+                    direction TB
+                    CorpDB[(내부 DB 서버<br>192.168.10.0/24)]
+                    CorpWeb[내부 웹 서버<br>192.168.20.0/24]
+                    Router[고객 방화벽 및 라우터<br>공인 IP: 203.0.113.12]
+                    CorpDB --> Router
+                    CorpWeb --> Router
+                end
+
+                subgraph Internet[공용 인터넷망 구간]
+                    direction TB
+                    T1((IPsec 터널 1<br>Active))
+                    T2((IPsec 터널 2<br>Standby))
+                end
+
+                subgraph AWS[AWS 클라우드 Seoul Region]
+                    CGW[CGW 고객 게이트웨이<br>논리적 식별자]
+                    subgraph VPC[프로덕션 VPC - 10.0.0.0/16]
+                        direction TB
+                        VGW[VGW 가상 프라이빗 게이트웨이]
+                        RT[VPC 라우팅 테이블<br>192.168.0.0/16 -> VGW]
+                        EC2[프라이빗 EC2 인스턴스<br>10.0.1.50]
+                        VGW --> RT
+                        RT --> EC2
+                    end
+                end
+
+                Router == 암호화 통신 ==> T1
+                Router == 암호화 통신 ==> T2
+                T1 === VGW
+                T2 === VGW
+                Router -. 설정 참조 .-> CGW
+                CGW -. 논리적 바인딩 .-> T1
+                CGW -. 논리적 바인딩 .-> T2
+
+                classDef onprem fill:#f8fafc,stroke:#64748b,stroke-width:2px;
+                classDef aws fill:#fff7ed,stroke:#f59e0b,stroke-width:2px;
+                classDef vpc fill:#f0fdf4,stroke:#22c55e,stroke-width:2px;
+                classDef tunnel stroke:#2563eb,stroke-width:4px,stroke-dasharray: 5 5;
+                
+                class OnPrem onprem;
+                class AWS aws;
+                class VPC vpc;
+                class T1,T2 tunnel;
+            </div>
+            <div class="diagram-caption">도식 2. AWS Site-to-Site VPN (AWS 사이트 간 가상 사설망) 고가용성 네트워크 구성도</div>
+        </div>
+        
+        <div class="footnote">
+            * 도식 설명: CGW (Customer Gateway, 고객 게이트웨이)는 트래픽이 통과하는 실제 장비가 아니라 AWS 관리 콘솔 내에 존재하는 <strong>'설정 객체'</strong>일 뿐입니다. 실제 암호화된 트래픽은 고객 물리 라우터에서 공용 인터넷망을 거쳐 직접 VGW (Virtual Private Gateway, 가상 프라이빗 게이트웨이)로 인입됩니다.
+        </div>
+
+        <div class="callout mistake">
+            <strong>[자주 오해하거나 실수하는 부분: IP 대역 충돌 (IP Overlap)]</strong>
+            <strong>VPC CIDR (Classless Inter-Domain Routing, 클라우드 네트워크 대역 할당 기법)</strong> 대역(예: 10.0.0.0/16)과 온프레미스 내부망 대역(예: 10.0.0.0/24)이 겹치면(Overlap) 라우터가 패킷의 정확한 목적지를 찾을 수 없어 통신이 전면 불가능해집니다. 클라우드 마이그레이션 초기 단계에서 <strong>IPAM (IP Address Management, IP 주소 관리)</strong> 전략을 수립하여 양측 대역을 완벽히 분리하는 것이 아키텍트의 첫 번째 임무입니다.
+        </div>
+    </section>
+
+    <section id="terragrunt-prep">
+        <h2>Terragrunt (테라그런트) 실습 준비</h2>
+
+        <p>본 실습에서는 최신 엔터프라이즈 트렌드인 <strong>IaC (Infrastructure as Code, 코드로서의 인프라)</strong> 도구인 <strong>Terragrunt (테라그런트)</strong>를 활용하여 AWS 측 VPN 기반 인프라를 프로비저닝(Provisioning, 자원 할당 및 구축)합니다. 온프레미스 라우터는 물리적 하드웨어 장비이므로, 본 실습에서는 AWS 리소스(VPC, VGW, CGW, VPN Connection)만 코드로 배포합니다.</p>
+
+        <h3>사전 요구 사항 (Prerequisites)</h3>
+        <ul>
+            <li><strong>운영체제:</strong> Windows (PowerShell/CMD) 또는 Linux 환경 (Mac 운영체제 제외).</li>
+            <li><strong>AWS 계정 및 자격 증명:</strong> <a href="https://aws.amazon.com/ko/cli/" target="_blank">AWS CLI (Command Line Interface, 명령줄 인터페이스)</a>가 설치되어 있고, <code>aws configure</code> 명령을 통해 인프라 제어 권한을 가진 엑세스 키(Access Key)가 로컬 환경에 설정되어 있어야 합니다.</li>
+            <li><strong>Terraform (테라폼):</strong> 오픈소스 <strong>IaC (Infrastructure as Code, 코드로서의 인프라)</strong> 핵심 엔진. (<a href="https://developer.hashicorp.com/terraform/downloads" target="_blank">다운로드 링크</a>)</li>
+            <li><strong>Terragrunt (테라그런트):</strong> 테라폼 코드를 래핑(Wrapping)하여 모듈화와 상태(State) 관리를 고도화하는 도구. (<a href="https://terragrunt.gruntwork.io/docs/getting-started/install/" target="_blank">다운로드 링크</a>)</li>
+        </ul>
+
+        <div class="diagram-container">
+            <div class="mermaid">
+            graph LR
+                A[코드 작성<br>terragrunt.hcl] -- "terragrunt init" --> B(플러그인 로드<br>초기화)
+                B -- "terragrunt plan" --> C{변경 사항<br>사전 검증}
+                C -- "terragrunt apply" --> D[AWS 클라우드<br>실제 인프라 생성]
+                D -- "terragrunt destroy" --> E((인프라<br>안전 삭제))
+                
+                style A fill:#eff6ff,stroke:#3b82f6,stroke-width:2px
+                style D fill:#fff7ed,stroke:#f59e0b,stroke-width:2px
+                style E fill:#fef2f2,stroke:#ef4444,stroke-width:2px
+            </div>
+            <div class="diagram-caption">도식 3. IaC (Infrastructure as Code, 코드로서의 인프라) 배포 파이프라인 워크플로우</div>
+        </div>
+
+        <h3>작업 디렉토리 구성</h3>
+        <p>Windows Command Prompt(CMD) 또는 PowerShell 환경을 열고 아래 명령어를 실행하여 격리된 작업 폴더를 생성합니다.</p>
+        <pre><code>mkdir aws-vpn-terragrunt
+cd aws-vpn-terragrunt</code></pre>
+    </section>
+
+    <section id="iac-code">
+        <h2>Terragrunt (테라그런트) 코드 작성 (IaC Code Implementation)</h2>
+
+        <p>작업 디렉토리(<code>aws-vpn-terragrunt</code>) 내에 <code>terragrunt.hcl</code> 이라는 단일 파일을 생성합니다. 편의성과 교육적 목적을 위해 Terragrunt의 <code>generate</code> 블록을 사용하여 Terraform 메인 코드를 동적으로 생성하는 방식을 채택하겠습니다.</p>
+
+        <div class="callout tip">
+            <strong>[실전 팁: IaC (Infrastructure as Code, 코드로서의 인프라) 코드 설계 원칙]</strong>
+            실제 프로덕션 실무에서는 하드코딩된 값(예: IP 주소, 리전 등)을 <code>variables.tf</code>(변수 파일)로 완전히 분리하여 재사용성을 극대화해야 합니다. 다만 본 교육 과정에서는 코드의 가독성과 아키텍처의 빠른 구조적 이해를 돕기 위해 단일 파일에 직관적으로 리소스를 명시합니다.
+        </div>
+
+        <p>텍스트 편집기(VS Code 등)를 열고 아래 코드를 정확히 복사하여 <code>terragrunt.hcl</code> 파일로 저장합니다.</p>
+
+        <pre><code># 파일명: terragrunt.hcl
+
+generate "main" {
+  path      = "main.tf"
+  if_exists = "overwrite"
+  contents  = &lt;&lt;EOF
+# 1. AWS Provider (클라우드 제공자) 설정 - 한국 서울 리전 지정
+provider "aws" {
+  region = "ap-northeast-2"
+}
+
+# 2. VPC (Virtual Private Cloud, 가상 프라이빗 클라우드) 생성
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags = {
+    Name = "vpn-expert-course-vpc"
+  }
+}
+
+# 3. VGW (Virtual Private Gateway, 가상 프라이빗 게이트웨이) 생성 및 VPC에 연결 (Attachment)
+resource "aws_vpn_gateway" "vpn_gw" {
+  vpc_id = aws_vpc.main.id
+  tags = {
+    Name = "vpn-expert-course-vgw"
+  }
+}
+
+# 4. CGW (Customer Gateway, 고객 게이트웨이) 논리적 객체 생성
+# ip_address에는 온프레미스 라우터의 실제 공인 IP를 입력 (본 예제는 더미 IP)
+resource "aws_customer_gateway" "customer_gw" {
+  bgp_asn    = 65000
+  ip_address = "203.0.113.12" 
+  type       = "ipsec.1"
+  tags = {
+    Name = "vpn-expert-course-cgw"
+  }
+}
+
+# 5. Site-to-Site VPN 연결 생성 (★과금 발생 트리거 지점★)
+resource "aws_vpn_connection" "main" {
+  vpn_gateway_id      = aws_vpn_gateway.vpn_gw.id
+  customer_gateway_id = aws_customer_gateway.customer_gw.id
+  type                = "ipsec.1"
+  static_routes_only  = true # 실습 인프라 검증을 위해 임시로 정적 라우팅 강제 적용
+
+  tags = {
+    Name = "vpn-expert-course-connection"
+  }
+}
+
+# 6. 온프레미스 대역(192.168.0.0/16)으로 향하는 정적 경로(Static Route) 규칙 추가
+resource "aws_vpn_connection_route" "office" {
+  destination_cidr_block = "192.168.0.0/16"
+  vpn_connection_id      = aws_vpn_connection.main.id
+}
+EOF
+}</code></pre>
+
+        <div class="footnote">
+            * <strong>static_routes_only = true</strong>: <strong>BGP (Border Gateway Protocol, 경계 경로 프로토콜)</strong> 동적 라우팅을 정상적으로 설정하려면 실제 고객 측 물리 라우터의 BGP 데몬 설정이 동반되어야 합니다. 본 실습에서는 물리 장비 없이 AWS 측 인프라 구성 상태만을 확인하기 위해 의도적으로 정적 라우팅(Static Routing) 옵션을 켰습니다.
+        </div>
+    </section>
+
+    <section id="execution-pipeline">
+        <h2>실행 및 프로비저닝 방법 (Execution Pipeline)</h2>
+
+        <p>코드가 완벽히 준비되었으면 Terragrunt 명령어를 통해 설계된 AWS 인프라를 실제 프로비저닝(배포) 합니다. 터미널(CMD/PowerShell)에서 다음 단계를 순서대로 엄격하게 실행하십시오.</p>
+
+        <h3>Step 1: 작업 공간 초기화 및 플러그인 로드</h3>
+        <pre><code>terragrunt init</code></pre>
+        <p>이 명령어는 <code>main.tf</code> 파일을 동적으로 생성하고, 구동에 필수적인 AWS 공급자(Provider) 플러그인을 하시코프(HashiCorp) 공식 레지스트리에서 다운로드합니다. 성공 시 <strong>"Terraform has been successfully initialized!"</strong>라는 긍정적인 메시지가 출력됩니다.</p>
+
+        <h3>Step 2: 인프라 변경 계획 사전 검증 (Plan)</h3>
+        <pre><code>terragrunt plan</code></pre>
+        <p>실제 클라우드 리소스를 무작정 생성하기 전에, 코드와 현재 클라우드 상태를 비교하여 어떤 리소스가 만들어질지 시뮬레이션하는 매우 중요한 단계입니다. 출력 로그를 통해 VPC, VGW, CGW, VPN Connection 등 총 5개의 리소스가 추가(Add)될 것임을 명확히 확인할 수 있습니다.</p>
+
+        <h3>Step 3: 리소스 배포 및 적용 (Apply)</h3>
+        <pre><code>terragrunt apply</code></pre>
+        <p>명령어 실행 후 최종 생성 내역을 꼼꼼히 검토하고 <code>yes</code>를 직접 타이핑하여 승인합니다. <strong>AWS Site-to-Site VPN (AWS 사이트 간 가상 사설망)</strong> 연결 객체를 클라우드 상에 배포하는 작업은 시스템 내부의 복잡한 네트워크 할당 프로세스로 인해 보통 약 <strong>3~5분 정도의 시간</strong>이 소요됩니다. 처리가 완료되면 <strong>"Apply complete!"</strong> 메시지가 나타납니다.</p>
+    </section>
+
+    <section id="verification-method">
+        <h2>확인 및 검증 방법 (Verification Method)</h2>
+
+        <p>엔터프라이즈 인프라가 코드에 명시된 대로 한 치의 오차 없이 정상 배포되었는지 AWS 관리 콘솔(AWS Management Console)과 <strong>AWS CLI (Command Line Interface, 명령줄 인터페이스)</strong>를 통해 교차 검증(Cross-validation)합니다.</p>
+
+        <h3>AWS 관리 콘솔(GUI)에서의 시각적 확인</h3>
+        <ol>
+            <li>AWS 콘솔에 최고 관리자 권한으로 로그인 후 <strong>VPC (Virtual Private Cloud, 가상 프라이빗 클라우드)</strong> 서비스 대시보드로 이동합니다.</li>
+            <li>왼쪽 내비게이션 패널 하단의 <strong>가상 사설망 (VPN)</strong> 섹션에서 다음 세 가지 핵심 객체의 무결성을 점검합니다.
+                <ul>
+                    <li><strong>고객 게이트웨이 (Customer gateways)</strong>: <code>vpn-expert-course-cgw</code> 식별자가 생성되었는지 확인.</li>
+                    <li><strong>가상 프라이빗 게이트웨이 (Virtual private gateways)</strong>: <code>vpn-expert-course-vgw</code>가 우리가 코드로 생성한 VPC에 정상적으로 연결(Attached 상태)되어 있는지 확인.</li>
+                    <li><strong>Site-to-Site VPN 연결 (Site-to-Site VPN connections)</strong>: <code>vpn-expert-course-connection</code>의 현재 상태가 <strong>사용 가능 (Available)</strong>으로 전환되었는지 확인.</li>
+                </ul>
+            </li>
+        </ol>
+
+        <div class="callout mistake">
+            <strong>[자주 오해하거나 실수하는 부분: 터널 상태 표시의 진실]</strong>
+            콘솔에서 VPN 연결 세부 정보를 클릭해보면 <strong>터널 상태(Tunnel State)가 "DOWN (작동 중지)"</strong>으로 붉게 표시될 것입니다. 이는 시스템 에러가 아니라 <strong>매우 정상적인 대기 상태</strong>입니다. AWS 측 게이트웨이 준비는 완벽히 끝났으나, 실제 트래픽을 송수신하며 암호화 키를 교환할 온프레미스 라우터(고객 측 물리 장비)가 세팅되어 있지 않아 터널 협상(IPsec IKE) 패킷이 오가지 못하기 때문입니다.
+        </div>
+
+        <h3>AWS CLI를 활용한 전문가 수준의 상태 점검</h3>
+        <p>실무 인프라 운영자는 매번 GUI 콘솔에 접속하는 대신 CLI를 이용해 시스템 상태를 즉각적으로 모니터링합니다. 터미널에 아래 쿼리 명령을 복사하여 실행해보십시오.</p>
+        <pre><code>aws ec2 describe-vpn-connections --query "VpnConnections[*].{VPN_ID:VpnConnectionId, State:State, Type:Type}" --output table</code></pre>
+        <p>위 명령어를 실행하면, 복잡한 JSON(JavaScript Object Notation, 자바스크립트 객체 표기법) 결과 대신 테이블(Table) 형태로 정제된 VPN 연결 ID와 현재 상태(available)를 직관적이고 빠르게 판독할 수 있습니다.</p>
+    </section>
+
+    <section id="destroy-resources">
+        <h2>리소스 파기 및 과금 방지 (Destroy)</h2>
+
+        <div class="callout warning">
+            <strong>[필수 보안 및 관리 작업: 클라우드 비용 최적화]</strong>
+            실습 파이프라인 검증이 끝났다면 즉각적으로 아래 명령어를 실행하여 모든 실습 리소스를 파기(Destroy)해야 합니다. AWS VPN 연결은 실제 트래픽의 사용 유무나 터널의 UP/DOWN 상태와 전혀 무관하게, <strong>객체가 클라우드에 '존재하는 시간' 동안 지속적으로 요금이 청구</strong>됩니다.
+        </div>
+
+        <p>터미널에서 아래의 강력한 인프라 파기 명령어를 실행합니다.</p>
+        <pre><code>terragrunt destroy</code></pre>
+        <p>삭제될 리소스의 종속성 트리를 신중하게 확인한 후 <code>yes</code>를 입력합니다. 리소스 프로비저닝과 마찬가지로 안전한 삭제 연산에도 약 3~5분이 소요되며, 최종적으로 터미널에 <strong>"Destroy complete!"</strong> 메시지가 출력되는 것을 반드시 확인해야 합니다. 이 메시지를 확인하면 모든 과금 유발 요소가 클라우드 상에서 영구적이고 안전하게 제거된 것입니다.</p>
+    </section>
+
+</body>
+</html>
