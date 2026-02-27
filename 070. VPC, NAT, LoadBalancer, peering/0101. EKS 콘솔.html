@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS EKS megaT 클러스터 구축 마스터 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root { --aws-squid: #232f3e; --aws-orange: #ff9900; --aws-blue: #0073bb; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; color: #1e293b; line-height: 1.8; }
+        .prose-title { border-left: 8px solid var(--aws-orange); padding-left: 1.5rem; color: #0f172a; font-weight: 900; }
+        .diagram-container { background: white; border: 1px solid #e2e8f0; border-radius: 1.5rem; padding: 2.5rem; margin: 2.5rem 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .term-tag { background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600; font-size: 0.9em; }
+        .cost-warning { border-left: 6px solid #ef4444; background: #fef2f2; padding: 1.5rem; margin: 2rem 0; border-radius: 0.5rem; }
+        .expert-tip { border-left: 6px solid #10b981; background: #f0fdf4; padding: 1.5rem; margin: 2rem 0; border-radius: 0.5rem; }
+        .code-block { background: #0f172a; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: 'Fira Code', monospace; font-size: 0.85rem; overflow-x: auto; }
+        .step-card { background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1.5rem; transition: transform 0.2s; }
+        .step-card:hover { transform: translateY(-5px); border-color: var(--aws-blue); }
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 px-8 py-4 no-print shadow-sm">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <span class="font-black text-xl text-slate-900 tracking-tighter uppercase">megaT Cluster Architect Series</span>
+            <div class="hidden md:flex space-x-8 text-sm font-bold text-slate-600">
+                <a href="#network" class="hover:text-orange-500 transition">Network</a>
+                <a href="#iam" class="hover:text-blue-600 transition">IAM Roles</a>
+                <a href="#cluster" class="hover:text-indigo-600 transition">EKS Cluster</a>
+                <a href="#nodes" class="hover:text-green-600 transition">Worker Nodes</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto p-6 md:p-20 space-y-32 bg-white shadow-2xl my-12 rounded-2xl">
+        
+        <!-- COVER PAGE -->
+        <header class="text-center py-24 border-b-8 border-double border-slate-100">
+            <div class="mb-10 flex justify-center">
+                <svg class="w-32 h-32 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+            </div>
+            <h1 class="text-5xl font-black text-slate-900 mb-8 leading-tight tracking-tighter uppercase">
+                AWS EKS megaT 클러스터<br><span class="text-indigo-600">구축 실무 가이드</span>
+            </h1>
+            <p class="text-xl text-slate-500 font-light max-w-3xl mx-auto leading-relaxed">
+                4개 서브넷 기반의 고성능 보안 네트워크 아키텍처 구현과<br>관리형 쿠버네티스 제어 평면의 통합 구축 전략
+            </p>
+            <div class="mt-16 text-slate-400 text-sm font-bold tracking-[0.4em]">PROFESSIONAL GRADE | AWS CONTAINER SPECIALTY</div>
+        </header>
+
+        <!-- SECTION 1: 네트워크 아키텍처 설계 -->
+        <section id="network" class="space-y-12">
+            <h2 class="text-3xl font-black prose-title uppercase italic">네트워크 설계: megaT 전용 서브넷 구성</h2>
+            
+            <p class="text-lg leading-relaxed text-slate-700">
+                EKS 클러스터의 안정적인 운영을 위해서는 격리된 네트워크 환경이 필수적입니다. 요청하신 설계안에 따라 1개의 **Public Subnet (퍼블릭 서브넷, 인터넷 연결망)**과 3개의 **Private Subnet (프라이빗 서브넷, 내부 보안망)**을 구성합니다.
+            </p>
+
+            <div class="diagram-container bg-slate-50">
+                <h4 class="font-bold text-center mb-8 text-slate-600 uppercase tracking-widest">megaT Subnet Architecture</h4>
+                <svg width="800" height="350" viewBox="0 0 800 350" xmlns="http://www.w3.org/2000/svg">
+                    <!-- VPC -->
+                    <rect x="20" y="20" width="760" height="310" rx="20" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="10 10"/>
+                    <text x="40" y="45" fill="#475569" font-size="14" font-weight="bold">VPC (Virtual Private Cloud, 가상 사설 클라우드)</text>
+
+                    <!-- Public Subnet -->
+                    <rect x="50" y="80" width="150" height="200" rx="15" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="2"/>
+                    <text x="65" y="110" fill="#0369a1" font-size="12" font-weight="bold">Public Subnet</text>
+                    <text x="65" y="130" fill="#0369a1" font-size="11">10.110.0.0/24</text>
+                    <circle cx="125" cy="180" r="25" fill="#0ea5e9" opacity="0.2"/>
+                    <text x="100" y="185" fill="#0369a1" font-size="10" font-weight="bold">IGW 통신</text>
+
+                    <!-- Private Subnets Group -->
+                    <rect x="230" y="80" width="520" height="200" rx="15" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+                    <text x="245" y="110" fill="#334155" font-size="12" font-weight="bold">Private Subnets (내부망)</text>
+
+                    <!-- Private 120 -->
+                    <rect x="250" y="130" width="150" height="130" rx="10" fill="white" stroke="#94a3b8" stroke-width="1"/>
+                    <text x="260" y="155" fill="#475569" font-size="10" font-weight="bold">Subnet 10.120</text>
+                    <text x="260" y="175" fill="#94a3b8" font-size="9">EKS Worker Nodes</text>
+
+                    <!-- Private 130 -->
+                    <rect x="415" y="130" width="150" height="130" rx="10" fill="white" stroke="#94a3b8" stroke-width="1"/>
+                    <text x="425" y="155" fill="#475569" font-size="10" font-weight="bold">Subnet 10.130</text>
+                    <text x="425" y="175" fill="#94a3b8" font-size="9">Database Tier</text>
+
+                    <!-- Private 140 -->
+                    <rect x="580" y="130" width="150" height="130" rx="10" fill="white" stroke="#94a3b8" stroke-width="1"/>
+                    <text x="590" y="155" fill="#475569" font-size="10" font-weight="bold">Subnet 10.140</text>
+                    <text x="590" y="175" fill="#94a3b8" font-size="9">Internal API</text>
+                </svg>
+            </div>
+
+            <div class="sidebar-note bg-slate-50 p-6 rounded-xl border border-slate-200">
+                <h4 class="font-bold mb-3">서브넷 역할 및 CIDR 정의</h4>
+                <ul class="text-sm space-y-2 text-slate-600">
+                    <li>• <span class="term-tag">10.110.0.0/24 (인터넷망)</span>: **ALB (Application Load Balancer, 애플리케이션 부하 분산기)**가 위치하여 외부 트래픽을 수신합니다.</li>
+                    <li>• <span class="term-tag">10.120/130/140.0.0/24 (내부망)</span>: 외부에서 직접 접근이 불가능하며, **EKS Worker Nodes (EKS 워커 노드, 실제 컨테이너가 실행되는 서버)**가 배치됩니다.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION 2: 권한 관리 (IAM) -->
+        <section id="iam" class="page-break space-y-12">
+            <h2 class="text-3xl font-black prose-title uppercase italic">사전 작업: IAM 역할(Roles) 생성</h2>
+            
+            <p class="text-lg text-slate-700">
+                EKS 클러스터가 다른 AWS 리소스를 관리하기 위해 권한이 필요합니다. <span class="term-tag">IAM (Identity and Access Management, ID 및 액세스 관리)</span> 콘솔에서 두 개의 역할을 생성합니다.
+            </p>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="step-card">
+                    <h4 class="font-bold text-indigo-700 mb-2 underline">1. EKS 클러스터 역할</h4>
+                    <p class="text-sm text-slate-600 mb-4">제어 평면(Control Plane)이 리소스를 관리할 때 사용합니다.</p>
+                    <ul class="text-xs text-slate-500 space-y-1">
+                        <li>• 서비스 선택: EKS - Cluster</li>
+                        <li>• 정책 추가: <span class="font-bold">AmazonEKSClusterPolicy</span></li>
+                        <li>• 역할 이름: `eks-cluster-role`</li>
+                    </ul>
+                </div>
+                <div class="step-card">
+                    <h4 class="font-bold text-green-700 mb-2 underline">2. EKS 노드 그룹 역할</h4>
+                    <p class="text-sm text-slate-600 mb-4">워커 노드 인스턴스가 사용하는 권한입니다.</p>
+                    <ul class="text-xs text-slate-500 space-y-1">
+                        <li>• 서비스 선택: EC2</li>
+                        <li>• 정책 추가: <span class="font-bold">AmazonEKSWorkerNodePolicy</span>, <span class="font-bold">AmazonEKS_CNI_Policy</span>, <span class="font-bold">AmazonEC2ContainerRegistryReadOnly</span></li>
+                        <li>• 역할 이름: `eks-node-group-role`</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="expert-tip">
+                <strong>전문가 팁:</strong> 보안 강화를 위해 노드 그룹 역할에 **AmazonSSMManagedInstanceCore** 정책을 추가하면 키 페어 없이도 시스템 매니저를 통해 보안 로그인이 가능합니다.
+            </div>
+        </section>
+
+        <!-- SECTION 3: EKS 클러스터 GUI 구축 -->
+        <section id="cluster" class="page-break space-y-12">
+            <h2 class="text-3xl font-black prose-title uppercase italic">메인 단계: megaT 클러스터 생성 (GUI)</h2>
+
+            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <div class="bg-indigo-600 text-white p-6 font-bold flex justify-between">
+                    <span>Step-by-Step 구축 매뉴얼</span>
+                    <span class="text-indigo-200">AWS Console</span>
+                </div>
+                <div class="p-8 space-y-10">
+                    <div class="flex items-start gap-6">
+                        <div class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0">1</div>
+                        <div>
+                            <h4 class="font-bold mb-1">클러스터 구성 설정</h4>
+                            <p class="text-sm text-slate-500 mb-2">메뉴: **EKS > Clusters > Create cluster**</p>
+                            <ul class="text-sm text-slate-600 list-disc list-inside">
+                                <li>**Name**: `megaT`</li>
+                                <li>**Kubernetes version**: 1.31 (최신 안정화 버전 권장)</li>
+                                <li>**Cluster Service Role**: 이전에 생성한 `eks-cluster-role` 선택</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-6">
+                        <div class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0">2</div>
+                        <div>
+                            <h4 class="font-bold mb-1">네트워킹 설정 (핵심)</h4>
+                            <p class="text-sm text-slate-500 mb-2">요청하신 4개 서브넷을 정확히 매핑합니다.</p>
+                            <ul class="text-sm text-slate-600 list-disc list-inside space-y-1">
+                                <li>**VPC**: megaT 전용 VPC 선택</li>
+                                <li>**Subnets**: <span class="text-blue-600 font-bold">10.110, 10.120, 10.130, 10.140</span> 대역의 서브넷 4개를 모두 선택</li>
+                                <li>**Security groups**: 클러스터 보안 그룹 기본 생성 권장</li>
+                                <li>**Cluster endpoint access**: <span class="font-bold">Public and private</span> (인터넷망을 통한 관리와 내부 노드 간 통신 동시 보장)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-6">
+                        <div class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0">3</div>
+                        <div>
+                            <h4 class="font-bold mb-1">추가 기능(Add-ons) 및 로깅</h4>
+                            <p class="text-sm text-slate-600">
+                                **CoreDNS, kube-proxy, vpc-cni**는 기본 선택된 상태로 유지합니다. 관찰 가능성(Observability)을 위해 **Control Plane Logging**에서 API 서버와 스케줄러 로그 활성화를 권장합니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cost-warning">
+                <h4 class="font-black text-red-800 mb-2">💰 EKS 클러스터 과금 안내</h4>
+                <p class="text-sm text-red-900 leading-relaxed">
+                    EKS 클러스터 제어 평면은 생성 즉시 **시간당 $0.10 (약 130원)**의 고정 비용이 발생합니다. 사용하지 않을 때는 클러스터를 삭제해야 비용을 아낄 수 있습니다. (Node Group 비용은 별도)
+                </p>
+            </div>
+        </section>
+
+        <!-- SECTION 4: 워커 노드 구성 -->
+        <section id="nodes" class="page-break space-y-12">
+            <h2 class="text-3xl font-black prose-title uppercase italic text-green-700 border-green-600">워커 노드: 관리형 노드 그룹 구축</h2>
+            
+            <p class="text-slate-600">클러스터가 'Ready' 상태가 되면, 실제로 컨테이너를 구동할 인스턴스를 추가해야 합니다.</p>
+
+            <div class="bg-white border border-slate-200 rounded-2xl p-8 space-y-6 shadow-sm">
+                <h4 class="font-bold text-slate-800 underline">Node Group 설정 정보</h4>
+                <div class="grid md:grid-cols-2 gap-6 text-sm text-slate-600">
+                    <div class="space-y-2">
+                        <p>• **Name**: `megaT-worker-node`</p>
+                        <p>• **Node IAM Role**: `eks-node-group-role` 선택</p>
+                        <p>• **AMI Type**: Amazon Linux 2 (최적화 버전)</p>
+                    </div>
+                    <div class="space-y-2">
+                        <p>• **Instance Type**: `t3.medium` (범용 권장)</p>
+                        <p>• **Scaling Config**: Min 2 / Max 4 / Desired 2</p>
+                        <p>• **Subnets**: <span class="font-bold text-green-600 text-sm">반드시 10.120, 10.130, 10.140(내부망)만 선택</span></p>
+                    </div>
+                </div>
+                <div class="sidebar-note bg-yellow-50 border-yellow-200 mt-4">
+                    <p class="text-xs text-yellow-800">**주의**: 워커 노드를 10.110(인터넷망)에 배치할 수도 있지만, 보안을 위해 내부망에 배치하고 **NAT Gateway (네트워크 주소 변환 게이트웨이)**를 통해 외부 통신을 수행하는 것이 정석입니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: Terragrunt 구현 자동화 -->
+        <section class="page-break space-y-12">
+            <h2 class="text-3xl font-black prose-title uppercase italic text-blue-700 border-blue-600">자동화: Terragrunt를 활용한 클러스터 코드</h2>
+            
+            <p class="text-slate-600">GUI 작업을 반복하지 않기 위해 <span class="term-tag">IaC (Infrastructure as Code, 코드형 인프라)</span> 도구인 **Terragrunt**로 환경을 정의합니다.</p>
+
+            <div class="code-block shadow-2xl">
+<pre class="code-font text-sm leading-relaxed"><code><span class="text-gray-500"># terragrunt.hcl (megaT EKS Cluster Module)</span>
+terraform {
+  source = "tfr:///terraform-aws-modules/eks/aws//?version=20.0.0"
+}
+
+inputs = {
+  cluster_name    = "megaT"
+  cluster_version = "1.31"
+
+  vpc_id     = "vpc-12345678"
+  subnet_ids = ["subnet-110", "subnet-120", "subnet-130", "subnet-140"]
+
+  eks_managed_node_groups = {
+    megaT_nodes = {
+      min_size     = 2
+      max_size     = 4
+      desired_size = 2
+
+      instance_types = ["t3.medium"]
+      <span class="text-gray-500"># 내부망 서브넷에만 노드 배치</span>
+      subnet_ids = ["subnet-120", "subnet-130", "subnet-140"]
+      
+      iam_role_additional_policies = {
+        ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      }
+    }
+  }
+
+  tags = {
+    Project = "megaT"
+    ManagedBy = "Terragrunt"
+  }
+}</code></pre>
+            </div>
+        </section>
+
+        <!-- SECTION 6: 실행 및 검증 -->
+        <section class="page-break pb-20 space-y-12">
+            <h2 class="text-3xl font-black prose-title uppercase italic">검증: 클러스터 상태 확인</h2>
+            
+            <div class="grid md:grid-cols-2 gap-10">
+                <div class="space-y-4">
+                    <h4 class="font-bold text-slate-800 border-b pb-2">1. CLI 설정 (Kubeconfig)</h4>
+                    <p class="text-sm text-slate-600">로컬 PC에서 클러스터를 조작하기 위해 인증 정보를 갱신합니다.</p>
+                    <div class="bg-slate-900 text-blue-300 p-4 rounded-lg font-mono text-xs">
+                        $ aws eks update-kubeconfig --region ap-northeast-2 --name megaT
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <h4 class="font-bold text-slate-800 border-b pb-2">2. 노드 상태 확인</h4>
+                    <p class="text-sm text-slate-600">모든 노드가 'Ready' 상태인지 확인합니다.</p>
+                    <div class="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs">
+                        $ kubectl get nodes<br>
+                        <span class="text-gray-500"># 출력 결과에 10.120/130/140 IP 대역이 보여야 함</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="expert-note bg-slate-900 text-white border-none p-12 rounded-[2.5rem] mt-20 text-center">
+                <h3 class="text-2xl font-black mb-6 text-orange-400 uppercase">Architecture Final Review</h3>
+                <p class="text-slate-400 leading-relaxed mb-8 max-w-3xl mx-auto">
+                    `megaT` 클러스터는 전형적인 **Multi-Tier (멀티 티어, 계층형)** 구조를 채택하였습니다. 인터넷망(110)과 내부망(120/130/140)의 분리는 보안의 기본이며, 이를 통해 외부의 직접적인 공격으로부터 핵심 컨테이너 자원을 보호합니다.
+                </p>
+                <div class="flex justify-center gap-8 text-[10px] font-black tracking-[0.3em] text-slate-500 uppercase">
+                    <span>Cluster Fee: $0.10/hr</span>
+                    <span>Subnet Isolation</span>
+                    <span>Terragrunt Managed</span>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-white p-10 no-print">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs opacity-50">
+            <p>&copy; 2024 IP 직업훈련 전문가과정 - AWS Cloud Infrastructure Deep Dive.</p>
+            <div class="mt-4 md:mt-0 font-mono">Next Step: EKS ALB Controller 및 Ingress 보안 설정</div>
+        </div>
+    </footer>
+
+</body>
+</html>
