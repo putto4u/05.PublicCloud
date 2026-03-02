@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 사이트 타이틀 변경: 브랜드명 반영 -->
+    <title>putto's cAr | 최고급 스포츠카의 정점</title>
+    <!-- 테일윈드 CSS(Cascading Style Sheets) CDN(Content Delivery Network) 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 구글 폰트(Google Fonts) 로드: 고급스러운 영문 및 한글 타이포그래피 적용 -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- 루시드 아이콘(Lucide Icons) 로드 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            red: '#D32F2F',
+                            dark: '#0A0A0A',
+                            gray: '#1A1A1A'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 부드러운 스크롤 동작을 위한 CSS(Cascading Style Sheets) 설정 */
+        html { scroll-behavior: smooth; }
+        .hero-gradient {
+            background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(10,10,10,1) 100%);
+        }
+        /* JS(JavaScript) 애니메이션을 위한 초기 상태 클래스 */
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .fade-in-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-brand-dark text-white font-sans antialiased overflow-x-hidden">
+
+    <!-- GNB(Global Navigation Bar, 전역 탐색 막대) 시작 -->
+    <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 bg-transparent py-4">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 flex justify-between items-center">
+            <div class="flex items-center">
+                <!-- 브랜드 로고 변경: 삼각형 아이콘 대신 자동차 전면 아이콘 사용 -->
+                <a href="#" class="text-3xl font-cinzel font-bold tracking-widest text-white flex items-center gap-2">
+                    <i data-lucide="car-front" class="text-brand-red w-8 h-8"></i>
+                    putto's cAr
+                </a>
+            </div>
+            <div class="hidden md:flex space-x-10 text-sm tracking-wider font-light">
+                <a href="#models" class="hover:text-brand-red transition-colors duration-300">MODELS</a>
+                <a href="#performance" class="hover:text-brand-red transition-colors duration-300">PERFORMANCE</a>
+                <a href="#bespoke" class="hover:text-brand-red transition-colors duration-300">BESPOKE</a>
+                <a href="#contact" class="hover:text-brand-red transition-colors duration-300">CONTACT</a>
+            </div>
+            <div class="hidden md:flex">
+                <button class="border border-white/30 px-6 py-2 hover:bg-white hover:text-brand-dark transition-all duration-300 text-sm tracking-widest">
+                    RESERVE
+                </button>
+            </div>
+            <!-- 모바일 햄버거 메뉴 (UI(User Interface) 구성 요소) -->
+            <button class="md:hidden text-white focus:outline-none">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 히어로 섹션(Hero Section, 메인 배너 영역) -->
+    <section class="relative h-screen flex items-center justify-center">
+        <!-- 배경 이미지 (CDN을 통해 로드되는 고해상도 자원) -->
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=2070&auto=format&fit=crop" alt="고급 빨간색 스포츠카 주행 모습" class="w-full h-full object-cover object-center" />
+            <div class="absolute inset-0 hero-gradient"></div>
+        </div>
+        
+        <div class="relative z-10 text-center px-4 max-w-5xl mx-auto mt-20">
+            <h2 class="font-cinzel text-xl md:text-2xl tracking-[0.5em] text-gray-400 mb-4 fade-in-up">BEYOND LIMITS</h2>
+            <h1 class="font-cinzel text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 tracking-wider drop-shadow-2xl fade-in-up" style="transition-delay: 200ms;">
+                초월적 성능,<br>궁극의 우아함
+            </h1>
+            <p class="text-gray-300 font-light text-lg md:text-xl mb-10 max-w-2xl mx-auto fade-in-up" style="transition-delay: 400ms;">
+                에어로다이내믹 설계와 V12 트윈 터보 엔진이 결합된 예술 작품. 도로 위의 법칙을 새롭게 정의합니다.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center fade-in-up" style="transition-delay: 600ms;">
+                <a href="#models" class="bg-brand-red text-white px-8 py-4 text-sm tracking-widest font-semibold hover:bg-red-700 transition-colors duration-300 flex items-center justify-center gap-2">
+                    모델 탐색하기 <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </a>
+                <a href="#video" class="border border-white/50 text-white px-8 py-4 text-sm tracking-widest hover:bg-white/10 transition-colors duration-300 flex items-center justify-center gap-2">
+                    <i data-lucide="play-circle" class="w-4 h-4"></i> 주행 영상 보기
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 차량 모델 쇼케이스 섹션 -->
+    <section id="models" class="py-24 bg-brand-dark">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="mb-16 md:flex justify-between items-end fade-in-up">
+                <div>
+                    <h3 class="font-cinzel text-brand-red tracking-[0.3em] text-sm mb-2">MASTERPIECES</h3>
+                    <h2 class="text-4xl md:text-5xl font-light font-cinzel">혁신의 라인업</h2>
+                </div>
+                <a href="#" class="hidden md:inline-flex items-center gap-2 text-sm tracking-widest text-gray-400 hover:text-white transition-colors">
+                    전체 모델 보기 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+
+            <!-- CSS Grid(그리드)를 활용한 반응형 레이아웃 구성 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 카드 1 -->
+                <div class="group relative overflow-hidden bg-brand-gray cursor-pointer fade-in-up">
+                    <div class="h-64 overflow-hidden relative">
+                        <img src="https://images.unsplash.com/photo-1614200187524-dc4b892acf16?q=80&w=1000&auto=format&fit=crop" alt="검은색 날렵한 스포츠카" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500"></div>
+                    </div>
+                    <div class="p-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-cinzel text-2xl font-bold">APEX Veloce</h4>
+                            <span class="text-xs border border-brand-red text-brand-red px-2 py-1 tracking-widest">NEW</span>
+                        </div>
+                        <p class="text-gray-400 text-sm font-light mb-6 line-clamp-2">순수한 아드레날린. 0-100km/h 2.8초의 폭발적인 가속력과 탄소 섬유(Carbon Fiber) 모노코크 바디의 결합.</p>
+                        <div class="flex justify-between text-xs tracking-wider text-gray-500 mb-6 pb-6 border-b border-gray-800">
+                            <div><span class="block text-white text-base">780</span> HP</div>
+                            <div><span class="block text-white text-base">350</span> KM/H</div>
+                            <div><span class="block text-white text-base">V12</span> ENGINE</div>
+                        </div>
+                        <button class="text-sm tracking-widest text-white group-hover:text-brand-red transition-colors flex items-center gap-2">
+                            상세 스펙 <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 카드 2 -->
+                <div class="group relative overflow-hidden bg-brand-gray cursor-pointer fade-in-up" style="transition-delay: 200ms;">
+                    <div class="h-64 overflow-hidden relative">
+                        <img src="https://images.unsplash.com/photo-1503376713204-747d6cd8258e?q=80&w=1000&auto=format&fit=crop" alt="서킷을 달리는 회색 스포츠카" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500"></div>
+                    </div>
+                    <div class="p-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-cinzel text-2xl font-bold">APEX Strale</h4>
+                        </div>
+                        <p class="text-gray-400 text-sm font-light mb-6 line-clamp-2">바람을 조각하는 에어로다이내믹스. 트랙의 제왕을 공도에서 경험할 수 있도록 설계된 하이퍼카(Hypercar).</p>
+                        <div class="flex justify-between text-xs tracking-wider text-gray-500 mb-6 pb-6 border-b border-gray-800">
+                            <div><span class="block text-white text-base">820</span> HP</div>
+                            <div><span class="block text-white text-base">365</span> KM/H</div>
+                            <div><span class="block text-white text-base">V8</span> HYBRID</div>
+                        </div>
+                        <button class="text-sm tracking-widest text-white group-hover:text-brand-red transition-colors flex items-center gap-2">
+                            상세 스펙 <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 카드 3 -->
+                <div class="group relative overflow-hidden bg-brand-gray cursor-pointer fade-in-up" style="transition-delay: 400ms;">
+                    <div class="h-64 overflow-hidden relative">
+                        <img src="https://images.unsplash.com/photo-1544829099-b9a0c07fad1a?q=80&w=1000&auto=format&fit=crop" alt="클래식한 디자인의 럭셔리 스포츠카" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500"></div>
+                    </div>
+                    <div class="p-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-cinzel text-2xl font-bold">APEX Eleganza</h4>
+                            <span class="text-xs border border-gray-500 text-gray-400 px-2 py-1 tracking-widest">LIMITED</span>
+                        </div>
+                        <p class="text-gray-400 text-sm font-light mb-6 line-clamp-2">시간을 초월한 그랜드 투어러(GT). 장거리 주행의 안락함과 서킷의 맹렬함을 하나의 버튼으로 전환합니다.</p>
+                        <div class="flex justify-between text-xs tracking-wider text-gray-500 mb-6 pb-6 border-b border-gray-800">
+                            <div><span class="block text-white text-base">650</span> HP</div>
+                            <div><span class="block text-white text-base">330</span> KM/H</div>
+                            <div><span class="block text-white text-base">V12</span> ENGINE</div>
+                        </div>
+                        <button class="text-sm tracking-widest text-white group-hover:text-brand-red transition-colors flex items-center gap-2">
+                            상세 스펙 <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 기술 및 성능 강조 섹션 -->
+    <section id="performance" class="relative py-32 border-t border-gray-800">
+        <div class="absolute inset-0 z-0 opacity-20">
+             <!-- 배경 패턴 텍스처 삽입 가능 공간 -->
+             <div class="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-700 via-brand-dark to-brand-dark"></div>
+        </div>
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <div class="fade-in-up">
+                    <img src="https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?q=80&w=1000&auto=format&fit=crop" alt="빛나는 스포츠카의 디테일 휠과 브레이크" class="w-full rounded-sm shadow-2xl shadow-brand-red/10 border border-gray-800">
+                </div>
+                <div class="fade-in-up">
+                    <h3 class="font-cinzel text-brand-red tracking-[0.3em] text-sm mb-4">ENGINEERING</h3>
+                    <h2 class="text-4xl md:text-5xl font-light font-cinzel mb-8">타협 없는<br><span class="font-bold">퍼포먼스 아키텍처</span></h2>
+                    <p class="text-gray-400 font-light leading-relaxed mb-8">
+                        APEX의 모든 차량은 포뮬러 원(F1)에서 파생된 텔레메트리(Telemetry, 원격 측정) 기술과 액티브 서스펜션(Active Suspension) 시스템을 탑재하고 있습니다. 운전자의 의도를 0.01초 단위로 분석하여 최적의 구동력을 네 바퀴에 분배합니다.
+                    </p>
+                    <ul class="space-y-6">
+                        <li class="flex items-start gap-4">
+                            <div class="bg-brand-gray p-3 rounded-full text-brand-red">
+                                <i data-lucide="cpu" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1">인공지능 트랙션 제어</h4>
+                                <p class="text-sm text-gray-500 font-light">머신러닝(Machine Learning, 기계 학습) 기반의 ECU(Electronic Control Unit, 전자 제어 장치)가 노면 상태를 실시간 예측합니다.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-4">
+                            <div class="bg-brand-gray p-3 rounded-full text-brand-red">
+                                <i data-lucide="wind" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1">능동형 에어로다이내믹</h4>
+                                <p class="text-sm text-gray-500 font-light">속도와 코너링 진입각에 따라 리어 윙과 디퓨저의 각도가 유압식으로 조절되어 다운포스(Downforce)를 극대화합니다.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 푸터(Footer, 꼬리말) 섹션 -->
+    <footer class="bg-black pt-20 pb-10 border-t border-gray-900">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div class="col-span-1 md:col-span-2">
+                    <!-- 푸터 로고 변경: 헤더와 동일한 아이콘 및 브랜드명 적용 -->
+                    <a href="#" class="text-2xl font-cinzel font-bold tracking-widest text-white flex items-center gap-2 mb-6">
+                        <i data-lucide="car-front" class="text-brand-red w-6 h-6"></i>
+                        putto's cAr
+                    </a>
+                    <p class="text-gray-500 text-sm font-light max-w-sm mb-6">
+                        이탈리아 마라넬로의 장인정신과 실리콘밸리의 첨단 소프트웨어가 만나 탄생한 세계 최고의 하이퍼카 제조업체.
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="#" class="text-gray-500 hover:text-white transition-colors"><i data-lucide="instagram" class="w-5 h-5"></i></a>
+                        <a href="#" class="text-gray-500 hover:text-white transition-colors"><i data-lucide="youtube" class="w-5 h-5"></i></a>
+                        <a href="#" class="text-gray-500 hover:text-white transition-colors"><i data-lucide="twitter" class="w-5 h-5"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-6 tracking-wider">SHOWROOM</h4>
+                    <ul class="space-y-3 text-sm text-gray-500 font-light">
+                        <li><a href="#" class="hover:text-brand-red transition-colors">Veloce</a></li>
+                        <li><a href="#" class="hover:text-brand-red transition-colors">Strale</a></li>
+                        <li><a href="#" class="hover:text-brand-red transition-colors">Eleganza</a></li>
+                        <li><a href="#" class="hover:text-brand-red transition-colors">Concept Cars</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-6 tracking-wider">SUPPORT</h4>
+                    <ul class="space-y-3 text-sm text-gray-500 font-light">
+                        <li><a href="#" class="hover:text-white transition-colors">Ownership</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Dealer Network</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Press Release</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-900 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600 font-light">
+                <!-- 카피라이트 연도 및 브랜드명 업데이트 -->
+                <p>&copy; 2026 putto's cAr. All Rights Reserved.</p>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-gray-300">Privacy Policy</a>
+                    <a href="#" class="hover:text-gray-300">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JS(JavaScript)를 이용한 DOM 제어 및 인터랙션 구현 -->
+    <script>
+        // 루시드 아이콘 렌더링 초기화
+        lucide.createIcons();
+
+        // DOMContentLoaded 이벤트: HTML(HyperText Markup Language) 문서가 완전히 로드되고 파싱되었을 때 실행
+        document.addEventListener('DOMContentLoaded', () => {
+            const navbar = document.getElementById('navbar');
+            
+            // 스크롤 이벤트 리스너: 사용자의 스크롤 위치에 따라 GNB 스타일 동적 변경
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    navbar.classList.remove('bg-transparent', 'py-4');
+                    navbar.classList.add('bg-black/95', 'backdrop-blur-md', 'py-3', 'shadow-lg');
+                } else {
+                    navbar.classList.add('bg-transparent', 'py-4');
+                    navbar.classList.remove('bg-black/95', 'backdrop-blur-md', 'py-3', 'shadow-lg');
+                }
+            });
+
+            // Intersection Observer API(Application Programming Interface, 응용 프로그램 프로그래밍 인터페이스)를 활용한 스크롤 애니메이션
+            // 화면에 요소가 나타날 때 fade-in-up 효과를 트리거합니다.
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target); // 한 번 실행 후 관찰 해제하여 리소스 절약
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.fade-in-up').forEach((el) => {
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>
