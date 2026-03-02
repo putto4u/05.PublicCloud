@@ -20,13 +20,13 @@
         .dot-red { background: #ff5f56; }
         .dot-yellow { background: #ffbd2e; }
         .dot-green { background: #27c93f; }
-        .terminal-body { padding: 30px; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.9; color: #cbd5e1; overflow-x: auto; }
+        .terminal-body { padding: 30px; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.9; color: #cbd5e1; overflow-x: auto; white-space: pre; }
         
         /* Syntax Highlighting */
         .hl-cmd { color: #38bdf8; font-weight: bold; }
         .hl-flag { color: #fb7185; }
         .hl-str { color: #4ade80; }
-        .hl-comment { color: #64748b; font-style: italic; display: block; margin-bottom: 6px; }
+        .hl-comment { color: #64748b; font-style: italic; }
         .hl-directive { color: #c084fc; font-weight: bold; }
         .hl-num { color: #fbbf24; }
 
@@ -75,29 +75,18 @@
                 <h3 class="text-lg font-bold mb-10 text-slate-500 uppercase tracking-[0.2em]">[ DNS Global Hierarchy Architecture ]</h3>
                 <div class="flex justify-center overflow-x-auto">
                     <svg width="800" height="400" viewBox="0 0 800 400" class="min-w-[700px]">
-                        <!-- Root -->
                         <rect x="350" y="20" width="120" height="50" rx="8" fill="#020617"/>
                         <text x="410" y="52" text-anchor="middle" fill="white" font-weight="bold" font-size="16">Root (.)</text>
-                        
-                        <!-- Lines Level 1 -->
                         <path d="M410 70 L200 130 M410 70 L410 130 M410 70 L620 130" stroke="#94a3b8" stroke-width="2" fill="none"/>
-                        
-                        <!-- TLD -->
                         <rect x="140" y="130" width="120" height="50" rx="8" fill="#1e3a8a"/>
                         <text x="200" y="162" text-anchor="middle" fill="white" font-size="14">.com (TLD)</text>
                         <rect x="350" y="130" width="120" height="50" rx="8" fill="#1e3a8a"/>
                         <text x="410" y="162" text-anchor="middle" fill="white" font-size="14">.net (TLD)</text>
                         <rect x="560" y="130" width="120" height="50" rx="8" fill="#1e3a8a"/>
                         <text x="620" y="162" text-anchor="middle" fill="white" font-size="14">.kr (ccTLD)</text>
-                        
-                        <!-- Lines Level 2 -->
                         <path d="M200 180 L200 240" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6" fill="none"/>
-                        
-                        <!-- SLD -->
                         <rect x="140" y="240" width="120" height="50" rx="8" fill="#3b82f6"/>
                         <text x="200" y="272" text-anchor="middle" fill="white" font-size="14">example</text>
-                        
-                        <!-- Subdomain -->
                         <path d="M200 290 L200 350" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6" fill="none"/>
                         <rect x="140" y="350" width="120" height="50" rx="8" fill="#93c5fd"/>
                         <text x="200" y="382" text-anchor="middle" fill="#1e3a8a" font-size="14" font-weight="bold">www</text>
@@ -139,57 +128,37 @@
             <h2 class="section-title">2. 단계별 DNS 질의 처리 과정 (Deep Dive)</h2>
             <p class="mb-10 text-slate-600 italic">"사용자가 www.example.com을 브라우저에 입력한 뒤 페이지가 열리기까지의 8단계 메커니즘"</p>
             
-            <!-- NEW: Interactive Flow Diagram -->
             <div class="infographic card py-12">
                 <h3 class="text-lg font-bold mb-12 text-blue-800 uppercase tracking-widest">[ Step-by-Step Resolution Flow Diagram ]</h3>
                 <div class="flex justify-center overflow-x-auto">
                     <svg width="900" height="500" viewBox="0 0 900 500" class="min-w-[850px]">
-                        <!-- Entities -->
-                        <!-- Client -->
                         <rect x="50" y="220" width="120" height="60" rx="10" fill="#f1f5f9" stroke="#334155" stroke-width="2"/>
                         <text x="110" y="255" text-anchor="middle" font-weight="bold" fill="#0f172a">Client (Stub)</text>
-                        
-                        <!-- Recursive Resolver -->
                         <rect x="250" y="220" width="140" height="60" rx="10" fill="#dbeafe" stroke="#1e40af" stroke-width="2"/>
                         <text x="320" y="255" text-anchor="middle" font-weight="bold" fill="#1e3a8a">Recursive Resolver</text>
-                        
-                        <!-- Servers -->
                         <rect x="550" y="50" width="150" height="50" rx="8" fill="#020617" stroke="#334155" stroke-width="2"/>
                         <text x="625" y="82" text-anchor="middle" fill="white" font-size="12">Root Server (.)</text>
-                        
                         <rect x="550" y="225" width="150" height="50" rx="8" fill="#1e3a8a" stroke="#1e40af" stroke-width="2"/>
                         <text x="625" y="257" text-anchor="middle" fill="white" font-size="12">TLD Server (.com)</text>
-                        
                         <rect x="550" y="400" width="150" height="50" rx="8" fill="#3b82f6" stroke="#1d4ed8" stroke-width="2"/>
                         <text x="625" y="432" text-anchor="middle" fill="white" font-size="12">Authoritative (example.com)</text>
 
-                        <!-- Interaction Arrows -->
-                        <!-- 1 & 8 -->
                         <path d="M170 240 L250 240" stroke="#1e40af" stroke-width="2" marker-end="url(#arrowhead)"/>
                         <text x="210" y="235" text-anchor="middle" font-size="11" fill="#1e40af" font-weight="bold">1. Query</text>
-                        
                         <path d="M250 260 L170 260" stroke="#10b981" stroke-width="2" marker-end="url(#arrowhead)"/>
                         <text x="210" y="280" text-anchor="middle" font-size="11" fill="#059669" font-weight="bold">8. Answer</text>
-                        
-                        <!-- 2 & 3 -->
                         <path d="M390 230 L550 80" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,5" class="flow-line"/>
                         <text x="450" y="140" text-anchor="middle" font-size="11" fill="#475569">2. Where is .com?</text>
                         <path d="M550 95 L400 240" stroke="#475569" stroke-width="1.5"/>
                         <text x="490" y="180" text-anchor="middle" font-size="11" fill="#475569">3. Referral to TLD</text>
-
-                        <!-- 4 & 5 -->
                         <path d="M390 250 L550 250" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,5" class="flow-line"/>
                         <text x="470" y="245" text-anchor="middle" font-size="11" fill="#475569">4. Where is example.com?</text>
                         <path d="M550 265 L390 265" stroke="#475569" stroke-width="1.5"/>
                         <text x="470" y="285" text-anchor="middle" font-size="11" fill="#475569">5. Referral to Auth</text>
-
-                        <!-- 6 & 7 -->
                         <path d="M390 270 L550 410" stroke="#475569" stroke-width="1.5" stroke-dasharray="5,5" class="flow-line"/>
                         <text x="450" y="360" text-anchor="middle" font-size="11" fill="#475569">6. What is the IP of www?</text>
                         <path d="M550 435 L380 280" stroke="#475569" stroke-width="1.5"/>
                         <text x="490" y="415" text-anchor="middle" font-size="11" fill="#475569">7. IP Address: 192.0.2.1</text>
-
-                        <!-- Arrowhead definition -->
                         <defs>
                             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
                                 <polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" />
@@ -307,51 +276,93 @@
             </div>
         </section>
 
-        <!-- Chapter 4: Server Configuration (BIND) -->
+        <!-- Chapter 4: DNS Server Configuration Analysis -->
         <section id="chapter-4" class="mb-20">
-            <h2 class="section-title">4. DNS 서버 설정 분석 (BIND Zone File 상세)</h2>
+            <h2 class="section-title">4. DNS 서버 설정 분석 (Infrastructure Level Configuration)</h2>
             <p class="text-lg mb-8 leading-relaxed text-slate-600">
-                표준 DNS 서버인 **BIND(Berkeley Internet Name Domain)**의 존 파일 설정을 통해 실제 레코드가 데이터베이스에서 어떻게 정의되는지 분석합니다. 각 필드의 수치는 시스템 가용성과 직결됩니다.
+                실무에서 가장 널리 사용되는 **BIND(Berkeley Internet Name Domain)** 서버를 기준으로, 인프라의 보안과 성능을 결정짓는 핵심 설정 파일들을 분석합니다. 단순 레코드 정의를 넘어 전역 보안 옵션과 구역 정의를 포함합니다.
+            </p>
+
+            <!-- 4.1 Configuration Structure -->
+            <h3 class="sub-title">4.1 설정 아키텍처: 통합(Monolithic) vs 분리(Modular)</h3>
+            <p class="text-sm mb-6 text-slate-600">
+                BIND 설정은 모든 지시어를 하나의 <code>named.conf</code>에 작성할 수도 있고, 관리 편의를 위해 <code>include</code> 문을 사용하여 여러 파일로 쪼갤 수도 있습니다. 현대 인프라에서는 보안 옵션과 구역 정의를 분리하는 모듈형 구성을 표준으로 삼습니다.
             </p>
 
             <div class="terminal-window">
                 <div class="terminal-header">
-                    <div class="terminal-buttons">
-                        <div class="dot dot-red"></div>
-                        <div class="dot dot-yellow"></div>
-                        <div class="dot dot-green"></div>
-                    </div>
+                    <div class="terminal-buttons"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+                    <div class="text-xs text-slate-400 font-mono">/etc/bind/named.conf (Main Entry)</div>
+                </div>
+                <div class="terminal-body">
+<span class="hl-comment">// 아래와 같이 include 지시어를 통해 설정을 모듈화합니다.</span>
+include "/etc/bind/named.conf.options";
+include "/etc/bind/named.conf.local";
+include "/etc/bind/named.conf.default-zones";
+                </div>
+            </div>
+
+            <!-- 4.2 Global Options -->
+            <h3 class="sub-title">4.2 전역 보안 옵션 분석 (named.conf.options)</h3>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-buttons"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+                    <div class="text-xs text-slate-400 font-mono">/etc/bind/named.conf.options</div>
+                </div>
+                <div class="terminal-body">
+options {
+    directory "/var/cache/bind"; <span class="hl-comment">// 작업 디렉토리 설정</span>
+
+    <span class="hl-comment">// [Security] DNS Amplification DDoS 공격 방지를 위한 ACL 설정</span>
+    recursion no;                <span class="hl-comment">// 외부 질의에 대한 재귀적 질의 허용 안 함 (보안 핵심)</span>
+    allow-query { any; };        <span class="hl-comment">// 권한 서버이므로 누구나 질의 가능</span>
+    allow-transfer { none; };    <span class="hl-comment">// 존 전송(AXFR) 시 인가된 보조 서버 외 전송 차단</span>
+
+    <span class="hl-comment">// [Security] DNSSEC 위조 방지 활성화</span>
+    dnssec-validation auto;      <span class="hl-comment">// 응답 데이터의 디지털 서명을 자동 검증</span>
+
+    listen-on-v6 { any; };       <span class="hl-comment">// IPv6 인터페이스 리스닝 활성화</span>
+};
+                </div>
+            </div>
+
+            <!-- 4.3 Master Zone File -->
+            <h3 class="sub-title">4.3 마스터 존 파일 상세 분석 (db.example.com)</h3>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-buttons"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
                     <div class="text-xs text-slate-400 font-mono">/etc/bind/zones/db.example.com</div>
                 </div>
                 <div class="terminal-body">
-                    <span class="hl-directive">$TTL</span> 86400 <span class="hl-comment">; 전역 TTL 설정 (기본 1일)</span>
-                    <span class="hl-directive">$ORIGIN</span> example.com. <span class="hl-comment">; 루트 도메인 정의 (마침표 포함 필수)</span>
+<span class="hl-directive">$ORIGIN</span> example.com.
+<span class="hl-directive">$TTL</span> 86400           <span class="hl-comment">; 기본 TTL 설정 (1일 = 86400초)</span>
+@   IN  SOA         ns1.example.com. admin.example.com. (
+                    <span class="hl-num">2026030301</span>  <span class="hl-comment">; Serial (일련번호: YYYYMMDDNN 형식 권장)</span>
+                    <span class="hl-num">3600</span>        <span class="hl-comment">; Refresh (새로고침 주기: 보조 서버가 동기화를 확인하는 간격, 1시간)</span>
+                    <span class="hl-num">1800</span>        <span class="hl-comment">; Retry (재시도: 새로고침 실패 시 재시도 간격, 30분)</span>
+                    <span class="hl-num">604800</span>      <span class="hl-comment">; Expire (만료: 주 서버 응답 없을 시 보조 서버 데이터 폐기 시간, 1주일)</span>
+                    <span class="hl-num">86400</span>       <span class="hl-comment">; Minimum TTL (최소 TTL / 부정 캐시 생존 시간, 1일)</span>
+                    )
 
-                    <span class="hl-comment">; [SOA] Start of Authority: 이 존에 대한 마스터 정보</span>
-                    @   IN  SOA  ns1.example.com. admin.example.com. (
-                        <span class="hl-num">2024032501</span> <span class="hl-comment">; Serial: YYYYMMDDNN 형식, 변경 시 보조 서버 동기화 트리거</span>
-                        <span class="hl-num">7200</span>       <span class="hl-comment">; Refresh: 보조 서버가 마스터를 확인하는 주기 (2시간)</span>
-                        <span class="hl-num">3600</span>       <span class="hl-comment">; Retry: 동기화 실패 시 재시도 간격 (1시간)</span>
-                        <span class="hl-num">1209600</span>    <span class="hl-comment">; Expire: 마스터 응답 없을 때 데이터 폐기 전 유지 시간 (2주)</span>
-                        <span class="hl-num">300</span> )      <span class="hl-comment">; Negative TTL: '정보 없음' 결과에 대한 캐시 시간 (5분)</span>
+<span class="hl-comment">; 네임 서버 (Name Server) 레코드 - 이 구역을 담당하는 서버 선언</span>
+@       IN  NS      ns1.example.com.
+@       IN  NS      ns2.example.com.
 
-                    <span class="hl-comment">; [NS] Authoritative Name Servers</span>
-                            IN  NS  ns1.example.com.
-                            IN  NS  ns2.example.com.
+<span class="hl-comment">; 메일 교환기 (Mail Exchanger) 레코드 - 우선순위(10) 지정</span>
+@       IN  MX  10  mail.example.com.
 
-                    <span class="hl-comment">; [A] IPv4 Addresses</span>
-                    @       IN  A   10.50.1.100  <span class="hl-comment">; 루트 도메인 (Zone Apex) 연결</span>
-                    ns1     IN  A   10.50.1.10   <span class="hl-comment">; 네임 서버 1</span>
-                    ns2     IN  A   10.50.1.11   <span class="hl-comment">; 네임 서버 2</span>
-                    www     IN  A   10.50.1.100  <span class="hl-comment">; 웹 서버 메인</span>
-                    api     IN  A   10.50.1.200  <span class="hl-comment">; API 서버</span>
+<span class="hl-comment">; 기본 주소 (Address) 레코드 - 호스트명을 IPv4 주소로 매핑</span>
+@       IN  A       192.0.2.10
+ns1     IN  A       192.0.2.11
+ns2     IN  A       192.0.2.12
+mail    IN  A       192.0.2.20
 
-                    <span class="hl-comment">; [CNAME] Aliases</span>
-                    web     IN  CNAME  www.example.com. <span class="hl-comment">; web.example.com 호출 시 www로 안내</span>
-                    
-                    <span class="hl-comment">; [MX] Mail Servers</span>
-                            IN  MX  10  mx1.example.com.
-                    mx1     IN  A   10.50.1.50
+<span class="hl-comment">; 별칭 (Canonical Name) 레코드 - 다른 도메인 이름을 참조</span>
+www     IN  CNAME   @
+ftp     IN  CNAME   www
+
+<span class="hl-comment">; 텍스트 (Text) 레코드 - 발신자 프레임워크(SPF) 등 보안 검증용</span>
+@       IN  TXT     "v=spf1 ip4:192.0.2.20 -all"
                 </div>
             </div>
 
