@@ -3,397 +3,383 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AWS 전문 가이드: Route 53 DNS 아키텍처 마스터</title>
+    <title>IT 전문가 과정: AWS Route 53 지능형 라우팅 및 아키텍처</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        :root { --aws-squid: #232f3e; --aws-orange: #ff9900; --aws-blue: #0073bb; }
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; color: #1e293b; line-height: 1.8; }
-        .page-break { border-top: 2px dashed #cbd5e1; margin-top: 5rem; padding-top: 5rem; }
-        .prose-title { border-left: 8px solid var(--aws-orange); padding-left: 1.5rem; color: #0f172a; font-weight: 900; }
-        .diagram-container { background: white; border: 1px solid #e2e8f0; border-radius: 1.5rem; padding: 2.5rem; margin: 2.5rem 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
-        .term-tag { background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600; font-size: 0.9em; }
-        .cost-warning { border-left: 6px solid #ef4444; background: #fef2f2; padding: 1.5rem; margin: 2rem 0; border-radius: 0.5rem; }
-        .expert-tip { border-left: 6px solid #10b981; background: #f0fdf4; padding: 1.5rem; margin: 2rem 0; border-radius: 0.5rem; }
-        .code-block { background: #0f172a; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: 'Fira Code', monospace; font-size: 0.85rem; overflow-x: auto; }
-        @media print { .no-print { display: none; } .page-break { page-break-before: always; border: none; } }
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Inter', 'Noto Sans KR', sans-serif; line-height: 1.8; color: #1a202c; scroll-behavior: smooth; }
+        .gradient-bg { background: linear-gradient(135deg, #232f3e 0%, #1a1a1a 100%); } /* AWS Brand Colors */
+        .card { border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); background: white; border: 1px solid #e2e8f0; margin-bottom: 2rem; }
+        code { font-family: 'Fira Code', monospace; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px; color: #e11d48; font-size: 0.9em; }
+        
+        .terminal-window { background: #0f172a; border-radius: 12px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); margin: 2.5rem 0; }
+        .terminal-header { background: #1e293b; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }
+        .terminal-buttons { display: flex; gap: 10px; }
+        .dot { width: 14px; height: 14px; border-radius: 50%; }
+        .dot-red { background: #ff5f56; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green { background: #27c93f; }
+        .terminal-body { padding: 30px; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.9; color: #cbd5e1; overflow-x: auto; white-space: pre; }
+        
+        .section-title { font-size: 2.25rem; font-weight: 800; color: #232f3e; border-left: 8px solid #ff9900; padding-left: 1.5rem; margin-top: 4rem; margin-bottom: 2rem; }
+        .sub-title { font-size: 1.5rem; font-weight: 700; color: #1e40af; margin: 2.5rem 0 1.5rem 0; display: flex; align-items: center; }
+        
+        .infographic { background: #f8fafc; border-radius: 16px; padding: 3rem; border: 1px solid #e2e8f0; margin: 3rem 0; text-align: center; }
+        .policy-card { padding: 1.5rem; border-radius: 10px; border-top: 5px solid #ff9900; background: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        
+        .hl-comment { color: #64748b; font-style: italic; }
+        .hl-num { color: #fbbf24; }
+        .hl-directive { color: #c084fc; font-weight: bold; }
+        
+        .warning-box { background: #fff7ed; border: 1px solid #fed7aa; padding: 2rem; border-radius: 12px; margin: 2rem 0; }
+        .expert-tip { background: #f0fdf4; border-left: 6px solid #22c55e; padding: 1.5rem; border-radius: 0 12px 12px 0; margin: 2.5rem 0; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .pulse { animation: pulse 2s infinite; }
     </style>
 </head>
-<body class="antialiased">
+<body class="bg-slate-50">
 
-    <!-- NAVIGATION -->
-    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 px-8 py-4 no-print shadow-sm">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <span class="font-black text-xl text-slate-900 tracking-tighter">AWS ROUTE 53 ARCHITECT SERIES</span>
-            <div class="hidden md:flex space-x-8 text-sm font-bold text-slate-600">
-                <a href="#dns-basics" class="hover:text-orange-500 transition">DNS Basics</a>
-                <a href="#comparison" class="hover:text-blue-600 transition">Comparison</a>
-                <a href="#r53-features" class="hover:text-indigo-600 transition">Features</a>
-                <a href="#implementation" class="hover:text-green-600 transition">Implementation</a>
-            </div>
+    <!-- Header -->
+    <header class="gradient-bg text-white py-24 px-6">
+        <div class="max-w-6xl mx-auto text-center md:text-left">
+            <h1 class="text-5xl md:text-6xl font-extrabold mb-6 tracking-tight leading-tight">AWS Route 53 <br>Advanced Routing Engine</h1>
+            <p class="text-2xl text-slate-400 font-light italic max-w-3xl">클라우드 네이티브 고가용성 네트워크 설계 및 지능형 트래픽 제어</p>
         </div>
-    </nav>
+    </header>
 
-    <div class="max-w-6xl mx-auto p-6 md:p-20 space-y-32 bg-white shadow-2xl my-12 rounded-2xl">
+    <main class="max-w-6xl mx-auto px-6 pb-40 text-slate-700">
         
-        <!-- COVER PAGE -->
-        <header class="text-center py-32 border-b-8 border-double border-slate-100">
-            <div class="mb-10 flex justify-center">
-                <svg class="w-32 h-32 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-                </svg>
-            </div>
-            <h1 class="text-6xl font-black text-slate-900 mb-10 leading-tight tracking-tighter uppercase">
-                Route 53 DNS<br><span class="text-blue-600">아키텍처 설계와 구현</span>
-            </h1>
-            <p class="text-2xl text-slate-500 font-light max-w-3xl mx-auto leading-relaxed">
-                전역 트래픽 제어, 고가용성 하이브리드 연결, 그리고 코드형 인프라를 통한 <br>DNS(Domain Name System) 현대화 전략
+        <!-- Chapter 1: Route 53 Overview -->
+        <section id="r53-overview">
+            <h2 class="section-title">1. AWS Route 53 서비스 아키텍처 개요</h2>
+            <p class="text-xl leading-relaxed mb-8">
+                AWS Route 53는 가용성과 확장성이 뛰어난 클라우드 **Managed DNS 서비스**입니다. 전 세계적으로 분산된 Anycast 네트워크를 통해 쿼리에 응답하며, AWS 서비스 중 유일하게 **100% 가용성 SLA**를 제공하는 핵심 인프라 서비스입니다.
             </p>
-            <div class="mt-20 text-slate-400 text-sm font-bold tracking-[0.4em]">PROFESSIONAL GRADE | AWS CERTIFIED SOLUTIONS ARCHITECT</div>
-        </header>
 
-        <!-- PAGE 1: DNS 및 Route 53 기초 -->
-        <section id="dns-basics" class="space-y-12">
-            <h2 class="text-4xl font-black prose-title uppercase italic">DNS 기초와 Route 53의 정의</h2>
-            
-            <div class="space-y-6 text-lg leading-relaxed text-slate-700">
-                <p>
-                    <span class="term-tag">DNS (Domain Name System, 도메인 이름 시스템)</span>은 사람이 읽을 수 있는 도메인 이름(예: example.com)을 컴퓨터가 이해할 수 있는 IP 주소(예: 192.0.2.1)로 변환해주는 '인터넷의 전화번호부'와 같습니다.
-                </p>
-                <p>
-                    <span class="term-tag">Route 53 (Route 53, 53번 포트 경로)</span>은 AWS에서 제공하는 가용성과 확장성이 뛰어난 클라우드 DNS 웹 서비스입니다. 이름의 유래는 DNS 쿼리가 표준적으로 사용하는 **TCP/UDP 53번 포트**와 미국 전역을 횡단하는 전설적인 도로인 **Route 66**의 오마주가 결합된 것입니다.
-                </p>
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="p-8 bg-white card border-t-8 border-orange-500">
+                    <h4 class="text-xl font-bold mb-4">글로벌 Anycast 네트워크</h4>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Route 53는 하나의 IP 주소를 전 세계 수많은 Edge Location에서 공유합니다. 사용자의 쿼리는 네트워크 경로상 가장 가까운 노드에서 처리되어 밀리초(ms) 단위의 응답 속도를 보장합니다.
+                    </p>
+                </div>
+                <div class="p-8 bg-white card border-t-8 border-blue-600">
+                    <h4 class="text-xl font-bold mb-4">서비스 통합성</h4>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        ELB, S3, CloudFront 등 AWS 리소스의 상태와 직접 연동됩니다. Alias 레코드를 통해 이러한 리소스들을 Zone Apex에서 비용 효율적으로 매핑할 수 있습니다.
+                    </p>
+                </div>
             </div>
 
-            <div class="diagram-container bg-slate-50">
-                <h4 class="font-bold text-center mb-6 text-slate-500">DNS 쿼리 흐름도 (Recursive vs Authoritative)</h4>
-                <svg width="700" height="300" viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg">
-                    <!-- User -->
-                    <circle cx="80" cy="150" r="40" fill="#f8fafc" stroke="#334155" stroke-width="2"/>
-                    <text x="55" y="155" fill="#334155" font-size="12" font-weight="bold">사용자</text>
-                    
-                    <!-- Resolver -->
-                    <rect x="220" y="100" width="120" height="100" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-                    <text x="235" y="145" fill="#1e40af" font-size="12" font-weight="bold">Recursive</text>
-                    <text x="245" y="165" fill="#1e40af" font-size="12" font-weight="bold">Resolver</text>
+            <h3 class="sub-title">Hosted Zone (호스팅 영역)</h3>
+            <div class="space-y-4 mb-12">
+                <div class="p-6 bg-slate-100 rounded-lg border-l-4 border-slate-400">
+                    <strong class="text-slate-800">Public Hosted Zone:</strong> 인터넷 트래픽을 도메인의 리소스로 라우팅하는 컨테이너입니다.
+                </div>
+                <div class="p-6 bg-slate-100 rounded-lg border-l-4 border-slate-400">
+                    <strong class="text-slate-800">Private Hosted Zone:</strong> 하나 이상의 VPC 내에서만 유효한 DNS 레코드를 관리합니다. 외부에는 노출되지 않는 내부 서비스용 도메인 설계에 활용됩니다.
+                </div>
+            </div>
+        </section>
 
-                    <!-- Route 53 (Authoritative) -->
-                    <rect x="480" y="100" width="140" height="100" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
-                    <text x="495" y="145" fill="#9a3412" font-size="12" font-weight="bold">Authoritative</text>
-                    <text x="505" y="165" fill="#9a3412" font-size="12" font-weight="bold">Route 53</text>
+        <!-- Chapter 2: Alias Record -->
+        <section id="alias-records" class="mb-20">
+            <h2 class="section-title">2. Alias(별칭) 레코드: 클라우드 네이티브 설계의 핵심</h2>
+            <p class="text-lg mb-8 leading-relaxed">
+                전통적인 DNS 표준(RFC)에서는 **Zone Apex(예: example.com)**에 CNAME 레코드를 허용하지 않습니다. 하지만 Route 53의 **Alias 레코드**는 이 제약을 아키텍처적으로 극복합니다.
+            </p>
 
-                    <!-- Arrows -->
-                    <path d="M130 150 L210 150" stroke="#334155" stroke-width="2" marker-end="url(#arrow-head)"/>
-                    <path d="M350 150 L470 150" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+            <div class="infographic card py-12">
+                <h3 class="text-lg font-bold mb-10 text-slate-500 uppercase tracking-widest">[ Alias Record vs CNAME ]</h3>
+                <div class="flex justify-center overflow-x-auto">
+                    <svg width="700" height="300" viewBox="0 0 700 300" class="min-w-[600px]">
+                        <!-- CNAME Flow -->
+                        <rect x="50" y="50" width="120" height="40" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+                        <text x="110" y="75" text-anchor="middle" font-size="12">example.com</text>
+                        <path d="M170 70 L250 70" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="210" y="60" text-anchor="middle" font-size="10" fill="#ef4444">Not Allowed</text>
+                        <rect x="250" y="50" width="120" height="40" rx="5" fill="#fee2e2" stroke="#ef4444"/>
+                        <text x="310" y="75" text-anchor="middle" font-size="12">CNAME</text>
 
-                    <defs>
-                        <marker id="arrow-head" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/></marker>
-                        <marker id="arrow-blue" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
-                    </defs>
-                </svg>
-                <p class="text-xs text-slate-400 mt-4 text-center">도메인 해석 요청(Recursive)과 최종 답변 제공(Authoritative)의 상호작용</p>
+                        <!-- Alias Flow -->
+                        <rect x="50" y="200" width="120" height="60" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+                        <text x="110" y="235" text-anchor="middle" font-size="12">example.com</text>
+                        <path d="M170 230 L350 230" stroke="#3b82f6" stroke-width="3" stroke-dasharray="5,5"/>
+                        <text x="260" y="220" text-anchor="middle" font-size="11" fill="#1e40af" font-weight="bold">AWS Internal Mapping (Free)</text>
+                        <rect x="350" y="200" width="200" height="60" rx="10" fill="#dbeafe" stroke="#1e40af" stroke-width="2"/>
+                        <text x="450" y="235" text-anchor="middle" font-weight="bold" fill="#1e3a8a">ELB / S3 / CloudFront</text>
+
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" />
+                            </marker>
+                        </defs>
+                    </svg>
+                </div>
             </div>
 
-            <div class="sidebar-note bg-slate-100 p-8 rounded-xl border border-slate-200">
-                <h4 class="font-bold mb-3 text-slate-800 underline">전문 용어 주석</h4>
-                <ul class="text-sm space-y-2 text-slate-600">
-                    <li>• <span class="font-bold">Recursive Resolver (재귀적 해석기)</span>: 사용자의 요청을 받아 여러 네임서버를 대신 찾아다니며 최종 IP를 알아내는 서버 (예: ISP DNS, Google 8.8.8.8).</li>
-                    <li>• <span class="font-bold">Authoritative Name Server (권한 있는 네임서버)</span>: 특정 도메인에 대한 최종 답변(IP 주소 등)을 공식적으로 보유하고 있는 서버 (Route 53의 역할).</li>
+            <div class="expert-tip">
+                <h4 class="font-bold text-green-800 text-lg mb-2">💡 아키텍트의 관점: 왜 Alias인가?</h4>
+                <ul class="check-list text-sm text-green-700">
+                    <li><strong>Zone Apex 사용 가능:</strong> 루트 도메인을 로드밸런서에 직접 연결할 수 있습니다.</li>
+                    <li><strong>비용 절감:</strong> AWS 리소스를 대상으로 하는 Alias 쿼리는 과금되지 않습니다.</li>
+                    <li><strong>성능 향상:</strong> 재귀 리졸버가 두 번 질의할 필요 없이 한 번에 최종 리소스를 인식합니다.</li>
+                    <li><strong>자동 갱신:</strong> 대상 리소스(ELB 등)의 IP가 변경되어도 DNS 수준에서 즉시 동기화됩니다.</li>
                 </ul>
             </div>
         </section>
 
-        <!-- PAGE 2: 기능적 비교 분석 (온프레미스 vs 상위 DNS vs Route 53) -->
-        <section id="comparison" class="page-break space-y-12">
-            <h2 class="text-4xl font-black prose-title uppercase">기능 및 역할 비교 분석</h2>
-            
-            <p class="text-lg text-slate-700">
-                성공적인 하이브리드 클라우드 구축을 위해서는 전통적인 <span class="term-tag">On-premise (온프레미스, 사내 구축형)</span> DNS와 <span class="term-tag">TLD (Top-Level Domain, 최상위 도메인)</span> 서버, 그리고 Route 53의 차이를 명확히 이해해야 합니다.
+        <!-- Chapter 3: Routing Policies Deep Dive -->
+        <section id="routing-policies" class="mb-20">
+            <h2 class="section-title">3. 지능형 라우팅 정책 (Routing Policies) 상세 분석</h2>
+            <p class="text-lg mb-8 leading-relaxed">
+                비즈니스 요구사항에 따라 트래픽을 어떻게 배분할 것인지 결정하는 논리 구조입니다. 지연시간(Latency) 비교는 이 섹션의 핵심입니다.
             </p>
 
-            <div class="overflow-hidden border border-slate-200 rounded-2xl shadow-premium bg-white">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-900 text-white">
-                        <tr>
-                            <th class="p-6 font-bold">비교 항목</th>
-                            <th class="p-6 font-bold">온프레미스 DNS (예: BIND)</th>
-                            <th class="p-6 font-bold">상위/TLD DNS (예: .com)</th>
-                            <th class="p-6 font-bold">Route 53 (Managed DNS)</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 text-sm text-slate-600">
-                        <tr>
-                            <td class="p-6 font-bold bg-slate-50">관리 주체</td>
-                            <td class="p-6">사내 인프라 팀 (직접 관리)</td>
-                            <td class="p-6">ICANN 및 각국 등록기관</td>
-                            <td class="p-6 text-blue-600 font-bold">AWS (Managed Service)</td>
-                        </tr>
-                        <tr>
-                            <td class="p-6 font-bold bg-slate-50">주요 기능</td>
-                            <td class="p-6">내부망 호스트 이름 해석</td>
-                            <td class="p-6">하위 네임서버 위치 안내 (포인팅)</td>
-                            <td class="p-6">전역 트래픽 제어 및 상태 확인</td>
-                        </tr>
-                        <tr>
-                            <td class="p-6 font-bold bg-slate-50">가용성</td>
-                            <td class="p-6">서버 이중화 필요 (H/W 의존)</td>
-                            <td class="p-6">극도로 높음 (인터넷 근간)</td>
-                            <td class="p-6 text-blue-600 font-bold">100% SLA 보장 (Anycast 활용)</td>
-                        </tr>
-                        <tr>
-                            <td class="p-6 font-bold bg-slate-50">하이브리드 지원</td>
-                            <td class="p-6">수동 전달(Forwarding) 설정</td>
-                            <td class="p-6">해당 없음</td>
-                            <td class="p-6">R53 Resolver를 통한 자동화</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="policy-card">
+                    <h4 class="font-bold text-slate-800 mb-2">Simple Routing</h4>
+                    <p class="text-xs text-slate-500">도메인에 대해 특정 리소스 하나를 지정합니다. 가장 기본적인 방식입니다.</p>
+                </div>
+                <div class="policy-card">
+                    <h4 class="font-bold text-slate-800 mb-2">Weighted Routing</h4>
+                    <p class="text-xs text-slate-500">가중치에 따라 트래픽을 분산합니다. 예: 90%는 안정 버전, 10%는 신규 버전(Canary) 배포.</p>
+                </div>
+                <div class="policy-card border-blue-500">
+                    <h4 class="font-bold text-blue-700 mb-2">Latency Routing</h4>
+                    <p class="text-xs text-slate-500">사용자와 리전 간의 네트워크 지연시간을 측정하여 **최저 지연시간**을 제공하는 리전으로 응답합니다.</p>
+                </div>
+                <div class="policy-card border-red-500">
+                    <h4 class="font-bold text-red-700 mb-2">Failover Routing</h4>
+                    <p class="text-xs text-slate-500">Active-Passive 구성입니다. Primary의 Health Check 실패 시 즉시 Secondary로 트래픽을 전환합니다.</p>
+                </div>
+                <div class="policy-card">
+                    <h4 class="font-bold text-slate-800 mb-2">Geolocation Routing</h4>
+                    <p class="text-xs text-slate-500">사용자의 지리적 위치(국가, 대륙)를 기준으로 트래픽을 유도합니다.</p>
+                </div>
+                <div class="policy-card">
+                    <h4 class="font-bold text-slate-800 mb-2">Multi-value Answer</h4>
+                    <p class="text-xs text-slate-500">상태가 양호한 레코드를 최대 8개까지 랜덤하게 반환하여 클라이언트 측 부하 분산을 지원합니다.</p>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <h4 class="font-bold text-slate-900 mb-3">Q. Latency Routing: 10ms vs 100ms?</h4>
+                <p class="text-sm leading-relaxed">
+                    사용자가 쿼리를 보낼 때, Route 53은 전 세계 네트워크 맵을 기반으로 해당 사용자 위치에서 각 AWS 리전까지의 왕복 시간(RTT)을 비교합니다. 
+                    <strong>당연히 지연시간이 더 짧은 10ms 리전의 IP를 반환합니다.</strong> 100ms 지연은 사용자 경험을 저해하는 요소이므로, 아키텍트는 글로벌 서비스 설계 시 주요 거점 리전에 엔드포인트를 배치하여 이 수치를 최소화해야 합니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- Chapter 4: R53 Configuration Analysis & IaC -->
+        <section id="r53-config" class="mb-20">
+            <h2 class="section-title">4. Route 53 설정 분석 및 IaC 구현</h2>
+            <p class="text-lg mb-8 leading-relaxed">
+                AWS 인프라 아키텍처는 수작업이 아닌 **IaC(Infrastructure as Code)**를 통해 관리되어야 합니다. 대규모 환경에서 테라폼(Terraform)의 한계를 극복하고 모듈 재사용성을 극대화하는 **테라그런트(Terragrunt)**를 이용한 구현 및 운영 가이드를 제공합니다.
+            </p>
+
+            <h3 class="sub-title">4.1 Terragrunt를 이용한 지능형 레코드 구현 (terragrunt.hcl)</h3>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-buttons"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+                    <div class="text-xs text-slate-400 font-mono">prod/us-east-1/route53/terragrunt.hcl</div>
+                </div>
+                <div class="terminal-body">
+<span class="hl-comment"># 상위 설정에서 공통 변수 상속</span>
+include "root" {
+    path = find_in_parent_folders()
+}
+
+<span class="hl-comment"># Route 53 테라폼 공식 모듈 참조</span>
+terraform {
+    source = "tfr:///terraform-aws-modules/route53/aws//modules/records?version=2.10.2"
+}
+
+<span class="hl-comment"># 지능형 라우팅 및 Alias 레코드 정의</span>
+inputs = {
+    zone_name = "example.com"
+
+    records = [
+        {
+            name = "api"
+            type = "A"
+            <span class="hl-comment"># Route 53 Alias 설정: ELB 엔드포인트로 직접 매핑</span>
+            alias = {
+                dns_name               = "dualstack.prod-api-elb-12345.us-east-1.elb.amazonaws.com"
+                zone_id                = "Z2FDTNDATAQYW2" <span class="hl-comment"># ELB/CloudFront 리전별 고정 ID</span>
+                evaluate_target_health = true
+            }
+        },
+        {
+            name = "static"
+            type = "CNAME"
+            ttl  = 300
+            records = ["cdn.cloudfront.net"]
+        }
+    ]
+}
+                </div>
+            </div>
+
+            <h3 class="sub-title">4.2 인프라 실행 및 최종 검증 (Execution & Verification)</h3>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-buttons"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+                    <div class="text-xs text-slate-400 font-mono">bash — deployment_guide.sh</div>
+                </div>
+                <div class="terminal-body">
+<span class="hl-comment"># [실행] 테라그런트를 이용한 인프라 배포</span>
+terragrunt plan    <span class="hl-comment"># 변경 사항 사전 검토</span>
+terragrunt apply   <span class="hl-comment"># 실제 AWS 인프라에 반영 (승인 필요)</span>
+
+<span class="hl-comment"># [검증] DNS 레코드 반영 여부 확인</span>
+<span class="hl-comment"># 1. 'dig'를 이용한 응답 IP 확인</span>
+dig api.example.com +short
+
+<span class="hl-comment"># 2. 'nslookup'을 이용한 계층 구조 확인</span>
+nslookup static.example.com
+                </div>
             </div>
 
             <div class="expert-tip">
-                <h4 class="font-black text-green-800 mb-2">Architect's Insight: Anycast 네트워크</h4>
-                <p class="text-sm text-green-900 leading-relaxed">
-                    Route 53이 100% 가용성을 보장할 수 있는 이유는 **Anycast (애니캐스트, 전 세계 어디서든 동일한 IP로 가장 가까운 노드에 접속하는 기술)**를 사용하기 때문입니다. 전 세계 수백 개의 엣지 로케이션에 동일한 IP 주소를 할당하여, 특정 지역에 장애가 발생해도 시스템이 자동으로 다른 최적의 경로로 쿼리를 라우팅합니다.
+                <h4 class="font-bold text-slate-800 mb-2 underline">실무 대기 시간 및 전파 가이드</h4>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    <strong>AWS API 반영 시간:</strong> <code>terragrunt apply</code> 완료 즉시 AWS Authoritative 네임서버에는 데이터가 반영됩니다 (보통 수초 내외).<br>
+                    <strong>재귀 리졸버 대기 시간:</strong> 전 세계 ISP의 리졸버 캐시에 반영되는 시간은 설정된 <strong>TTL(Time To Live)</strong>에 비례합니다. 신규 레코드는 즉시 전파되지만, 변경(Update)의 경우 기존 캐시가 만료될 때까지 <strong>보통 60초~300초(5분)</strong>의 대기 시간이 필요합니다.
                 </p>
             </div>
-        </section>
 
-        <!-- PAGE 3: Route 53만의 고유 특징 -->
-        <section id="r53-features" class="page-break space-y-12">
-            <h2 class="text-4xl font-black prose-title uppercase">Route 53 독보적 핵심 기능</h2>
-            
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- Feature 1 -->
-                <div class="p-8 bg-white border border-slate-200 rounded-2xl hover:shadow-xl transition-shadow group">
-                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A2 2 0 013 15.382V6.618a2 2 0 011.553-1.944L9 4m0 16l5.447-2.724A2 2 0 0015 15.382V6.618a2 2 0 00-1.553-1.944L9 4m0 16V4"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-4">다양한 라우팅 정책 (Routing Policies)</h3>
-                    <ul class="text-sm space-y-2 text-slate-600">
-                        <li>• <span class="font-bold">Weighted (가중치 기반)</span>: 트래픽의 %를 나누어 전송 (카나리 배포 용도).</li>
-                        <li>• <span class="font-bold">Latency (지연 시간 기반)</span>: 사용자에게 응답 속도가 가장 빠른 리전으로 전달.</li>
-                        <li>• <span class="font-bold">Failover (장애 조치)</span>: 기본 서버 장애 시 예비 서버로 자동 전환.</li>
-                        <li>• <span class="font-bold">Geolocation (지리적 위치)</span>: 사용자의 국가/대륙별로 다른 IP 제공.</li>
-                    </ul>
+            <h3 class="sub-title">4.3 BIND 스타일의 R53 존 데이터 내보내기 예시</h3>
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-buttons"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+                    <div class="text-xs text-slate-400 font-mono">route53-zone-export.txt</div>
                 </div>
+                <div class="terminal-body">
+<span class="hl-directive">$ORIGIN</span> example.com.
+<span class="hl-directive">$TTL</span> 300              <span class="hl-comment">; 클라우드 환경에서는 변경 대응을 위해 짧은 TTL 선호</span>
+@   IN  SOA         ns-2048.awsdns-64.com. awsdns-hostmaster.amazon.com. (
+                    <span class="hl-num">1</span>           <span class="hl-comment">; AWS가 자동 관리하는 일련번호</span>
+                    <span class="hl-num">7200</span>        <span class="hl-comment">; Refresh</span>
+                    <span class="hl-num">900</span>         <span class="hl-comment">; Retry</span>
+                    <span class="hl-num">1209600</span>     <span class="hl-comment">; Expire</span>
+                    <span class="hl-num">60</span>          <span class="hl-comment">; Minimum TTL (부정 캐시 시간)</span>
+                    )
 
-                <!-- Feature 2 -->
-                <div class="p-8 bg-white border border-slate-200 rounded-2xl hover:shadow-xl transition-shadow group">
-                    <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-4">상태 확인 및 모니터링 (Health Checks)</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">
-                        단순히 IP를 알려주는 것을 넘어, 대상 서버의 상태를 주기적으로 체크합니다. 서버가 응답하지 않으면 DNS 수준에서 해당 레코드를 즉시 제거하여 사용자 경험 저하를 막습니다.
-                    </p>
-                </div>
+<span class="hl-comment">; Route 53 전용 네임 서버</span>
+@       IN  NS      ns-2048.awsdns-64.com.
+@       IN  NS      ns-1234.awsdns-20.org.
 
-                <!-- Feature 3 -->
-                <div class="p-8 bg-white border border-slate-200 rounded-2xl hover:shadow-xl transition-shadow group">
-                    <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-4">Alias Record (별칭 레코드)</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">
-                        AWS 리소스(ELB, S3 등) 전용 기능입니다. 일반적인 CNAME과 달리 **추가적인 DNS 쿼리 비용이 발생하지 않으며**, Zone Apex(루트 도메인, 예: example.com)에 대해서도 별칭을 지정할 수 있는 혁신적인 기능입니다.
-                    </p>
-                </div>
-
-                <!-- Feature 4 -->
-                <div class="p-8 bg-white border border-slate-200 rounded-2xl hover:shadow-xl transition-shadow group">
-                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-green-600 group-hover:text-white transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-4">하이브리드 리졸버 (Resolver)</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">
-                        온프레미스 DNS와 AWS VPC 내부 DNS 사이의 가교 역할을 합니다. **Inbound/Outbound Endpoint**를 통해 VPN이나 Direct Connect를 넘어 양방향 도메인 질의를 가능케 합니다.
-                    </p>
+<span class="hl-comment">; 주요 레코드</span>
+db      IN  A       10.0.1.50
+api     IN  A       10.0.1.100
                 </div>
             </div>
-        </section>
 
-        <!-- PAGE 4: GUI 구축 가이드 -->
-        <section id="implementation" class="page-break space-y-12">
-            <h2 class="text-4xl font-black prose-title uppercase">실무 구축 가이드: AWS Console (GUI)</h2>
-            
-            <div class="space-y-8">
-                <div class="flex items-start gap-6">
-                    <div class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0">1</div>
-                    <div class="flex-1">
-                        <h4 class="text-xl font-bold mb-2">Hosted Zone (호스팅 영역) 생성</h4>
-                        <p class="text-slate-600 text-sm mb-4">구매한 도메인(예: expert-cloud.com)을 등록하는 단계입니다.</p>
-                        <ul class="list-disc list-inside text-sm text-slate-500 space-y-1">
-                            <li>[Create hosted zone] 버튼 클릭</li>
-                            <li>[Domain name] 입력 및 [Type] 선택 (Public: 인터넷용, Private: 내부망용)</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-6">
-                    <div class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0">2</div>
-                    <div class="flex-1">
-                        <h4 class="text-xl font-bold mb-2">Record (레코드) 생성</h4>
-                        <p class="text-slate-600 text-sm mb-4">실제 트래픽을 어디로 보낼지 정의합니다.</p>
-                        <ul class="list-disc list-inside text-sm text-slate-500 space-y-1">
-                            <li>[Create record] 클릭</li>
-                            <li>[Record type] 선택 (A: IPv4 주소, CNAME: 다른 도메인, MX: 이메일 서버 등)</li>
-                            <li>[Alias] 스위치 활성화: AWS ELB나 S3 엔드포인트를 선택할 때 권장</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="cost-warning">
-                    <h4 class="font-black text-red-800 mb-2 underline">⚠️ 과금 정책 안내 (Pricing)</h4>
-                    <p class="text-sm text-red-900 leading-relaxed">
-                        • **Hosted Zone**: 영역당 **월 $0.50**의 기본 고정비가 발생합니다.<br>
-                        • **Query Fee**: 100만 건당 **$0.40** (표준 쿼리 기준)의 사용료가 부과됩니다.<br>
-                        • **Health Checks**: 리소스당 **월 $0.50~$0.75** (AWS 내/외부 여부에 따라 다름)가 추가됩니다.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- PAGE 5: 전문가 팁 및 주의사항 -->
-        <section class="page-break space-y-12">
-            <h2 class="text-4xl font-black prose-title uppercase">Architect's Checklist: 주의사항 및 팁</h2>
-            
-            <div class="grid md:grid-cols-2 gap-10">
-                <div class="space-y-6">
-                    <h3 class="text-2xl font-black text-slate-800 border-b pb-2">필독 주의사항</h3>
-                    <ul class="space-y-4 text-sm">
-                        <li class="flex items-start gap-3">
-                            <span class="text-red-500 font-bold">!</span>
-                            <span><strong>TTL (Time To Live, 유지 시간) 관리:</strong> 변경 사항이 생길 예정이라면 사전에 TTL 값을 낮춰두어야 합니다. 너무 높으면 전 세계 DNS 캐시에 옛 정보가 남아 장애 복구가 늦어집니다.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="text-red-500 font-bold">!</span>
-                            <span><strong>NS (Name Server, 네임서버) 위임 확인:</strong> 도메인 등록처(가비아, 후이즈 등)에서 Route 53이 부여한 4개의 네임서버 주소를 정확히 업데이트해야 활성화됩니다.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="text-red-500 font-bold">!</span>
-                            <span><strong>CNAME vs Alias:</strong> 루트 도메인(example.com)에는 RFC 표준상 CNAME을 쓸 수 없습니다. 반드시 **Route 53 Alias**를 사용하십시오.</span>
-                        </li>
-                    </ul>
-                </div>
-                <div class="space-y-6">
-                    <h3 class="text-2xl font-black text-slate-800 border-b pb-2">실무 전문가 팁</h3>
-                    <ul class="space-y-4 text-sm">
-                        <li class="flex items-start gap-3">
-                            <span class="text-green-600 font-bold">★</span>
-                            <span><strong>Blue/Green 배포 활용:</strong> Weighted Routing을 사용하여 신규 버전으로 트래픽을 5%, 10%, 50% 점진적으로 넘기며 안정성을 테스트하십시오.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="text-green-600 font-bold">★</span>
-                            <span><strong>CloudWatch 통합:</strong> Health Check 상태를 CloudWatch 경보와 연동하여 관리자가 즉시 인지하도록 자동화하십시오.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="text-green-600 font-bold">★</span>
-                            <span><strong>로그 감사:</strong> 쿼리 로그(Query Logs)를 활성화하여 어떤 IP에서 비정상적인 요청이 오는지 분석하고 보안에 대비하십시오.</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </section>
-
-        <!-- PAGE 6: Terragrunt 구현 자동화 -->
-        <section id="terragrunt" class="page-break space-y-12">
-            <h2 class="text-4xl font-black prose-title uppercase text-green-700 border-green-600">IaC 자동화: Terragrunt 구현</h2>
-            
-            <p class="text-lg text-slate-700">
-                <span class="term-tag">Terragrunt (테라그룬트)</span>를 사용하면 여러 계정이나 리전의 DNS 설정을 표준화된 코드로 관리할 수 있습니다.
+            <h3 class="sub-title">4.4 Route 53 데이터 추출 및 저장 자동화 (Data Extraction)</h3>
+            <p class="text-sm mb-6 text-slate-600 leading-relaxed">
+                대규모 마이그레이션이나 백업을 위해 Route 53의 호스팅 영역 데이터를 실제로 파일로 추출하고 저장하는 구체적인 방법입니다.
             </p>
 
-            <div class="code-block shadow-2xl">
-<pre><code><span class="text-gray-500"># terragrunt.hcl (Route 53 DNS 설정 자동화)</span>
-include "root" {
-  path = find_in_parent_folders()
-}
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-buttons"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+                    <div class="text-xs text-slate-400 font-mono">bash — r53-export-scripts.sh</div>
+                </div>
+                <div class="terminal-body">
+<span class="hl-comment"># [방법 1] AWS CLI를 이용한 JSON 파일 추출</span>
+<span class="hl-comment"># 특정 호스트 존 ID의 모든 레코드 세트를 JSON 파일로 저장합니다.</span>
+aws route53 list-resource-record-sets \
+    --hosted-zone-id <span class="hl-id">"Z0123456789ABC"</span> \
+    --output json > example_com_backup.json
 
-terraform {
-  source = "tfr:///terraform-aws-modules/route53/aws//modules/zones?version=2.10.2"
-}
+<span class="hl-comment"># [방법 2] cli53 도구를 이용한 BIND 포맷 저장 (가장 권장됨)</span>
+<span class="hl-comment"># cli53은 R53 데이터를 표준 BIND 존 파일 형식으로 즉시 변환해줍니다.</span>
+<span class="hl-comment"># 설치: 'pip install cli53' 또는 바이너리 다운로드</span>
+cli53 export example.com > example.com.zone
 
-inputs = {
-  zones = {
-    "expert-infra.com" = {
-      comment = "전문가 인프라 교육용 공식 도메인"
-      tags = {
-        Environment = "Production"
-        Owner       = "SeniorArchitect"
-      }
-    }
-  }
+<span class="hl-comment"># [방법 3] Python Boto3를 이용한 정교한 데이터 추출 및 저장</span>
+cat <<EOF > export_r53.py
+import boto3, json
+client = boto3.client('route53')
+response = client.list_resource_record_sets(HostedZoneId='Z0123456789ABC')
 
-  records = [
-    {
-      name = "www"
-      type = "A"
-      alias = {
-        name    = "dualstack.my-alb-12345.ap-northeast-2.elb.amazonaws.com"
-        zone_id = "Z23456789ABCDEF" <span class="text-gray-500"># 해당 리전의 ELB 호스팅 영역 ID</span>
-      }
-    },
-    {
-      name = "api"
-      type = "A"
-      ttl  = 300
-      records = ["13.124.1.100", "13.124.1.101"] <span class="text-gray-500"># 라운드 로빈 다중 IP</span>
-    }
-  ]
-}</code></pre>
+with open('r53_records.txt', 'w') as f:
+    for record in response['ResourceRecordSets']:
+        f.write(f"Name: {record['Name']}, Type: {record['Type']}\n")
+EOF
+python3 export_r53.py
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-xl border border-slate-200 mt-6 shadow-sm">
+                <h4 class="font-bold text-xl mb-4 border-b pb-2">설정 시 치명적 주의사항 (Common Mistakes)</h4>
+                <ul class="check-list">
+                    <li><strong>AliasTarget의 HostedZoneId 오기입:</strong> ELB나 CloudFront의 호스트 존 ID는 리전별로 고정된 값을 가집니다. 이를 본인의 Route 53 존 ID로 적으면 라우팅이 실패합니다.</li>
+                    <li><strong>EvaluateTargetHealth 누락:</strong> 이 옵션이 <code>false</code>이면 대상 ELB가 장애가 나더라도 Route 53은 계속 해당 리소스로 트래픽을 보냅니다. 고가용성 설계 시 반드시 <code>true</code>로 설정해야 합니다.</li>
+                    <li><strong>TTL과 캐싱의 이해:</strong> Alias 레코드는 AWS 내부 맵핑이므로 TTL 설정을 무시하고 실시간으로 변동을 반영하지만, 일반 레코드는 여전히 TTL의 영향을 받습니다.</li>
+                </ul>
             </div>
         </section>
 
-        <!-- PAGE 7: 실행 및 검증 (Verification) -->
-        <section class="page-break space-y-12">
-            <h2 class="text-4xl font-black prose-title uppercase">구축 결과 확인 및 검증 방법</h2>
-            
-            <div class="grid md:grid-cols-2 gap-12">
-                <div class="space-y-6">
-                    <h4 class="text-xl font-bold">1. 명령줄 도구 활용 (CLI 검증)</h4>
-                    <div class="bg-slate-50 p-6 rounded-xl space-y-4">
-                        <div class="font-mono text-sm">
-                            <p class="text-blue-600 font-bold">$ dig www.expert-infra.com</p>
-                            <p class="text-slate-500">→ ANSWER SECTION에서 설정한 IP/Alias 확인</p>
-                        </div>
-                        <div class="font-mono text-sm border-t pt-4">
-                            <p class="text-blue-600 font-bold">$ nslookup api.expert-infra.com</p>
-                            <p class="text-slate-500">→ 설정된 다중 IP가 라운드 로빈으로 나오는지 확인</p>
-                        </div>
-                    </div>
+        <!-- Chapter 5: Security & Hybrid Cloud -->
+        <section id="r53-security" class="mb-20">
+            <h2 class="section-title">5. DNS 보안 및 하이브리드 인프라 연동</h2>
+            <p class="text-lg mb-8 leading-relaxed">
+                보안 전문가는 DNS 쿼리 데이터를 통해 침해 사고를 분석합니다. Route 53는 이를 위해 강력한 로깅 및 보안 기능을 제공합니다.
+            </p>
+
+            <div class="grid md:grid-cols-2 gap-10">
+                <div class="p-8 bg-white card border-l-8 border-red-600">
+                    <h4 class="text-xl font-bold mb-3">DNSSEC on Route 53</h4>
+                    <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                        도메인 하이재킹과 조작을 방지하기 위해 응답에 디지털 서명을 추가합니다. Route 53는 KMS와 연동하여 마스터 키를 안전하게 관리하며 원클릭으로 DNSSEC 설정을 지원합니다.
+                    </p>
                 </div>
-                <div class="space-y-6">
-                    <h4 class="text-xl font-bold">2. 온라인 도구 활용 (전역 전파 확인)</h4>
-                    <p class="text-sm text-slate-600">
-                        전 세계의 DNS 서버에 캐시가 갱신되었는지 확인하기 위해 <a href="https://whatsmydns.net" target="_blank" class="text-blue-600 underline">WhatsMyDNS</a>나 <a href="https://dnschecker.org" target="_blank" class="text-blue-600 underline">DNSChecker</a> 서비스를 활용하십시오. 지도상에 초록색 체크 표시가 나타나면 정상 전파된 것입니다.
+                <div class="p-8 bg-white card border-l-8 border-blue-600">
+                    <h4 class="text-xl font-bold mb-3">R53 Resolver (Endpoints)</h4>
+                    <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                        온프레미스 데이터센터와 AWS VPC 간의 원활한 DNS 질의를 위해 **Inbound/Outbound Endpoint**를 제공합니다. 이를 통해 하이브리드 환경에서 단일 도메인 체계를 구축할 수 있습니다.
                     </p>
                 </div>
             </div>
 
-            <div class="expert-note bg-slate-900 text-white border-none p-12 rounded-[2.5rem] mt-20">
-                <h3 class="text-3xl font-black mb-6 text-orange-400">강의 요약 및 핵심 정리</h3>
-                <p class="text-slate-300 leading-relaxed mb-8">
-                    DNS는 서비스의 관문입니다. Route 53은 단순한 주소 변환기가 아닌, **전역 로드 밸런싱(Global Server Load Balancing, GSLB)**의 정수입니다. 테라그룬트와 같은 도구로 자동화하고, 상태 확인을 통해 자가 치유(Self-healing) 인프라를 구축하는 것이 현대 아키텍트의 숙명입니다.
+            <div class="expert-tip">
+                <h4 class="font-bold text-slate-800 mb-2 underline">Query Logging 아키텍처</h4>
+                <p class="text-sm text-slate-600">
+                    Route 53 쿼리 로그를 <strong>CloudWatch Logs</strong>나 <strong>S3</strong>로 전송하여 실시간 모니터링 체계를 구축하십시오. 특정 시간대에 급증하는 쿼리나 도메인 생존 확인 시도(Reconnaissance)를 탐지할 수 있는 유일한 증거가 됩니다.
                 </p>
-                <div class="flex gap-6 text-xs font-bold tracking-widest text-slate-500">
-                    <span>100% AVAILABILITY</span>
-                    <span>ANYCAST NETWORK</span>
-                    <span>HYBRID RESOLVER</span>
-                </div>
             </div>
         </section>
 
-    </div>
-
-    <!-- STICKY FOOTER -->
-    <footer class="bg-slate-900 text-white p-10 no-print">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs opacity-60">
-            <p>&copy; 2024 IP 직업훈련 전문가과정 - AWS Cloud Architect Master Series.</p>
-            <div class="flex gap-8 mt-4 md:mt-0">
-                <span>Next Step: CloudFront 엣지 가속을 위한 S3 버킷 보안 심화 (OAC 적용)</span>
+        <!-- Glossary Section -->
+        <footer class="mt-40 border-t-2 border-slate-200 pt-20">
+            <h2 class="text-3xl font-bold mb-12 text-slate-800">전문 용어 해설 (R53 Specialist Glossary)</h2>
+            <div class="grid md:grid-cols-2 gap-x-16 gap-y-10 text-sm">
+                <div>
+                    <dt class="font-bold text-blue-900 text-lg mb-2">Health Check</dt>
+                    <dd class="text-slate-600 leading-relaxed">엔드포인트의 가동 여부를 주기적으로 확인하는 기능입니다. HTTP/HTTPS/TCP 요청을 통해 응답 코드나 문자열을 검사하며, 라우팅 결정의 근거가 됩니다.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-blue-900 text-lg mb-2">Traffic Flow</dt>
+                    <dd class="text-slate-600 leading-relaxed">복잡한 라우팅 규칙(지연시간 기반이면서 장애 시 국가별 전환 등)을 시각적 에디터로 설계하고 관리할 수 있게 해주는 Route 53의 고급 기능입니다.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-blue-900 text-lg mb-2">Anycast (R53 Context)</dt>
+                    <dd class="text-slate-600 leading-relaxed">Route 53는 모든 네임서버 주소에 Anycast를 적용하여, 특정 리전의 대규모 장애나 DDoS 공격 발생 시에도 다른 리전의 노드가 즉시 트래픽을 처리하도록 설계되어 있습니다.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-blue-900 text-lg mb-2">Zone Apex (@)</dt>
+                    <dd class="text-slate-600 leading-relaxed">도메인의 최상위 이름(예: naver.com) 자체를 의미하며, 일반적인 DNS 규정상 호스트 이름(www)이 없으면 CNAME을 가질 수 없으나 R53 Alias는 이를 가능케 합니다.</dd>
+                </div>
             </div>
-        </div>
-    </footer>
-
+            
+            <div class="mt-24 text-center text-slate-400 text-sm italic">
+                &copy; 2026 Advanced Cloud Infrastructure Expert Course.
+            </div>
+        </footer>
+    </main>
 </body>
 </html>
