@@ -400,7 +400,13 @@ mysql -h [RDS-엔드포인트-주소] -u admin -p < employees.sql</code></pre>
     <h3>2. 어플리케이션 환경 변수(Environment Variables) 설정</h3>
     <p>소스 코드 내부에 데이터베이스 자격 증명을 하드코딩(Hard-coding)하는 것은 강력히 금지됩니다. LG Service의 설정 파일 (예: <code>.env</code>, <code>application.yml</code>)에 <span class="term">Connection String (데이터베이스 연결 문자열)</span>을 주입해야 합니다.</p>
 
-    <pre><code># .env 파일 예시
+    <div class="callout callout-tip">
+        <span class="callout-title">실무 아키텍트의 팁: 환경 변수(.env)는 어디서, 어떻게 설정하나요?</span>
+        이 설정은 AWS 관리 콘솔 화면에서 수행하는 것이 <strong>아닙니다.</strong> 데이터베이스에 접속하려는 주체, 즉 <strong>LG Service 애플리케이션 코드가 실제로 실행되는 서버(예: 온프레미스 서버, AWS EC2 인스턴스, 또는 개발자의 로컬 PC)</strong>에서 수행해야 합니다.<br><br>
+        해당 서버의 애플리케이션 프로젝트 최상위 폴더(루트 디렉토리)에 <code>vi .env</code> 또는 <code>nano .env</code> 등의 터미널 편집기를 사용하여 파일을 직접 생성한 후, 아래의 정보를 기입하고 저장합니다.
+    </div>
+
+    <pre><code># LG Service가 구동되는 서버의 .env 파일 생성 및 입력 예시
 DB_HOST=[RDS-엔드포인트-주소] (예: mydb.c3xxxxxxxxx.ap-northeast-2.rds.amazonaws.com)
 DB_PORT=3306
 DB_USER=admin
@@ -419,6 +425,23 @@ telnet [RDS-엔드포인트] 3306
 # 또는
 nc -zv [RDS-엔드포인트] 3306</code></pre>
     <p><code>Connected to ...</code> 또는 <code>Connection to ... port 3306 [tcp/mysql] succeeded!</code> 라는 메시지가 확인되어야만 방화벽 구성이 완벽히 완료된 것이며, 이후 애플리케이션 코드를 구동할 수 있습니다.</p>
+
+    <h3>4. 데이터베이스(SQL) 계층 접속 테스트 및 쿼리 검증</h3>
+    <p>네트워크 계층의 방화벽 통과를 확인했다면, 실제 데이터베이스 엔진이 자격 증명(ID/PW)을 정상적으로 승인하는지 <span class="term">MySQL Client (MySQL 클라이언트)</span>를 통해 최종 검증해야 합니다. 이 작업 역시 LG Service가 구동되는 애플리케이션 서버의 터미널에서 수행합니다.</p>
+
+    <pre><code># 1. MySQL 클라이언트를 이용한 RDS 접속 시도 (-h: 호스트, -P: 포트, -u: 사용자, -p: 패스워드 입력 대기)
+mysql -h [RDS-엔드포인트-주소] -P 3306 -u admin -p
+
+# (Enter password: 프롬프트가 나오면 설정한 마스터 암호를 입력합니다. 보안상 화면에 표시되지 않습니다.)
+
+# 2. 정상 접속 후 (mysql> 프롬프트 확인), 데이터베이스 목록 확인
+SHOW DATABASES;
+
+# 3. 특정 데이터베이스 선택 및 데이터 확인 테스트
+USE [DB_NAME];
+SHOW TABLES;
+SELECT * FROM employees LIMIT 5;</code></pre>
+    <p>위 과정을 통해 <code>mysql></code> 프롬프트로 진입하고 쿼리 결과가 정상적으로 출력된다면, 외부 애플리케이션(LG Service)과 AWS RDS 간의 네트워크 통신 및 권한 인증 구성이 완벽하게 완료된 것입니다.</p>
 
 </div>
 
