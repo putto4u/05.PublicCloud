@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네트워크 보안 심층 아키텍처: IDS/IPS 및 AWS Network Firewall</title>
+    <style>
+        :root {
+            --primary-color: #232F3E; /* AWS Navy */
+            --secondary-color: #FF9900; /* AWS Orange */
+            --accent-color: #0073BB; /* AWS Blue */
+            --text-color: #333333;
+            --bg-color: #FAFAFA;
+            --box-bg: #FFFFFF;
+            --border-color: #EAEAEA;
+            --tip-bg: #E3F2FD;
+            --tip-border: #2196F3;
+            --warning-bg: #FFF3E0;
+            --warning-border: #FF9800;
+            --danger-bg: #FFEBEE;
+            --danger-border: #F44336;
+        }
+
+        body {
+            font-family: 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            line-height: 1.7;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--box-bg);
+            padding: 50px 70px;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+        }
+
+        h1 {
+            font-size: 2.4em;
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 12px;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 1.9em;
+            color: var(--primary-color);
+            margin-top: 60px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            font-size: 1.5em;
+            color: var(--accent-color);
+            margin-top: 40px;
+        }
+
+        p {
+            margin-bottom: 18px;
+            text-align: justify;
+            word-break: keep-all;
+        }
+
+        ul, ol {
+            margin-bottom: 25px;
+            padding-left: 28px;
+        }
+
+        li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .term {
+            font-weight: 700;
+            color: #1565C0;
+            background-color: #F0F4F8;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .footnote {
+            font-size: 0.9em;
+            color: #555;
+            background-color: #F9F9F9;
+            padding: 15px 20px;
+            border-left: 4px solid #BDBDBD;
+            margin-top: 15px;
+            margin-bottom: 30px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .callout {
+            padding: 20px 25px;
+            margin: 35px 0;
+            border-radius: 6px;
+            border-left: 6px solid;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .callout-tip {
+            background-color: var(--tip-bg);
+            border-left-color: var(--tip-border);
+        }
+
+        .callout-warning {
+            background-color: var(--warning-bg);
+            border-left-color: var(--warning-border);
+        }
+
+        .callout-danger {
+            background-color: var(--danger-bg);
+            border-left-color: var(--danger-border);
+        }
+
+        .callout-title {
+            font-weight: 800;
+            margin-bottom: 12px;
+            display: block;
+            font-size: 1.1em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 0.95em;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #F4F6F8;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        a {
+            color: #1976D2;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        a:hover {
+            text-decoration: underline;
+            color: var(--secondary-color);
+        }
+
+        .cost-badge {
+            display: inline-block;
+            background-color: #FFEBEE;
+            color: #C62828;
+            font-size: 0.8em;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-left: 8px;
+            vertical-align: middle;
+            border: 1px solid #EF9A9A;
+        }
+
+        .source-link {
+            font-size: 0.85em;
+            color: #777;
+            text-align: right;
+            display: block;
+            margin-top: -15px;
+            margin-bottom: 25px;
+        }
+
+        .diagram-container {
+            background-color: #FFFFFF;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+        }
+
+        .diagram-caption {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        svg {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>심층 방어 아키텍처: IDS/IPS 개념 및 AWS Network Firewall 성능 분석</h1>
+
+    <h2>침입 탐지 및 방지 시스템의 본질과 패러다임 변화</h2>
+    <p>네트워크 인프라를 보호하기 위한 방어선은 끊임없이 진화해 왔습니다. 단순한 IP와 Port 기반의 접근 제어만으로는 패킷(Packet) 내부에 교묘하게 숨겨진 악성 페이로드(Payload)를 식별할 수 없습니다. 이러한 한계를 극복하고 <span class="term">Deep Packet Inspection (DPI, 심층 패킷 분석)</span>을 수행하여 악의적인 행위를 식별하는 시스템이 바로 <span class="term">IDS (Intrusion Detection System, 침입 탐지 시스템)</span>와 <span class="term">IPS (Intrusion Prevention System, 침입 방지 시스템)</span>입니다.</p>
+
+    <div class="footnote">
+        * Deep Packet Inspection (심층 패킷 분석): 네트워크 트래픽의 헤더 정보(IP, Port)뿐만 아니라 실제 데이터가 담긴 페이로드(Payload) 영역까지 뜯어보어 악성코드나 비정상적인 프로토콜 사용을 검사하는 고도화된 기술입니다.
+    </div>
+
+    <h3>IDS (침입 탐지 시스템)의 한계와 역할</h3>
+    <p>IDS는 네트워크 트래픽을 '수동적(Passive)'으로 모니터링하여 공격의 징후를 발견하고 관리자에게 경고(Alert)를 보내는 감시 카메라와 같은 역할을 합니다. 네트워크 스위치의 <span class="term">Mirror Port (미러 포트)</span>나 <span class="term">SPAN (Switched Port Analyzer, 스위치 포트 분석기)</span> 포트에 연결되어 실제 트래픽의 '복사본'을 분석합니다.</p>
+    <p>IDS는 실제 트래픽 흐름에 개입하지 않으므로 시스템 장애가 발생하더라도 전체 네트워크 서비스에는 영향을 미치지 않습니다(Out-of-band 방식). 하지만 트래픽의 복사본을 분석하여 경고를 띄우는 시점에는 이미 공격 패킷이 대상 서버에 도달해버린 후일 가능성이 높다는 치명적인 한계가 있습니다. 즉, 사후 대응(Post-incident Response)에 그치게 됩니다.</p>
+
+    <h3>IPS (침입 방지 시스템)의 등장과 능동적 방어</h3>
+    <p>이러한 IDS의 한계를 극복하기 위해 등장한 것이 능동적 방어 체계인 IPS입니다. IPS는 트래픽이 지나가는 경로의 중간에 직접 위치하는 <span class="term">In-line (인라인)</span> 방식으로 구성됩니다. 들어오는 모든 패킷을 실시간으로 검사하고, 악의적인 패킷으로 판명될 경우 관리자에게 경고를 보내는 동시에 해당 패킷을 즉시 폐기(Drop) 하거나 연결을 강제로 끊어(Reset) 공격이 내부 서버에 도달하는 것을 원천 차단합니다.</p>
+
+    <div class="footnote">
+        * Mirror Port / SPAN: 네트워크 스위치를 통과하는 트래픽의 복사본을 만들어 특정 포트로 전달하는 기술입니다. 모니터링 장비(IDS 등)가 실제 통신에 영향을 주지 않고 데이터를 분석할 수 있게 해줍니다.<br>
+        * In-line (인라인): 데이터 통신 경로의 한가운데 장비가 물리적 또는 논리적으로 배치되어, 모든 데이터가 해당 장비를 통과해야만 목적지로 갈 수 있는 구성 방식을 의미합니다.
+    </div>
+
+    <h2>아키텍처 도식화: IDS와 IPS의 트래픽 흐름 비교</h2>
+    <p>아래의 도식은 Out-of-band(대역 외)로 구성되는 IDS와 In-line(대역 내)으로 구성되는 IPS의 물리적, 논리적 트래픽 흐름 차이를 명확하게 보여줍니다.</p>
+
+    <div class="diagram-container">
+        <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+            <!-- Backgrounds -->
+            <rect x="10" y="10" width="380" height="350" fill="#f8f9fa" rx="10" stroke="#dee2e6" stroke-width="2"/>
+            <rect x="410" y="10" width="380" height="350" fill="#f8f9fa" rx="10" stroke="#dee2e6" stroke-width="2"/>
+            
+            <!-- Titles -->
+            <text x="200" y="40" font-family="sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#232F3E">IDS 구성 (Out-of-band / Mirror)</text>
+            <text x="600" y="40" font-family="sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#232F3E">IPS 구성 (In-line / 능동 차단)</text>
+
+            <!-- IDS Components -->
+            <rect x="50" y="150" width="60" height="40" fill="#FFF" stroke="#333" rx="5"/>
+            <text x="80" y="175" font-family="sans-serif" font-size="12" text-anchor="middle">인터넷</text>
+            
+            <rect x="160" y="150" width="80" height="40" fill="#E3F2FD" stroke="#1565C0" stroke-width="2" rx="5"/>
+            <text x="200" y="175" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">스위치</text>
+            
+            <rect x="300" y="150" width="70" height="40" fill="#FFF" stroke="#333" rx="5"/>
+            <text x="335" y="175" font-family="sans-serif" font-size="12" text-anchor="middle">웹 서버</text>
+
+            <rect x="160" y="260" width="80" height="40" fill="#FFF3E0" stroke="#E65100" stroke-width="2" rx="5"/>
+            <text x="200" y="285" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">IDS (탐지)</text>
+
+            <!-- IDS Lines and Arrows -->
+            <line x1="110" y1="170" x2="160" y2="170" stroke="#333" stroke-width="2"/>
+            <polygon points="160,170 150,165 150,175" fill="#333"/>
+            
+            <line x1="240" y1="170" x2="300" y2="170" stroke="#333" stroke-width="2"/>
+            <polygon points="300,170 290,165 290,175" fill="#333"/>
+            
+            <!-- Mirror traffic line -->
+            <path d="M 200 190 L 200 260" stroke="#E65100" stroke-width="2" stroke-dasharray="5,5"/>
+            <polygon points="200,260 195,250 205,250" fill="#E65100"/>
+            <text x="210" y="230" font-family="sans-serif" font-size="11" fill="#E65100">트래픽 복사</text>
+            <text x="200" y="325" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#D32F2F">공격 통과됨 (사후 경고만 수행)</text>
+
+
+            <!-- IPS Components -->
+            <rect x="430" y="150" width="60" height="40" fill="#FFF" stroke="#333" rx="5"/>
+            <text x="460" y="175" font-family="sans-serif" font-size="12" text-anchor="middle">인터넷</text>
+            
+            <rect x="540" y="150" width="100" height="40" fill="#FFEBEE" stroke="#C62828" stroke-width="2" rx="5"/>
+            <text x="590" y="175" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#C62828">IPS (차단)</text>
+            
+            <rect x="690" y="150" width="70" height="40" fill="#FFF" stroke="#333" rx="5"/>
+            <text x="725" y="175" font-family="sans-serif" font-size="12" text-anchor="middle">웹 서버</text>
+
+            <rect x="560" y="240" width="60" height="25" fill="#C62828" rx="3"/>
+            <text x="590" y="257" font-family="sans-serif" font-size="11" fill="#FFF" text-anchor="middle">Drop!</text>
+
+            <!-- IPS Lines and Arrows -->
+            <line x1="490" y1="170" x2="540" y2="170" stroke="#333" stroke-width="2"/>
+            <polygon points="540,170 530,165 530,175" fill="#333"/>
+            
+            <line x1="640" y1="170" x2="690" y2="170" stroke="#333" stroke-width="2" stroke-dasharray="3,3"/>
+            <text x="665" y="160" font-family="sans-serif" font-size="20" fill="#C62828" text-anchor="middle">X</text>
+
+            <text x="590" y="300" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#C62828">악성 패킷 실시간 폐기 (서버 보호)</text>
+        </svg>
+        <div class="diagram-caption">그림 1. IDS와 IPS의 네트워크 위치 및 방어 매커니즘 비교</div>
+    </div>
+
+
+    <h2>IPS의 핵심 탐지 및 방어 매커니즘</h2>
+    <p>성능이 뛰어난 IPS는 수많은 트래픽 속에서 정상적인 요청과 악의적인 공격을 지연 시간(Latency) 없이 순식간에 구별해 내야 합니다. 이를 위해 크게 세 가지의 엔진 기술을 복합적으로 사용합니다.</p>
+
+    <ul>
+        <li><strong><span class="term">Signature-based Detection (시그니처 기반 탐지)</span>:</strong> 가장 널리 쓰이는 방식으로, 알려진 공격 패턴(바이러스 서명 등)의 데이터베이스와 현재 패킷을 1:1로 비교합니다. 정확도가 매우 높고 오탐률(False Positive)이 낮지만, 알려지지 않은 공격(Zero-Day Attack)은 탐지할 수 없습니다.</li>
+        <li><strong><span class="term">Anomaly-based Detection (이상 징후 기반 탐지)</span>:</strong> 머신 러닝이나 통계적 모델링을 통해 네트워크의 '정상적인 기준선(Baseline)'을 학습합니다. 이 기준선을 벗어나는 비정상적인 트래픽 급증이나 기이한 포트 스캔 행위가 발생하면 공격으로 간주합니다. 미지의 공격을 막을 수 있지만 오탐률이 상대적으로 높습니다.</li>
+        <li><strong><span class="term">Stateful Protocol Analysis (상태 기반 프로토콜 분석)</span>:</strong> 단순히 패킷 하나만 보는 것이 아니라, 클라이언트와 서버 간에 맺어진 전체 세션(Session)의 연결 상태를 추적합니다. 프로토콜의 표준 규격(RFC)을 위반하는 기형적인 패킷이나 순서가 맞지 않는 조작된 패킷을 차단합니다.</li>
+    </ul>
+
+    <div class="callout callout-warning">
+        <span class="callout-title">자주 오해하거나 실수하는 부분: "IPS와 WAF는 같은 거 아닌가요?"</span>
+        매우 자주 혼동되는 개념입니다. 아키텍트로서 이 둘을 명확히 구분하여 설계해야 합니다.<br><br>
+        <strong>IPS (L3 ~ L7 전반):</strong> 네트워크 전체를 대상으로 하며 모든 포트와 프로토콜(TCP, UDP, ICMP 등)의 악성 페이로드 및 비정상 트래픽을 방어합니다. 주로 운영체제 취약점 공격, 웜 바이러스, DDoS 초기 탐지에 강합니다.<br>
+        <strong>WAF (오직 L7 웹 통신):</strong> 오직 80(HTTP) 및 443(HTTPS) 포트로 들어오는 웹 애플리케이션 트래픽만 집중적으로 분석합니다. SQL 인젝션, 크로스 사이트 스크립팅(XSS) 등 웹 애플리케이션의 취약점을 노리는 공격 방어에 특화되어 있습니다. 완벽한 보안을 위해서는 IPS와 WAF를 <strong>직렬로 함께 배치(Defense in Depth, 심층 방어)</strong>해야 합니다.
+    </div>
+
+
+    <h2>AWS 환경에서의 IPS 아키텍처: AWS Network Firewall</h2>
+    <p>전통적인 데이터센터(IDC)에서는 물리적인 IPS 장비를 랙(Rack)에 마운트하여 사용했습니다. 하지만 동적으로 확장되는 클라우드 환경에서는 고정된 용량의 하드웨어 장비는 병목 현상(Bottleneck)의 원인이 됩니다. AWS는 과거 파트너사의 가상 어플라이언스(Virtual Appliance)를 거쳐야 했던 복잡성을 해소하기 위해 완전 관리형 서비스인 <span class="term">AWS Network Firewall (AWS 네트워크 방화벽)</span>을 출시했습니다.</p>
+    <span class="source-link"><a href="https://aws.amazon.com/ko/network-firewall/" target="_blank">참조: AWS Network Firewall 공식 문서</a></span>
+
+    <p>AWS Network Firewall은 단순한 L4 방화벽이 아닙니다. 이 서비스의 핵심은 오픈 소스 기반의 강력한 IPS 엔진인 <span class="term">Suricata (수리카타)</span>를 내장하고 있다는 점입니다. 이를 통해 클라우드 환경에서도 온프레미스 수준 이상의 강력한 Stateful(상태 기반) 패킷 검사와 IPS 기능을 완벽하게 수행합니다.</p>
+
+    <div class="footnote">
+        * AWS Network Firewall: 모든 Amazon VPC(가상 사설 클라우드)에 필수적인 네트워크 보호 기능을 손쉽게 배포할 수 있도록 지원하는 고가용성 관리형 보안 서비스입니다.<br>
+        * Suricata (수리카타): 개방형 정보 보안 재단(OISF)에서 개발한 강력한 오픈 소스 기반의 차세대 침입 탐지 및 방지 시스템(IDS/IPS) 엔진입니다. 복잡한 룰셋을 통해 심층 패킷 검사를 수행합니다.
+    </div>
+
+    <h3>AWS Network Firewall의 고유한 특징 및 아키텍처 구성요소</h3>
+    
+    <ol>
+        <li><strong>VPC Endpoint (가상 사설 클라우드 엔드포인트) 기반의 투명한 라우팅:</strong> AWS Network Firewall을 생성하면, 지정된 서브넷에 <span class="term">Gateway Load Balancer Endpoint (GWLBE)</span> 기술 기반의 방화벽 엔드포인트가 생성됩니다. 사용자는 VPC의 라우팅 테이블(Route Table)을 수정하여 인터넷으로 나가거나 들어오는 모든 트래픽이 이 엔드포인트를 거치도록 유도(Traffic Steering)함으로써 투명하게 In-line IPS를 구성할 수 있습니다.</li>
+        <li><strong>Suricata 호환 규칙 지원:</strong> 기업에서 이미 사용 중인 기존의 Suricata IPS 시그니처나, Proofpoint(Emerging Threats) 등 외부 위협 인텔리전스 피드에서 제공하는 룰셋을 그대로 AWS에 임포트(Import)하여 사용할 수 있습니다.</li>
+        <li><strong>상태 기반(Stateful) 룰 그룹 유연성:</strong> 패킷의 방향(Forward/Return)을 이해하고 세션을 추적하며, 프로토콜 서명, 포트 번호, 그리고 정규 표현식을 사용한 페이로드 검사까지 완벽히 지원합니다.</li>
+    </ol>
+
+
+    <h2>AWS IPS (Network Firewall)의 성능 한계와 확장성 (Performance & Scalability)</h2>
+    <p>클라우드 아키텍트가 보안 솔루션을 도입할 때 가장 우려하는 것은 "보안 장비가 전체 네트워크의 속도를 저하시키지 않을까?" 하는 점입니다. AWS Network Firewall은 클라우드 네이티브 아키텍처를 통해 이러한 우려를 해소합니다.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>성능 지표 (Performance Metrics)</th>
+                <th>상세 설명 및 아키텍트 고려사항</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>고가용성 및 무한 확장 (Auto Scaling)</strong></td>
+                <td>방화벽 인스턴스는 사용자의 개입 없이 트래픽 로드에 따라 백그라운드에서 자동으로 확장(Scale-out) 및 축소(Scale-in)됩니다. 트래픽 스파이크(Spike)가 발생해도 병목 현상이 없습니다.</td>
+            </tr>
+            <tr>
+                <td><strong>처리량 (Throughput)</strong></td>
+                <td>가용 영역(Availability Zone, AZ) 당 <strong>최대 100 Gbps</strong>의 방화벽 처리 성능을 제공합니다. 다중 AZ로 구성할 경우 수백 Gbps 규모의 엔터프라이즈 트래픽도 안정적으로 IPS 검사가 가능합니다.</td>
+            </tr>
+            <tr>
+                <td><strong>지연 시간 (Latency)</strong></td>
+                <td>심층 패킷 분석(DPI)을 수행함에도 불구하고 일반적인 상황에서 마이크로초(Microseconds) 단위에서 수 밀리초(ms) 단위의 매우 낮은 지연 시간을 보장하여 서비스 품질(QoS)에 영향을 주지 않습니다.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout callout-danger">
+        <span class="callout-title">아키텍트 필수 체크: AWS Network Firewall 과금 모델 <span class="cost-badge">매우 높은 과금 발생 주의</span></span>
+        AWS Network Firewall은 구축형 장비와 달리 <strong>상당히 높은 종량제 비용</strong>이 발생하므로 예산 산정이 필수적입니다.
+        <br><br>
+        1. <strong>엔드포인트 시간당 요금:</strong> 방화벽이 구성된 가용 영역(AZ)의 개수마다 시간당 고정 비용이 발생합니다. (보통 최소 2개 이상의 AZ에 구성하므로 월 기본 유지비가 수백 달러에 달합니다.)<br>
+        2. <strong>데이터 처리 요금 (GB당):</strong> 방화벽 엔진(IPS)을 통과하여 검사받는 <strong>모든 트래픽 용량(GB)</strong> 단위로 과금이 발생합니다.<br><br>
+        따라서 동영상 스트리밍이나 대용량 파일 다운로드와 같이 굳이 IPS 패킷 딥 인스펙션(DPI)이 필요 없는 대규모 트래픽은 방화벽을 우회하도록 라우팅 설계를 최적화하는 것이 비용 절감의 핵심입니다.
+    </div>
+
+
+    <h2>엔터프라이즈를 위한 중앙 집중식 IPS 아키텍처 도식 (Centralized Inspection)</h2>
+    <p>수십, 수백 개의 VPC를 운영하는 엔터프라이즈 환경에서 모든 VPC마다 방화벽을 개별적으로 구축하면 비용이 기하급수적으로 증가하고 정책 관리가 불가능해집니다. 최적의 아키텍처는 <span class="term">AWS Transit Gateway (TGW, 전송 게이트웨이)</span>와 전용 <span class="term">Inspection VPC (검사 전용 VPC)</span>를 결합하여 모든 트래픽을 한 곳으로 모아 IPS 검사를 수행하는 <strong>중앙 집중식 방화벽 아키텍처</strong>입니다.</p>
+
+    <div class="footnote">
+        * AWS Transit Gateway (TGW): 클라우드 라우터 역할을 하며 수천 개의 VPC와 온프레미스 네트워크를 중앙에서 연결해 주는 네트워크 허브 서비스입니다.<br>
+        * Inspection VPC (검사 전용 VPC): 애플리케이션 서버를 배치하지 않고, 오직 보안 검사 장비(Network Firewall, 타사 IPS 등)만을 배치하여 트래픽을 필터링하는 목적의 전용 네트워크 공간입니다.
+    </div>
+
+    <div class="diagram-container">
+        <svg viewBox="0 0 900 450" xmlns="http://www.w3.org/2000/svg">
+            <!-- Background & Outlines -->
+            <rect x="10" y="10" width="880" height="430" fill="#ffffff" rx="10" stroke="#cccccc" stroke-width="1"/>
+            
+            <!-- Transit Gateway -->
+            <circle cx="450" cy="225" r="70" fill="#E8EAF6" stroke="#3F51B5" stroke-width="3"/>
+            <text x="450" y="220" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#283593">AWS Transit</text>
+            <text x="450" y="240" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#283593">Gateway</text>
+
+            <!-- Inspection VPC (Top) -->
+            <rect x="250" y="30" width="400" height="100" fill="#FFF3E0" rx="8" stroke="#E65100" stroke-width="2" stroke-dasharray="5,5"/>
+            <text x="260" y="50" font-family="sans-serif" font-size="14" font-weight="bold" fill="#E65100">Inspection VPC (중앙 검사 영역)</text>
+            
+            <rect x="350" y="60" width="200" height="50" fill="#FFCC80" rx="5" stroke="#E65100"/>
+            <text x="450" y="85" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">AWS Network Firewall (IPS)</text>
+            <text x="450" y="100" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#333">Suricata 엔진 내장</text>
+
+            <!-- Spoke VPCs (Bottom) -->
+            <rect x="50" y="320" width="220" height="100" fill="#E3F2FD" rx="8" stroke="#1565C0" stroke-width="2"/>
+            <text x="160" y="345" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#1565C0">Spoke VPC A (웹 서비스)</text>
+            <rect x="100" y="360" width="120" height="40" fill="#BBDEFB" rx="4"/>
+            <text x="160" y="385" font-family="sans-serif" font-size="13" text-anchor="middle">EC2 인스턴스</text>
+
+            <rect x="630" y="320" width="220" height="100" fill="#E3F2FD" rx="8" stroke="#1565C0" stroke-width="2"/>
+            <text x="740" y="345" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#1565C0">Spoke VPC B (DB 서비스)</text>
+            <rect x="680" y="360" width="120" height="40" fill="#BBDEFB" rx="4"/>
+            <text x="740" y="385" font-family="sans-serif" font-size="13" text-anchor="middle">RDS 인스턴스</text>
+
+            <!-- Internet -->
+            <rect x="20" y="150" width="100" height="60" fill="#F5F5F5" rx="5" stroke="#9E9E9E" stroke-width="2"/>
+            <text x="70" y="185" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#424242">인터넷 (사용자)</text>
+
+            <!-- Lines and Routing Flow -->
+            <!-- Internet to Inspection VPC (via IGW logic simplified) -->
+            <path d="M 70 150 Q 70 85 240 85" fill="none" stroke="#D32F2F" stroke-width="3" stroke-dasharray="6,4"/>
+            <polygon points="240,85 230,80 230,90" fill="#D32F2F"/>
+            <text x="140" y="75" font-family="sans-serif" font-size="12" fill="#D32F2F" font-weight="bold">인바운드 트래픽 (무조건 검사)</text>
+
+            <!-- Inspection VPC to TGW -->
+            <line x1="450" y1="110" x2="450" y2="155" stroke="#333" stroke-width="3"/>
+            <polygon points="450,155 443,145 457,145" fill="#333"/>
+
+            <!-- TGW to Spoke VPCs -->
+            <line x1="400" y1="275" x2="210" y2="320" stroke="#333" stroke-width="3"/>
+            <polygon points="210,320 220,312 212,308" fill="#333"/>
+
+            <line x1="500" y1="275" x2="690" y2="320" stroke="#333" stroke-width="3"/>
+            <polygon points="690,320 688,308 680,312" fill="#333"/>
+            
+            <!-- Spoke A to Spoke B Internal Traffic (Must go through Inspection) -->
+            <path d="M 270 370 Q 450 430 630 370" fill="none" stroke="#4CAF50" stroke-width="2" stroke-dasharray="4,4"/>
+            <text x="450" y="420" font-family="sans-serif" font-size="12" fill="#388E3C" text-anchor="middle" font-weight="bold">VPC 간 내부 통신도 TGW 라우팅을 통해 검사 가능 (East-West Traffic)</text>
+        </svg>
+        <div class="diagram-caption">그림 2. AWS Transit Gateway를 활용한 중앙 집중식 Network Firewall (IPS) 검사 아키텍처</div>
+    </div>
+
+
+    <h2>성공적인 IPS 운영을 위한 실전 팁 및 고려사항</h2>
+    <p>아키텍트로서 IPS 장비를 클라우드에 성공적으로 안착시키기 위해서는 라우팅의 흐름과 보안 정책의 속성을 깊이 이해해야 합니다.</p>
+
+    <div class="callout callout-tip">
+        <span class="callout-title">실무 아키텍트의 팁 1: 비대칭 라우팅 (Asymmetric Routing) 방지</span>
+        네트워크 아키텍처에서 가장 자주 겪는 장애 원인입니다. In-line 모드의 IPS는 Stateful(상태 기반) 검사를 수행하므로, 클라이언트가 서버로 보내는 요청(Request) 패킷과 서버가 응답(Response)하는 패킷이 <strong>반드시 동일한 IPS 방화벽 장비(엔드포인트)</strong>를 통과해야 합니다. 들어올 때는 A 가용 영역의 방화벽을 탔는데 나갈 때는 B 가용 영역의 방화벽을 타게 되면, 방화벽은 비정상적인 세션으로 인식하고 즉시 패킷을 버립니다(Drop). VPC 라우팅 테이블 및 Transit Gateway 어플라이언스 모드(Appliance Mode) 설정을 정교하게 구성하여 비대칭 라우팅이 발생하지 않도록 강제해야 합니다.
+    </div>
+
+    <div class="callout callout-tip">
+        <span class="callout-title">실무 아키텍트의 팁 2: 프로덕션 환경 적용 전 Count 모드 활용</span>
+        IPS는 공격을 능동적으로 차단(Drop)하기 때문에, 룰셋이 잘못 설정되면 정상적인 고객의 결제 요청이나 로그인 트래픽마저 차단되는 대형 장애(False Positive)를 유발할 수 있습니다. AWS Network Firewall에 새로운 Suricata 룰을 적용할 때에는, 초기 1~2주간 액션을 'Drop'이 아닌 <strong>'Alert/Count (로깅만 수행)'</strong> 모드로 설정하여 운영해야 합니다. 로그를 분석하여 정상 트래픽 차단이 발생하지 않음을 완벽히 검증한 후, 최종적으로 'Drop' 액션으로 전환하는 것이 안전한 시스템 운영의 기본 원칙입니다.
+    </div>
+
+    <p>결론적으로, 현대의 보안 인프라에서 IPS 기능은 필수불가결합니다. 전통적인 IDS의 사후 보고 한계를 넘어 실시간 방어를 제공하며, AWS 환경에서는 Network Firewall과 Suricata 엔진의 결합을 통해 클라우드의 유연성(Auto Scaling)과 온프레미스의 강력한 보안 정책을 모두 충족하는 고도의 방어 체계를 구축할 수 있습니다.</p>
+
+</div>
+
+</body>
+</html>
