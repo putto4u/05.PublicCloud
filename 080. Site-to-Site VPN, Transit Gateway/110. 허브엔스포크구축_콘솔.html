@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS 허브 앤 스포크 네트워크 아키텍처 구축 실무 가이드</title>
+    <style>
+        :root {
+            --primary-color: #232F3E; /* AWS Navy */
+            --secondary-color: #FF9900; /* AWS Orange */
+            --accent-color: #007EB9; /* AWS Blue */
+            --text-color: #333333;
+            --bg-color: #F8F8F8;
+            --box-bg: #FFFFFF;
+            --border-color: #EAEAEA;
+            --warning-bg: #FFF4F4;
+            --warning-border: #D13212;
+            --tip-bg: #F2F8FD;
+            --tip-border: #007EB9;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: var(--box-bg);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5em;
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.8em;
+            margin-top: 50px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: var(--accent-color);
+            font-size: 1.4em;
+            margin-top: 30px;
+        }
+
+        p {
+            margin-bottom: 15px;
+            font-size: 1.05em;
+        }
+
+        .architecture-box {
+            background-color: #232F3E;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .callout {
+            padding: 20px;
+            border-left: 5px solid;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning {
+            background-color: var(--warning-bg);
+            border-left-color: var(--warning-border);
+        }
+
+        .warning strong {
+            color: var(--warning-border);
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .tip {
+            background-color: var(--tip-bg);
+            border-left-color: var(--tip-border);
+        }
+
+        .tip strong {
+            color: var(--tip-border);
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .step-container {
+            margin-bottom: 40px;
+        }
+
+        .step-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            background-color: var(--bg-color);
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .img-placeholder {
+            width: 100%;
+            height: 300px;
+            background-color: #E2E8F0;
+            border: 2px dashed #CBD5E1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748B;
+            font-weight: bold;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--bg-color);
+        }
+
+        .glossary {
+            font-size: 0.9em;
+            background-color: #F0F4F8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #D9E2EC;
+        }
+
+        .code-block {
+            background-color: #1E293B;
+            color: #F8FAFC;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: auto;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: var(--warning-border);
+        }
+
+        .menu-path {
+            font-family: monospace;
+            background-color: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>AWS 허브 앤 스포크(Hub and Spoke) 네트워크 아키텍처 구축 실무 가이드</h1>
+    
+    <p>본 과정은 기업 환경에서 가장 널리 사용되는 엔터프라이즈급 네트워크 구조인 <strong>허브 앤 스포크(Hub and Spoke)</strong> 아키텍처를 AWS 클라우드 환경에서 직접 설계하고 구축하는 실무 지침서입니다. 중앙 집중식 트래픽 제어, 보안 검사, 그리고 확장성을 고려한 최고 수준의 아키텍처 설계 패턴을 다룹니다.</p>
+
+    <div class="architecture-box">
+        <h3>아키텍처 목표 설계도</h3>
+        <p>[목적] 모든 스포크(Spoke) VPC의 인터넷 향 트래픽을 허브(Hub) VPC로 일원화하여 중앙 통제 및 보안(Centralized Egress)을 달성합니다.</p>
+        <div class="img-placeholder">
+            [AWS 허브 앤 스포크 네트워크 논리적 토폴로지 다이어그램 이미지]
+        </div>
+    </div>
+
+    <div class="warning">
+        <strong>[과금 발생 서비스 사전 안내] 주의!</strong>
+        본 실습을 진행하는 동안 아래의 서비스 항목에서 시간당 과금 및 데이터 처리 비용이 발생합니다. 실습 완료 후 반드시 리소스를 삭제(Clean-up)하여 불필요한 비용 청구를 방지하시기 바랍니다.
+        <ul>
+            <li><strong>NAT GW (NAT Gateway, 네트워크 주소 변환 게이트웨이):</strong> 시간당 요금 및 데이터 처리 요금 부과</li>
+            <li><strong>TGW (Transit Gateway, 전송 게이트웨이):</strong> 시간당 연결 요금 및 데이터 처리 요금 부과</li>
+            <li><strong>EIP (Elastic IP, 탄력적 IP 주소):</strong> NAT Gateway 연결 시 사용되며, 인스턴스 미연결 시 시간당 과금</li>
+        </ul>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 용어 정리 -->
+    <!-- ========================================== -->
+    <h2>사전 필수 용어 정리</h2>
+    <div class="glossary">
+        <ul>
+            <li><strong>VPC (Virtual Private Cloud, 가상 사설 클라우드):</strong> AWS 클라우드 내에서 논리적으로 격리된 사용자 전용 가상 네트워크 공간입니다.</li>
+            <li><strong>AZ (Availability Zone, 가용 영역):</strong> 하나의 리전(Region) 내에 존재하는 물리적으로 분리된 데이터 센터 그룹입니다. 서울 리전의 경우 4개의 AZ(a, b, c, d)를 제공하여 고가용성을 보장합니다.</li>
+            <li><strong>IGW (Internet Gateway, 인터넷 게이트웨이):</strong> VPC 내부의 리소스가 외부 인터넷과 통신할 수 있도록 연결해 주는 수평 확장형 논리적 구성 요소입니다.</li>
+            <li><strong>NAT GW (Network Address Translation Gateway, 네트워크 주소 변환 게이트웨이):</strong> 프라이빗 서브넷에 있는 리소스가 외부 인터넷으로 나갈 수 있게 해주지만, 외부에서 프라이빗 서브넷으로 직접 접근하는 것은 차단하는 관리형 서비스입니다. <strong>[과금 발생 서비스]</strong></li>
+            <li><strong>TGW (Transit Gateway, 전송 게이트웨이):</strong> 여러 개의 VPC와 온프레미스 네트워크를 중앙에서 연결해 주는 클라우드 라우터(네트워크 허브) 역할을 합니다. 복잡한 피어링(Peering) 연결을 단순화합니다. <strong>[과금 발생 서비스]</strong></li>
+            <li><strong>CIDR (Classless Inter-Domain Routing, 사이더):</strong> IP 주소 할당 및 라우팅을 위한 유연한 인터넷 프로토콜 주소 할당 방법입니다. 예: <span class="code-block" style="padding:2px 4px; border-radius:3px;">10.0.0.0/16</span></li>
+        </ul>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- Phase 1 -->
+    <!-- ========================================== -->
+    <h2>Phase 1. 중앙 허브 네트워크 구축: Hub VPC (AZ 1, AZ 3)</h2>
+    <p>가장 먼저 모든 네트워크 트래픽의 중심이 될 Hub VPC를 구축합니다. 이 VPC는 인터넷 게이트웨이(IGW)를 보유하며, 스포크(Spoke) VPC들이 인터넷으로 나갈 때 거쳐가는 중앙 통로 역할을 수행합니다. 고가용성(HA) 설계를 위해 서울 리전의 AZ 1과 AZ 3에 자원을 분산 배치합니다.</p>
+
+    <div class="tip">
+        <strong>아키텍트의 실무 팁: 서브넷 분리 전략</strong>
+        <p>실무 환경에서는 Transit Gateway를 연결할 때 전용 서브넷(TGW Attachment Subnet)을 생성하는 것이 AWS 권장 모범 사례(Best Practice)입니다. 라우팅 테이블 관리가 분리되어 복잡한 트래픽 흐름을 명확하게 제어할 수 있기 때문입니다. TGW 전용 서브넷은 많은 IP를 필요로 하지 않으므로 /28 크기로 충분합니다.</p>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">1단계: Hub VPC 생성</div>
+        <ol>
+            <li>AWS 관리 콘솔에 로그인 후, 상단 검색창에 <span class="menu-path">VPC</span>를 입력하고 이동합니다.</li>
+            <li>우측 상단의 지역(Region)이 <strong>아시아 태평양 (서울) [ap-northeast-2]</strong>로 선택되어 있는지 반드시 확인합니다.</li>
+            <li>좌측 내비게이션 창에서 <span class="menu-path">VPC</span>를 클릭하고, 우측 상단의 주황색 <span class="menu-path">VPC 생성</span> 버튼을 클릭합니다.</li>
+            <li>생성 옵션에서 다음을 선택 및 입력합니다.
+                <ul>
+                    <li><strong>생성할 리소스:</strong> <span class="highlight">VPC만</span> (사용자 지정 서브넷 설정을 위해 VPC만 단독으로 생성합니다.)</li>
+                    <li><strong>이름 태그:</strong> <code>vpc_hub</code></li>
+                    <li><strong>IPv4 CIDR 블록:</strong> <span class="highlight">IPv4 CIDR 수동 입력</span> 선택 후 <code>10.0.0.0/16</code> 입력</li>
+                    <li><strong>IPv6 CIDR 블록:</strong> <code>IPv6 CIDR 블록 없음</code></li>
+                    <li><strong>테넌시:</strong> <code>기본값 (Default)</code></li>
+                </ul>
+            </li>
+            <li>하단의 <span class="menu-path">VPC 생성</span> 버튼을 클릭합니다.</li>
+        </ol>
+        <div class="img-placeholder">
+            [Hub VPC 생성 완료 화면 및 CIDR 정보 이미지]
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">2단계: Hub VPC 서브넷 생성 (AZ 1, AZ 3)</div>
+        <p>요구사항에 따라 서울 리전의 AZ-1(ap-northeast-2a)과 AZ-3(ap-northeast-2c)에 서브넷을 구성합니다. 퍼블릭(인터넷 연결용), 프라이빗(내부용), 그리고 TGW 연결 전용 서브넷을 각각 생성합니다.</p>
+        <ol>
+            <li>좌측 메뉴에서 <span class="menu-path">서브넷</span>을 클릭하고 <span class="menu-path">서브넷 생성</span>을 클릭합니다.</li>
+            <li><strong>VPC ID:</strong> 앞서 만든 <code>vpc_hub</code>를 선택합니다.</li>
+            <li>아래 표의 구성에 맞게 <span class="menu-path">새 서브넷 추가</span> 버튼을 눌러 총 6개의 서브넷을 생성합니다.</li>
+        </ol>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>서브넷 이름 (이름 태그)</th>
+                    <th>가용 영역 (AZ)</th>
+                    <th>IPv4 CIDR 블록</th>
+                    <th>용도 설명</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>hub-public-sub-2a</td>
+                    <td>ap-northeast-2a (AZ-1)</td>
+                    <td>10.0.1.0/24</td>
+                    <td>NAT Gateway 및 외부 인입 로드밸런서 배치용 퍼블릭망</td>
+                </tr>
+                <tr>
+                    <td>hub-public-sub-2c</td>
+                    <td>ap-northeast-2c (AZ-3)</td>
+                    <td>10.0.2.0/24</td>
+                    <td>동일 (고가용성용)</td>
+                </tr>
+                <tr>
+                    <td>hub-private-sub-2a</td>
+                    <td>ap-northeast-2a (AZ-1)</td>
+                    <td>10.0.10.0/24</td>
+                    <td>Hub 내부 보안 인스턴스 배치용 프라이빗망</td>
+                </tr>
+                <tr>
+                    <td>hub-private-sub-2c</td>
+                    <td>ap-northeast-2c (AZ-3)</td>
+                    <td>10.0.20.0/24</td>
+                    <td>동일 (고가용성용)</td>
+                </tr>
+                <tr>
+                    <td>hub-tgw-attach-sub-2a</td>
+                    <td>ap-northeast-2a (AZ-1)</td>
+                    <td>10.0.254.0/28</td>
+                    <td>Transit Gateway 전용 연결 인터페이스(ENI) 배치 서브넷</td>
+                </tr>
+                <tr>
+                    <td>hub-tgw-attach-sub-2c</td>
+                    <td>ap-northeast-2c (AZ-3)</td>
+                    <td>10.0.254.16/28</td>
+                    <td>동일 (고가용성용)</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>입력이 완료되면 하단의 <span class="menu-path">서브넷 생성</span>을 클릭합니다.</p>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">3단계: 인터넷 게이트웨이(IGW) 생성 및 Hub VPC 연결</div>
+        <p>Hub VPC가 외부 인터넷과 통신하기 위한 관문인 IGW를 만듭니다.</p>
+        <ol>
+            <li>좌측 메뉴에서 <span class="menu-path">인터넷 게이트웨이</span>를 클릭하고 <span class="menu-path">인터넷 게이트웨이 생성</span>을 누릅니다.</li>
+            <li><strong>이름 태그:</strong> <code>igw_hub</code> 입력 후 생성합니다.</li>
+            <li>생성된 <code>igw_hub</code>를 선택하고 우측 상단의 <span class="menu-path">작업 ▼</span> 드롭다운에서 <span class="menu-path">VPC에 연결</span>을 클릭합니다.</li>
+            <li><strong>사용 가능한 VPC:</strong> <code>vpc_hub</code>를 선택하고 연결을 완료합니다.</li>
+        </ol>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">4단계: NAT 게이트웨이 생성 [과금 발생 서비스]</div>
+        <p>스포크(Spoke) VPC의 프라이빗 리소스들이 인터넷에 접속하려면 공인 IP로의 주소 변환이 필요합니다. Hub VPC의 퍼블릭 서브넷에 NAT GW를 배치하여 이 역할을 수행하게 합니다.</p>
+        <ol>
+            <li>좌측 메뉴에서 <span class="menu-path">NAT 게이트웨이</span>를 클릭하고 <span class="menu-path">NAT 게이트웨이 생성</span>을 누릅니다.</li>
+            <li><strong>이름:</strong> <code>nat_hub_2a</code></li>
+            <li><strong>서브넷:</strong> <span class="highlight">hub-public-sub-2a</span> (반드시 '퍼블릭' 서브넷을 선택해야 합니다.)</li>
+            <li><strong>탄력적 IP 할당 ID:</strong> 우측의 <span class="menu-path">탄력적 IP 할당</span> 버튼을 클릭하여 새로운 고정 공인 IP(EIP)를 즉시 발급받아 연결합니다.</li>
+            <li><span class="menu-path">NAT 게이트웨이 생성</span>을 클릭합니다. (상태가 'Available'로 변경될 때까지 약 2~3분 소요됩니다.)</li>
+        </ol>
+        <div class="warning">
+            <strong>아키텍처 설계 참고 (단일 NAT vs 다중 NAT)</strong>
+            <p>프로덕션(운영) 환경에서는 완벽한 고가용성을 위해 AZ-3(hub-public-sub-2c)에도 추가로 NAT GW를 생성해야 하지만, 본 실습에서는 비용 최적화를 위해 AZ-1에 단일 NAT GW만 구축하여 전체 트래픽을 처리하도록 구성합니다.</p>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- Phase 2 -->
+    <!-- ========================================== -->
+    <h2>Phase 2. 스포크 네트워크 구축: Spoke VPC (AZ 2, AZ 4)</h2>
+    <p>실제 업무용 서버나 데이터베이스가 위치할 Spoke VPC(<code>vpc_prod</code>)를 생성합니다. 요구사항에 따라 서울 리전의 AZ-2(ap-northeast-2b)와 AZ-4(ap-northeast-2d)에 자원을 배치합니다. 이 VPC는 자체적인 인터넷 게이트웨이(IGW)를 가지지 않고 완벽히 격리됩니다.</p>
+
+    <div class="step-container">
+        <div class="step-title">1단계: Spoke VPC (vpc_prod) 생성</div>
+        <ol>
+            <li>좌측 메뉴에서 <span class="menu-path">VPC</span> 클릭 -> <span class="menu-path">VPC 생성</span> 클릭</li>
+            <li><strong>생성할 리소스:</strong> <code>VPC만</code></li>
+            <li><strong>이름 태그:</strong> <code>vpc_prod</code></li>
+            <li><strong>IPv4 CIDR 블록:</strong> <code>10.1.0.0/16</code> (Hub VPC와 IP 대역이 겹치지 않도록 주의해야 합니다.)</li>
+            <li><span class="menu-path">VPC 생성</span> 클릭</li>
+        </ol>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">2단계: Spoke VPC 서브넷 생성 (AZ 2, AZ 4)</div>
+        <p>프로덕션 워크로드가 실행될 프라이빗 서브넷과 TGW 연결을 위한 전용 서브넷을 생성합니다.</p>
+        <ol>
+            <li>좌측 메뉴 <span class="menu-path">서브넷</span> -> <span class="menu-path">서브넷 생성</span> 클릭</li>
+            <li><strong>VPC ID:</strong> <code>vpc_prod</code> 선택</li>
+            <li>아래 표에 맞춰 4개의 서브넷을 추가합니다.</li>
+        </ol>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>서브넷 이름 (이름 태그)</th>
+                    <th>가용 영역 (AZ)</th>
+                    <th>IPv4 CIDR 블록</th>
+                    <th>용도 설명</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>prod-private-sub-2b</td>
+                    <td>ap-northeast-2b (AZ-2)</td>
+                    <td>10.1.10.0/24</td>
+                    <td>실제 업무용(Spoke) 서버가 위치할 완전 격리 프라이빗망</td>
+                </tr>
+                <tr>
+                    <td>prod-private-sub-2d</td>
+                    <td>ap-northeast-2d (AZ-4)</td>
+                    <td>10.1.20.0/24</td>
+                    <td>동일 (고가용성용)</td>
+                </tr>
+                <tr>
+                    <td>prod-tgw-attach-sub-2b</td>
+                    <td>ap-northeast-2b (AZ-2)</td>
+                    <td>10.1.254.0/28</td>
+                    <td>Transit Gateway 연결용 전용 서브넷</td>
+                </tr>
+                <tr>
+                    <td>prod-tgw-attach-sub-2d</td>
+                    <td>ap-northeast-2d (AZ-4)</td>
+                    <td>10.1.254.16/28</td>
+                    <td>동일 (고가용성용)</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><span class="menu-path">서브넷 생성</span>을 완료합니다.</p>
+        <div class="img-placeholder">
+            [Spoke VPC의 서브넷 생성 완료 화면 이미지 - AZ b와 d 할당 확인]
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- Phase 3 -->
+    <!-- ========================================== -->
+    <h2>Phase 3. 클라우드 라우터, Transit Gateway (TGW) 생성 및 연결</h2>
+    <p>격리된 Hub VPC와 Spoke VPC를 네트워크 수준에서 하나로 묶어줄 중앙 라우터인 Transit Gateway를 생성하고 각각의 VPC에 연결(Attachment)합니다.</p>
+
+    <div class="step-container">
+        <div class="step-title">1단계: Transit Gateway 생성 [과금 발생 서비스]</div>
+        <ol>
+            <li>좌측 하단 내비게이션 메뉴의 <span class="menu-path">Transit Gateway</span> 섹션에서 <span class="menu-path">Transit Gateway</span>를 클릭합니다.</li>
+            <li>우측 상단의 <span class="menu-path">Transit Gateway 생성</span>을 클릭합니다.</li>
+            <li>설정 정보 입력:
+                <ul>
+                    <li><strong>이름 태그:</strong> <code>tgw_main</code></li>
+                    <li><strong>설명:</strong> <code>Central Router for Hub and Spoke</code></li>
+                    <li><strong>Amazon 측 ASN (Autonomous System Number):</strong> <code>64512</code> (기본값 유지. BGP 라우팅 프로토콜에서 사용되는 고유 식별 번호입니다.)</li>
+                    <li><strong>DNS 지원:</strong> <code>Enable (활성화)</code></li>
+                    <li><strong>VPN ECMP 지원:</strong> <code>Enable (활성화)</code></li>
+                    <li><strong>기본 라우팅 테이블 연결/전파:</strong> <span class="highlight">Disable (비활성화)</span>로 체크 해제합니다. (보안과 세밀한 라우팅 제어를 위해 라우팅 테이블을 수동으로 구성하는 것이 실무 아키텍처 원칙입니다.)</li>
+                </ul>
+            </li>
+            <li><span class="menu-path">Transit Gateway 생성</span>을 클릭합니다. 생성까지 약 3~5분이 소요되며 상태가 <strong>'Available'</strong>이 될 때까지 대기합니다.</li>
+        </ol>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">2단계: TGW Attachment (연결) 생성 - Hub VPC</div>
+        <p>TGW의 네트워크 인터페이스(ENI)를 Hub VPC의 지정된 서브넷에 삽입하는 과정입니다.</p>
+        <ol>
+            <li>좌측 메뉴 <span class="menu-path">Transit Gateway 연결 (Attachments)</span> 클릭 -> <span class="menu-path">Transit Gateway 연결 생성</span> 클릭</li>
+            <li><strong>이름 태그:</strong> <code>tgw-attach-hub</code></li>
+            <li><strong>Transit Gateway ID:</strong> 앞서 만든 <code>tgw_main</code> 선택</li>
+            <li><strong>연결 유형 (Attachment type):</strong> <code>VPC</code></li>
+            <li><strong>VPC ID:</strong> <code>vpc_hub</code> 선택</li>
+            <li><strong>서브넷 ID:</strong> <span class="highlight">중요!</span> 가용 영역 ap-northeast-2a와 ap-northeast-2c에서, Phase 1에서 생성한 <code>hub-tgw-attach-sub-2a</code>와 <code>hub-tgw-attach-sub-2c</code> 전용 서브넷을 선택합니다. 다른 서브넷이 선택되지 않도록 체크박스를 신중히 확인하세요.</li>
+            <li><span class="menu-path">생성</span>을 클릭합니다.</li>
+        </ol>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">3단계: TGW Attachment (연결) 생성 - Spoke VPC</div>
+        <ol>
+            <li>다시 <span class="menu-path">Transit Gateway 연결 생성</span>을 클릭합니다.</li>
+            <li><strong>이름 태그:</strong> <code>tgw-attach-prod</code></li>
+            <li><strong>Transit Gateway ID:</strong> <code>tgw_main</code> 선택</li>
+            <li><strong>연결 유형:</strong> <code>VPC</code></li>
+            <li><strong>VPC ID:</strong> <code>vpc_prod</code> 선택</li>
+            <li><strong>서브넷 ID:</strong> 가용 영역 ap-northeast-2b와 ap-northeast-2d에서 <code>prod-tgw-attach-sub-2b</code>, <code>prod-tgw-attach-sub-2d</code>를 각각 선택합니다.</li>
+            <li><span class="menu-path">생성</span>을 클릭합니다.</li>
+        </ol>
+        <p>두 연결의 상태가 모두 'Available'이 될 때까지 기다립니다.</p>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- Phase 4 -->
+    <!-- ========================================== -->
+    <h2>Phase 4. 라우팅 테이블(Route Table) 설계 및 구성 (핵심 단계)</h2>
+    <p>허브 앤 스포크 아키텍처의 가장 중요한 부분입니다. Spoke VPC 내부의 리소스가 <strong>"Spoke -> TGW -> Hub VPC(NAT GW) -> IGW -> 인터넷"</strong> 순서로 안전하게 통신할 수 있도록 각 지점의 이정표(라우팅 테이블)를 정확히 설정해야 합니다.</p>
+
+    <div class="architecture-box" style="background-color: #f1f8ff; color: #333; border: 1px solid #c8e1ff;">
+        <h3 style="color: #0366d6; margin-top:0;">트래픽 흐름(Traffic Flow) 분석</h3>
+        <ol style="text-align: left; font-size: 0.95em;">
+            <li><strong>[출발]</strong> Spoke VPC 내부의 EC2 서버에서 구글(8.8.8.8)로 핑(Ping)을 보냅니다. 목적지 IP는 <code>0.0.0.0/0</code>(모든 외부 IP)에 해당합니다.</li>
+            <li><strong>[Spoke 라우팅]</strong> Spoke 라우팅 테이블은 <code>0.0.0.0/0</code> 트래픽을 <strong>TGW</strong>로 보냅니다.</li>
+            <li><strong>[TGW 라우팅]</strong> TGW는 <code>0.0.0.0/0</code> 트래픽을 받아서 <strong>Hub VPC (tgw-attach-hub)</strong>로 전달합니다.</li>
+            <li><strong>[Hub TGW 서브넷 라우팅]</strong> 트래픽이 Hub VPC에 진입했습니다. TGW 전용 서브넷 라우팅 테이블은 외부로 나가는 트래픽(<code>0.0.0.0/0</code>)을 <strong>NAT Gateway</strong>로 보냅니다.</li>
+            <li><strong>[Hub 퍼블릭 서브넷 라우팅]</strong> NAT Gateway는 사설 IP를 공인 IP로 변환 후, 자신의 라우팅 테이블을 참조하여 트래픽을 <strong>IGW</strong>로 보냅니다. 비로소 트래픽이 인터넷으로 나갑니다.</li>
+            <li><strong>[복귀 흐름]</strong> 인터넷에서 돌아온 응답 트래픽은 NAT Gateway에 도착합니다. NAT Gateway가 위치한 퍼블릭 서브넷 라우팅 테이블은 목적지가 Spoke VPC (<code>10.1.0.0/16</code>)인 것을 확인하고 트래픽을 다시 <strong>TGW</strong>로 돌려보냅니다.</li>
+        </ol>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">1단계: Spoke VPC 라우팅 테이블 구성</div>
+        <p>Spoke 내의 서버들이 외부로 통신할 때 모든 트래픽을 TGW로 보내도록 설정합니다.</p>
+        <ol>
+            <li>좌측 메뉴 <span class="menu-path">라우팅 테이블</span> 클릭 -> <span class="menu-path">라우팅 테이블 생성</span></li>
+            <li><strong>이름:</strong> <code>rt_prod_private</code> / <strong>VPC:</strong> <code>vpc_prod</code> 선택 후 생성</li>
+            <li>생성된 라우팅 테이블 선택 후 하단 <strong>[서브넷 연결]</strong> 탭 -> <span class="menu-path">서브넷 연결 편집</span> 클릭</li>
+            <li>Spoke VPC의 4개 서브넷(private 2개, tgw-attach 2개)을 모두 선택하고 연결 저장.</li>
+            <li>하단 <strong>[라우팅]</strong> 탭 -> <span class="menu-path">라우팅 편집</span> 클릭 -> <span class="menu-path">라우팅 추가</span></li>
+            <li><strong>대상(Destination):</strong> <code>0.0.0.0/0</code></li>
+            <li><strong>대상(Target):</strong> <code>Transit Gateway</code> 선택 후 드롭다운에서 <code>tgw_main</code> 선택</li>
+            <li><span class="menu-path">변경 사항 저장</span> 클릭.</li>
+        </ol>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">2단계: Transit Gateway 라우팅 테이블 구성</div>
+        <p>TGW가 중앙에서 트래픽의 방향을 지시할 수 있도록 TGW 전용 라우팅 테이블을 설정합니다.</p>
+        <ol>
+            <li>좌측 하단 메뉴 <span class="menu-path">Transit Gateway 라우팅 테이블</span> 클릭 -> <span class="menu-path">Transit Gateway 라우팅 테이블 생성</span></li>
+            <li><strong>이름 태그:</strong> <code>tgw_rt_main</code> / <strong>Transit Gateway ID:</strong> <code>tgw_main</code> 선택 후 생성</li>
+            <li>생성된 <code>tgw_rt_main</code> 선택 후 하단 <strong>[연결(Associations)]</strong> 탭 -> <span class="menu-path">연결 생성</span> 클릭. <br>
+                <code>tgw-attach-hub</code>와 <code>tgw-attach-prod</code>를 <strong>각각 하나씩</strong> 선택하여 총 2개의 연결을 생성합니다.</li>
+            <li>하단 <strong>[경로(Routes)]</strong> 탭 -> <span class="menu-path">경로 생성(Create route)</span> 클릭
+                <ul>
+                    <li>인터넷으로 나가는 경로 추가:<br>
+                        <strong>CIDR:</strong> <code>0.0.0.0/0</code><br>
+                        <strong>연결(Attachment):</strong> <code>tgw-attach-hub</code> (인터넷 관문인 Hub로 보냄)</li>
+                </ul>
+            </li>
+            <li>다시 <span class="menu-path">경로 생성</span> 클릭
+                <ul>
+                    <li>Spoke VPC로 찾아가는 경로 추가:<br>
+                        <strong>CIDR:</strong> <code>10.1.0.0/16</code> (Spoke VPC 대역)<br>
+                        <strong>연결(Attachment):</strong> <code>tgw-attach-prod</code></li>
+                </ul>
+            </li>
+        </ol>
+        <div class="img-placeholder">
+            [TGW 라우팅 테이블의 경로(Routes) 설정 화면 이미지: 0.0.0.0/0 은 Hub로, 10.1.0.0/16은 Spoke로 향하는 화면]
+        </div>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">3단계: Hub VPC - TGW 서브넷 라우팅 테이블 구성</div>
+        <p>Spoke에서 TGW를 타고 Hub VPC로 들어온 트래픽(인터넷 향)을 제일 먼저 맞이하는 곳이 TGW Attach 서브넷입니다. 여기서 트래픽을 NAT Gateway로 밀어 넣어주어야 합니다.</p>
+        <ol>
+            <li>좌측 메뉴 <span class="menu-path">라우팅 테이블</span> 클릭 -> <span class="menu-path">라우팅 테이블 생성</span></li>
+            <li><strong>이름:</strong> <code>rt_hub_tgw</code> / <strong>VPC:</strong> <code>vpc_hub</code> 선택 후 생성</li>
+            <li><strong>[서브넷 연결]</strong> 탭 -> <span class="menu-path">서브넷 연결 편집</span> -> <code>hub-tgw-attach-sub-2a</code>, <code>hub-tgw-attach-sub-2c</code> 2개 선택 후 저장.</li>
+            <li><strong>[라우팅]</strong> 탭 -> <span class="menu-path">라우팅 편집</span> -> <span class="menu-path">라우팅 추가</span></li>
+            <li><strong>대상:</strong> <code>0.0.0.0/0</code> / <strong>대상(Target):</strong> <code>NAT 게이트웨이</code> 선택 -> <code>nat_hub_2a</code> 선택</li>
+            <li><span class="menu-path">변경 사항 저장</span> 클릭.</li>
+        </ol>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">4단계: Hub VPC - 퍼블릭 서브넷 라우팅 테이블 구성 (가장 중요)</div>
+        <p>NAT Gateway가 위치한 퍼블릭 서브넷의 설정입니다. 첫째, NAT에서 나온 트래픽을 IGW로 보내 인터넷으로 나가게 합니다. 둘째, 인터넷에서 처리된 후 돌아오는 응답 트래픽(목적지: Spoke VPC 10.1.0.0/16)을 다시 TGW로 안내하여 Spoke까지 무사히 도착하게 합니다.</p>
+        <ol>
+            <li><span class="menu-path">라우팅 테이블 생성</span></li>
+            <li><strong>이름:</strong> <code>rt_hub_public</code> / <strong>VPC:</strong> <code>vpc_hub</code> 선택 후 생성</li>
+            <li><strong>[서브넷 연결]</strong> 탭 -> <span class="menu-path">서브넷 연결 편집</span> -> <code>hub-public-sub-2a</code>, <code>hub-public-sub-2c</code> 2개 선택 후 저장.</li>
+            <li><strong>[라우팅]</strong> 탭 -> <span class="menu-path">라우팅 편집</span> -> <span class="menu-path">라우팅 추가</span> (2개의 라우팅 룰을 추가합니다.)
+                <ul>
+                    <li><strong>첫 번째 룰 (외부로):</strong> 대상 <code>0.0.0.0/0</code> -> Target: <code>인터넷 게이트웨이(IGW)</code> -> <code>igw_hub</code></li>
+                    <li><strong>두 번째 룰 (내부 Spoke로 회귀):</strong> 대상 <code>10.1.0.0/16</code> -> Target: <code>Transit Gateway</code> -> <code>tgw_main</code></li>
+                </ul>
+            </li>
+            <li><span class="menu-path">변경 사항 저장</span> 클릭.</li>
+        </ol>
+        <div class="tip">
+            <strong>흔히 하는 실수 주의 (Troubleshooting Point)</strong>
+            <p>많은 수강생들이 퍼블릭 라우팅 테이블에서 <code>10.1.0.0/16 -> TGW</code> 라우팅 룰을 누락합니다. 이 룰이 없으면 외부로 요청은 나가지만, 돌아오는 응답이 퍼블릭 서브넷에서 길을 잃어(Drop) Spoke 인스턴스에서 통신 타임아웃(Timeout)이 발생하게 됩니다.</p>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- Phase 5 -->
+    <!-- ========================================== -->
+    <h2>Phase 5. 아키텍처 검증 및 테스트</h2>
+    <p>완성된 아키텍처를 테스트하기 위해, 완전히 격리된 Spoke VPC(AZ-2)에 가상 서버(EC2)를 하나 띄우고 시스템 관리자(SSM) 기능을 통해 접속한 뒤, 인터넷 통신이 정상적으로 허브를 거쳐 이루어지는지 검증합니다.</p>
+
+    <div class="step-container">
+        <div class="step-title">1단계: Spoke VPC에 테스트용 EC2 인스턴스 생성</div>
+        <ol>
+            <li>AWS 콘솔 상단 검색창에 <span class="menu-path">EC2</span> 입력 후 이동.</li>
+            <li>좌측 메뉴 <span class="menu-path">인스턴스</span> 클릭 -> 우측 상단 <span class="menu-path">인스턴스 시작</span> 클릭.</li>
+            <li><strong>이름:</strong> <code>spoke-test-server</code></li>
+            <li><strong>AMI:</strong> Amazon Linux 2023 AMI (무료 티어 적용)</li>
+            <li><strong>인스턴스 유형:</strong> t2.micro</li>
+            <li><strong>키 페어:</strong> <code>키 페어 없이 진행 (권장하지 않음)</code> 선택. (보안 셸 접속 대신 AWS Systems Manager의 Session Manager를 사용하여 웹 브라우저에서 직접 콘솔에 접근할 예정입니다.)</li>
+            <li><strong>네트워크 설정:</strong> 
+                <ul>
+                    <li><span class="menu-path">편집</span> 클릭</li>
+                    <li><strong>VPC:</strong> <code>vpc_prod</code> (Spoke VPC)</li>
+                    <li><strong>서브넷:</strong> <code>prod-private-sub-2b</code> (AZ-2의 프라이빗 서브넷)</li>
+                    <li><strong>퍼블릭 IP 자동 할당:</strong> <code>비활성화(Disable)</code> (내부망이므로 공인 IP가 필요 없습니다.)</li>
+                    <li><strong>방화벽(보안 그룹):</strong> 기본 생성 보안 그룹 사용 (또는 새로 생성). 보안을 위해 Inbound 규칙은 비워두고, Outbound 규칙만 <code>모든 트래픽 0.0.0.0/0</code> 허용 상태인지 확인합니다.</li>
+                </ul>
+            </li>
+            <li><strong>고급 세부 정보 (매우 중요):</strong> 
+                <ul>
+                    <li>스크롤을 내려 <strong>IAM 인스턴스 프로파일</strong> 항목을 찾습니다.</li>
+                    <li>사전에 생성된 <code>AmazonSSMManagedInstanceCore</code> 정책이 부여된 IAM 역할을 선택합니다. (이 역할이 있어야 EC2가 프라이빗 환경에서도 AWS Session Manager를 통해 통신을 맺을 수 있습니다. 역할을 미리 만들지 않았다면 IAM 콘솔에서 먼저 생성해야 합니다.)</li>
+                </ul>
+            </li>
+            <li>우측 하단 <span class="menu-path">인스턴스 시작</span> 클릭.</li>
+        </ol>
+    </div>
+
+    <div class="step-container">
+        <div class="step-title">2단계: 연결 및 라우팅 경로 추적 검증</div>
+        <ol>
+            <li>인스턴스 상태가 <code>실행 중(Running)</code>이고 상태 검사가 완료되면, <code>spoke-test-server</code>를 체크하고 상단의 <span class="menu-path">연결(Connect)</span> 버튼을 클릭합니다.</li>
+            <li><strong>[Session Manager]</strong> 탭을 선택하고 <span class="menu-path">연결</span> 버튼을 클릭합니다. (검은색 웹 터미널 창이 열립니다.)</li>
+            <li>터미널에서 구글 퍼블릭 DNS로 핑(Ping) 테스트를 수행합니다.
+<div class="code-block">
+sh-5.2$ ping 8.8.8.8
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=111 time=30.2 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=111 time=30.1 ms
+...
+</div>
+                <p>응답이 정상적으로 수신된다면, 완벽히 격리된 Spoke VPC 내부망에 위치한 서버가 TGW를 타고 Hub VPC의 NAT Gateway와 IGW를 거쳐 인터넷에 접속하는 <strong>엔터프라이즈급 허브 앤 스포크 아키텍처 구축에 성공</strong>한 것입니다.</p>
+            </li>
+        </ol>
+        <div class="img-placeholder">
+            [Session Manager를 통해 EC2에 접속하여 ping 테스트를 성공한 터미널 화면 이미지]
+        </div>
+    </div>
+
+    <div class="callout tip">
+        <strong>아키텍처 확장 과제 (Advanced)</strong>
+        <p>현 단계에서는 외부로 나가는 인터넷 트래픽(Egress)만 중앙 집중화했습니다. 실무 보안 규정 컴플라이언스를 만족하기 위해서는, Hub VPC에 <strong>AWS Network Firewall</strong>이나 써드파티 차세대 방화벽(Palo Alto, Fortinet 등) 어플라이언스를 추가로 배치하여 Spoke에서 나가는 모든 패킷을 심층 패킷 분석(DPI) 하도록 아키텍처를 고도화할 수 있습니다.</p>
+    </div>
+
+</div>
+
+</body>
+</html>
