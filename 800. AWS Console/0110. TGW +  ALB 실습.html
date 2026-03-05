@@ -1,0 +1,49 @@
+단일 VPC 내 TGW 기반 중앙 집중형 네트워크 구성 가이드
+
+단일 VPC(Virtual Private Cloud, 가상 사설 클라우드) 내에서 **TGW(Transit Gateway, 전송 게이트웨이)**를 거쳐 외부 접속(Inbound)과 인터넷 출구(Outbound)를 동시에 구현하는 구성입니다.
+
+---
+
+1. 주요 구성 요소 및 메뉴 설정 (GUI)
+
+1. TGW 생성 및 연결:
+
+  • 메뉴: VPC 콘솔 > Transit Gateways > Create Transit Gateway
+
+  • 연결: Transit Gateway Attachments > Create Transit Gateway Attachment
+
+  • 핵심 설정: **Appliance Mode(어플라이언스 모드)**를 반드시 'Enable'로 체크 (비대칭 라우팅 방지).
+
+2. ALB(Application Load Balancer) 생성:
+
+  • 메뉴: EC2 콘솔 > Load Balancers > Create Load Balancer
+
+  • 유형: Internet-facing(인터넷 연결형) 선택.
+
+  • 네트워크: Public Subnet(퍼블릭 서브넷) 선택 및 프라이빗 서버 IP를 타겟 그룹으로 지정.
+
+---
+
+2. 라우팅 테이블(RTb) 상세 설정
+
+---
+
+3. 구성 확인 및 테스트 방법
+
+1. 아웃바운드(내부->외부): SSM(Systems Manager, 시스템 관리자) 접속 후 `curl -I https://www.[의심스러운 링크 삭제됨]` 실행 -> 200 OK 확인.
+
+2. 인바운드(외부->내부): 로컬 브라우저에서 ALB의 DNS Name 접속 -> 웹 페이지 표시 확인.
+
+---
+
+전문 용어 설명
+
+• Inbound (인바운드): 외부에서 내부로 들어오는 트래픽.
+
+• Outbound (아웃바운드): 내부에서 외부로 나가는 트래픽.
+
+• Appliance Mode (어플라이언스 모드): 트래픽의 송수신 경로를 동일 AZ(Availability Zone, 가용 영역)로 고정하는 기능.
+
+• DNS Name (Domain Name System Name, 도메인 이름): IP 대신 사용하는 주소.
+
+과금 주의: TGW는 시간당 연결 비용과 GB당 데이터 처리 비용이 발생하므로 NFW 도입 등 중앙 통제 목적일 때 권장함.
