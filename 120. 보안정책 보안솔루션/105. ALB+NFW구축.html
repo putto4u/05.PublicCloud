@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFW 기반 인라인 아키텍처 라우팅 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        .section-title { border-left: 5px solid #3b82f6; padding-left: 1rem; margin-bottom: 1.5rem; }
+        .table-header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+        .billing-warning { border-left: 5px solid #ef4444; background-color: #fef2f2; }
+        .pro-tip { border-left: 5px solid #10b981; background-color: #ecfdf5; }
+        code { color: #eb5757; background: #f9f2f2; padding: 2px 4px; border-radius: 4px; font-weight: 500; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="mb-12 text-center">
+            <h1 class="text-4xl font-bold text-slate-900 mb-4">NFW 기반 Hub-and-Spoke 인라인 아키텍처 라우팅 가이드</h1>
+            <p class="text-lg text-slate-600">NFW(Network Firewall, 네트워크 방화벽) 환경에서의 서브넷별 경로 제어 및 아키텍처 설계 전문가 과정</p>
+        </header>
+
+        <!-- Architecture Overview -->
+        <section class="glass-card rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="section-title text-2xl font-bold">아키텍처 개요 (Architecture Overview)</h2>
+            <p class="mb-6 leading-relaxed">
+                본 가이드는 <strong>NFW(Network Firewall, 네트워크 방화벽)</strong>를 <strong>Hub VPC(중심 가상 사설 클라우드)</strong>에 배치하여, <strong>Spoke VPC(연결 가상 사설 클라우드)</strong>와 외부 인터넷 간의 모든 트래픽을 인라인으로 검사하는 구조를 다룹니다. 특히 <strong>NAT(Network Address Translation, 네트워크 주소 변환)</strong>, <strong>ALB(Application Load Balancer, 애플리케이션 로드 밸런서)</strong>, <strong>NFW</strong>가 각각 <code>Hub-Public-1, 2, 3</code> 서브넷으로 분리된 환경을 기준으로 합니다.
+            </p>
+            <div class="bg-slate-100 rounded-xl p-6 text-center italic text-slate-500 mb-4">
+                
+            </div>
+        </section>
+
+        <!-- 1. Outbound Section -->
+        <section class="glass-card rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="section-title text-2xl font-bold text-blue-700">1. 아웃바운드 경로 (Outbound Path): 내부 서버 ➔ 인터넷</h2>
+            <p class="text-slate-600 mb-6">내부 서버가 업데이트 패치 등을 받기 위해 밖으로 나가는 트래픽 흐름입니다. 패킷이 방화벽을 반드시 거치도록 설계되었습니다.</p>
+            
+            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="table-header text-white">
+                            <th class="p-4 font-semibold border-b border-slate-700">순서</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">이동 구간 (패킷 흐름)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">라우팅 테이블(RT) 작성 장소</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">목적지 (Destination)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">대상 (Target)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                        <tr>
+                            <td class="p-4 font-medium text-slate-900">1</td>
+                            <td class="p-4">Spoke 서버 ➔ TGW</td>
+                            <td class="p-4">Spoke 프라이빗 서브넷 RT</td>
+                            <td class="p-4"><code>0.0.0.0/0</code></td>
+                            <td class="p-4"><code>TGW-ID</code></td>
+                        </tr>
+                        <tr class="bg-slate-50/50">
+                            <td class="p-4 font-medium text-slate-900">2</td>
+                            <td class="p-4">TGW ➔ Hub 프라이빗</td>
+                            <td class="p-4 text-sm">TGW 전용 프라이빗 서브넷 RT<br>(Hub 내 TGW 접점)</td>
+                            <td class="p-4"><code>0.0.0.0/0</code></td>
+                            <td class="p-4"><code>NAT-Gateway-ID</code></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 font-medium text-slate-900">3</td>
+                            <td class="p-4 font-semibold text-blue-600">NAT ➔ NFW</td>
+                            <td class="p-4">Hub-Public-1 (NAT 서브넷) RT</td>
+                            <td class="p-4"><code>0.0.0.0/0</code></td>
+                            <td class="p-4"><code>NFW-VPCE-ID</code></td>
+                        </tr>
+                        <tr class="bg-slate-50/50">
+                            <td class="p-4 font-medium text-slate-900">4</td>
+                            <td class="p-4">NFW ➔ IGW</td>
+                            <td class="p-4">Hub-Public-3 (NFW 서브넷) RT</td>
+                            <td class="p-4"><code>0.0.0.0/0</code></td>
+                            <td class="p-4"><code>IGW-ID</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 2. Inbound Section -->
+        <section class="glass-card rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="section-title text-2xl font-bold text-emerald-700">2. 인바운드 경로 (Inbound Path): 외부 유저 ➔ 내부 서버</h2>
+            <p class="text-slate-600 mb-6">외부 고객이 서비스를 이용하기 위해 ALB로 접속할 때의 흐름입니다. 엣지 라우팅을 통해 유입 시점부터 검사를 수행합니다.</p>
+            
+            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="table-header text-white">
+                            <th class="p-4 font-semibold border-b border-slate-700">순서</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">이동 구간 (패킷 흐름)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">라우팅 테이블(RT) 작성 장소</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">목적지 (Destination)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">대상 (Target)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                        <tr class="bg-emerald-50/30">
+                            <td class="p-4 font-medium text-slate-900">1</td>
+                            <td class="p-4 font-semibold text-emerald-600">IGW ➔ NFW</td>
+                            <td class="p-4 font-semibold">IGW 엣지 라우팅 테이블<br>(Edge Association)</td>
+                            <td class="p-4 text-sm"><code>Hub-Public-2</code> (ALB CIDR)</td>
+                            <td class="p-4"><code>NFW-VPCE-ID</code></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 font-medium text-slate-900">2</td>
+                            <td class="p-4">NFW ➔ ALB</td>
+                            <td class="p-4">Hub-Public-3 (NFW 서브넷) RT</td>
+                            <td class="p-4 font-medium">VPC 내부 대역 (전체)</td>
+                            <td class="p-4"><code>Local</code> (자동)</td>
+                        </tr>
+                        <tr class="bg-slate-50/50">
+                            <td class="p-4 font-medium text-slate-900">3</td>
+                            <td class="p-4">ALB ➔ TGW</td>
+                            <td class="p-4">Hub-Public-2 (ALB 서브넷) RT</td>
+                            <td class="p-4"><code>Spoke-VPC-CIDR</code></td>
+                            <td class="p-4"><code>TGW-ID</code></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 font-medium text-slate-900">4</td>
+                            <td class="p-4">TGW ➔ Spoke 서버</td>
+                            <td class="p-4 text-sm">TGW 라우팅 테이블 (TGW-RT)</td>
+                            <td class="p-4"><code>Spoke-VPC-CIDR</code></td>
+                            <td class="p-4"><code>Spoke-Attachment</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 3. Return Section -->
+        <section class="glass-card rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="section-title text-2xl font-bold text-orange-700">3. 리턴 트래픽 (Return Path): ALB ➔ 외부 유저</h2>
+            <p class="text-slate-600 mb-6">ALB가 응답을 보낼 때 다시 NFW를 거치게 하여 <strong>대칭 라우팅(Symmetric Routing)</strong>을 완성하는 경로입니다.</p>
+            
+            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="table-header text-white">
+                            <th class="p-4 font-semibold border-b border-slate-700">순서</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">이동 구간 (패킷 흐름)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">라우팅 테이블(RT) 작성 장소</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">목적지 (Destination)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">대상 (Target)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                        <tr>
+                            <td class="p-4 font-medium text-slate-900">1</td>
+                            <td class="p-4 font-semibold text-orange-600">ALB ➔ NFW</td>
+                            <td class="p-4">Hub-Public-2 (ALB 서브넷) RT</td>
+                            <td class="p-4"><code>0.0.0.0/0</code></td>
+                            <td class="p-4"><code>NFW-VPCE-ID</code></td>
+                        </tr>
+                        <tr class="bg-slate-50/50">
+                            <td class="p-4 font-medium text-slate-900">2</td>
+                            <td class="p-4 font-semibold text-orange-600">NFW ➔ IGW</td>
+                            <td class="p-4">Hub-Public-3 (NFW 서브넷) RT</td>
+                            <td class="p-4"><code>0.0.0.0/0</code></td>
+                            <td class="p-4"><code>IGW-ID</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Billing Warning -->
+        <section class="billing-warning rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="text-red-700 text-xl font-bold mb-4"><i class="fas fa-exclamation-triangle mr-2"></i>클라우드 과금 및 유료 서비스 주의사항 (Billing Warnings)</h2>
+            <ul class="space-y-3 text-slate-700">
+                <li><span class="font-bold">NFW 데이터 처리 비용 중복 발생 (유료):</span> 모든 인바운드 및 아웃바운드 패킷이 NFW를 경유하므로, 동일 데이터에 대해 <strong>GB당 처리 비용</strong>이 양방향으로 각각 합산 청구됩니다.</li>
+                <li><span class="font-bold">TGW 및 NAT 비용 중첩 (유료):</span> 아웃바운드 트래픽은 <code>TGW</code>, <code>NAT</code>, <code>NFW</code> 세 가지 관리형 서비스를 모두 통과하므로, 각 서비스의 <strong>데이터 처리 요금</strong>이 누적되어 발생합니다.</li>
+                <li><span class="font-bold">VPCE 유지 요금 (유료):</span> NFW 엔드포인트는 가용 영역(AZ)별로 생성되며, 가동 중인 <strong>엔드포인트당 시간당 고정 비용</strong>이 별도로 청구됩니다.</li>
+            </ul>
+        </section>
+
+        <!-- Pro Tip -->
+        <section class="pro-tip rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="text-emerald-700 text-xl font-bold mb-4"><i class="fas fa-lightbulb mr-2"></i>아키텍트 실전 팁 (Architect's Insight)</h2>
+            <p class="text-slate-700">
+                NFW 서브넷(Hub-Public-3)의 라우팅 테이블에서 <strong>Local(로컬)</strong> 규칙은 VPC 전체 CIDR을 포괄합니다. 따라서 NAT 대역이나 ALB 대역으로 향하는 응답 패킷에 대해 개별적인 정적 경로를 생성할 필요가 없습니다. 하지만 가용 영역(AZ) 간 통신 시 발생하는 <strong>Cross-AZ 비용</strong>을 방지하기 위해, NAT/ALB/NFW 엔드포인트를 동일한 AZ 내에 배치하는 <strong>AZ Alignment(가용 영역 정렬)</strong> 설계가 필수적입니다.
+            </p>
+        </section>
+
+        <!-- Glossary -->
+        <footer class="bg-slate-800 rounded-2xl p-8 text-white">
+            <h2 class="text-xl font-bold mb-6">핵심 네트워크 용어 및 기술 주석</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-sm text-slate-300">
+                <div><span class="font-bold text-white">NFW (Network Firewall, 네트워크 방화벽):</span> 트래픽 필터링 및 침입 방지 기능을 제공하는 관리형 네트워크 보안 서비스입니다.</div>
+                <div><span class="font-bold text-white">IGW (Internet Gateway, 인터넷 게이트웨이):</span> VPC 리소스와 공인 인터넷 간의 통신을 가능하게 하는 게이트웨이입니다.</div>
+                <div><span class="font-bold text-white">ALB (Application Load Balancer, 애플리케이션 로드 밸런서):</span> HTTP/HTTPS 트래픽을 처리하며 타겟으로 요청을 분산하는 로드 밸런서입니다.</div>
+                <div><span class="font-bold text-white">VPCE (VPC Endpoint, VPC 엔드포인트):</span> NFW와 같은 AWS 서비스를 VPC 내부 서브넷에 연결하기 위한 가상 네트워크 접점입니다.</div>
+                <div><span class="font-bold text-white">Edge Association (엣지 연결):</span> 라우팅 테이블을 서브넷이 아닌 IGW에 직접 연결하여 유입 트래픽을 제어하는 기술입니다.</div>
+                <div><span class="font-bold text-white">Symmetric Routing (대칭 라우팅):</span> 요청과 응답의 경로를 일치시켜 세션 기반 방화벽의 연결 끊김을 방지하는 설계 방식입니다.</div>
+                <div><span class="font-bold text-white">TGW (Transit Gateway, 트랜짓 게이트웨이):</span> 수천 개의 VPC와 온프레미스 망을 중앙에서 연결하는 클라우드 라우터입니다.</div>
+                <div><span class="font-bold text-white">NAT (Network Address Translation, 네트워크 주소 변환):</span> 사설 IP를 공인 IP로 변환하여 외부 인터넷 통신을 지원하는 기술입니다.</div>
+            </div>
+            <div class="mt-8 pt-6 border-t border-slate-700 text-center text-slate-400">
+                Next Step: NFW_정책_그룹_및_규칙_최적화 | VPC_Reachability_Analyzer_경로_검증
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
