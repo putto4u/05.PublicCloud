@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>베스천 서버 최적 배치 및 라우팅 설계 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; color: #1e293b; line-height: 1.6; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        .section-title { border-left: 5px solid #8b5cf6; padding-left: 1rem; margin-bottom: 1.5rem; }
+        .table-header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+        .billing-warning { border-left: 5px solid #ef4444; background-color: #fef2f2; }
+        .pro-tip { border-left: 5px solid #10b981; background-color: #ecfdf5; }
+        code { color: #eb5757; background: #f9f2f2; padding: 2px 4px; border-radius: 4px; font-weight: 500; font-family: monospace; }
+        .highlight-row { background-color: #f5f3ff; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="mb-12 text-center">
+            <h1 class="text-4xl font-bold text-slate-900 mb-4">베스천 서버(Bastion Host) 최적 배치 및 통합 라우팅 설계</h1>
+            <p class="text-lg text-slate-600">제로 트러스트 아키텍처 기반의 프라이빗 서브넷 접근 통제 및 트래픽 포워딩 마스터 과정</p>
+        </header>
+
+        <!-- Architecture Overview -->
+        <section class="glass-card rounded-2xl p-8 mb-8 shadow-sm border-t-4 border-purple-500">
+            <h2 class="section-title text-2xl font-bold text-purple-800">아키텍처 개요 (Architecture Overview)</h2>
+            <p class="mb-4 leading-relaxed">
+                최신 클라우드 보안 표준에서는 베스천 서버를 <strong>퍼블릭 서브넷(Public Subnet, 공용 서브넷)</strong>에 배치하여 <strong>공인 IP(Public IP)</strong>를 통해 <strong>SSH(Secure Shell, 시큐어 셸)</strong> 포트를 직접 개방하는 방식을 엄격히 금지합니다.
+            </p>
+            <p class="mb-6 leading-relaxed">
+                본 아키텍처는 베스천 서버를 <strong>Hub VPC(Virtual Private Cloud, 가상 사설 클라우드)</strong>의 <strong>프라이빗 서브넷(Private Subnet, 사설 서브넷)</strong>에 안전하게 격리 배치하고, <strong>SSM(Systems Manager, 시스템스 매니저)</strong>의 세션 매니저(Session Manager)를 활용하여 외부 인터넷 노출 없이 내부 자원에 접근하는 엔터프라이즈 모범 사례(Best Practice)를 구현합니다.
+            </p>
+            <div class="bg-slate-100 rounded-xl p-6 text-center italic text-slate-500 border border-dashed border-slate-300">
+                
+            </div>
+        </section>
+
+        <!-- 1. Outbound / Forward Section -->
+        <section class="glass-card rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="section-title text-2xl font-bold text-indigo-700">1. 베스천 서버 출발 라우팅 (Outbound / Forward)</h2>
+            <p class="text-slate-600 mb-6">프라이빗 서브넷에 위치한 베스천 서버(<code>Hub-Private-Bastion</code>)가 목적지를 향해 세션을 시작할 때 참조하는 라우팅 테이블(RT) 규칙입니다.</p>
+            
+            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="table-header text-white">
+                            <th class="p-4 font-semibold border-b border-slate-700">통신 목적</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">이동 구간 (패킷 흐름)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">라우팅 테이블(RT) 작성 장소</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">목적지 (Destination)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">대상 (Target)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                        <tr class="highlight-row">
+                            <td class="p-4 font-bold text-indigo-700"><i class="fas fa-server mr-2"></i>Spoke 서버 접속</td>
+                            <td class="p-4 font-medium text-slate-800">베스천 ➔ TGW</td>
+                            <td class="p-4 font-semibold"><code>Hub-Private-Bastion</code> RT</td>
+                            <td class="p-4 text-sm"><code>Spoke VPC 전체 대역</code><br>(예: 10.10.0.0/16)</td>
+                            <td class="p-4 font-bold text-indigo-600 underline"><code>TGW-ID</code></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 font-bold text-slate-700"><i class="fas fa-globe mr-2"></i>인터넷 / SSM 연결</td>
+                            <td class="p-4 font-medium text-slate-800">베스천 ➔ NAT</td>
+                            <td class="p-4 font-semibold"><code>Hub-Private-Bastion</code> RT</td>
+                            <td class="p-4"><code>0.0.0.0/0</code></td>
+                            <td class="p-4"><code>NAT-Gateway-ID</code></td>
+                        </tr>
+                        <tr class="bg-slate-50/50">
+                            <td class="p-4 font-bold text-slate-700"><i class="fas fa-network-wired mr-2"></i>Hub 퍼블릭 자원 접근</td>
+                            <td class="p-4 font-medium text-slate-800 text-sm">베스천 ➔ Hub 퍼블릭 (NAT/ALB/NFW)</td>
+                            <td class="p-4 font-semibold"><code>Hub-Private-Bastion</code> RT</td>
+                            <td class="p-4 text-sm"><code>Hub VPC 전체 대역</code><br>(예: 10.0.0.0/16)</td>
+                            <td class="p-4 text-slate-500"><code>Local</code> (자동 적용)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 2. Inbound / Return Section -->
+        <section class="glass-card rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="section-title text-2xl font-bold text-teal-700">2. 베스천 서버 복귀 라우팅 (Inbound / Return)</h2>
+            <p class="text-slate-600 mb-6">Spoke 망 내부의 서버나 Hub 망의 퍼블릭 자원들이 베스천 서버의 요청에 대해 응답 패킷을 되돌려 보낼 때 사용하는 경로입니다.</p>
+            
+            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="table-header text-white">
+                            <th class="p-4 font-semibold border-b border-slate-700">통신 목적</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">이동 구간 (패킷 흐름)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">라우팅 테이블(RT) 작성 장소</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">목적지 (Destination)</th>
+                            <th class="p-4 font-semibold border-b border-slate-700">대상 (Target)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                        <tr class="bg-teal-50/30">
+                            <td class="p-4 font-bold text-teal-700"><i class="fas fa-reply mr-2"></i>Spoke 서버 응답</td>
+                            <td class="p-4 font-medium text-slate-800">Spoke ➔ TGW</td>
+                            <td class="p-4 font-semibold"><code>Spoke 프라이빗 서브넷</code> RT</td>
+                            <td class="p-4 text-sm"><code>Hub VPC 전체 대역</code><br>또는 <code>0.0.0.0/0</code></td>
+                            <td class="p-4 font-bold text-teal-600"><code>TGW-ID</code></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 font-bold text-slate-700"><i class="fas fa-exchange-alt mr-2"></i>TGW 전달</td>
+                            <td class="p-4 font-medium text-slate-800">TGW ➔ Hub 프라이빗</td>
+                            <td class="p-4 font-semibold">TGW 라우팅 테이블</td>
+                            <td class="p-4 text-sm"><code>Hub VPC 전체 대역</code></td>
+                            <td class="p-4"><code>Hub-VPC-Attachment</code></td>
+                        </tr>
+                        <tr class="bg-slate-50/50">
+                            <td class="p-4 font-bold text-slate-700"><i class="fas fa-undo mr-2"></i>Hub 퍼블릭 자원 응답</td>
+                            <td class="p-4 font-medium text-slate-800 text-sm">Hub 퍼블릭 ➔ 베스천</td>
+                            <td class="p-4 font-semibold text-sm"><code>Hub-Public</code> RT (NAT/ALB/NFW)</td>
+                            <td class="p-4 text-sm"><code>Hub VPC 전체 대역</code></td>
+                            <td class="p-4 text-slate-500"><code>Local</code> (자동 적용)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Pro Tip Section -->
+        <section class="pro-tip rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="text-emerald-700 text-xl font-bold mb-4"><i class="fas fa-lightbulb mr-2"></i>아키텍처 설계 핵심 포인트 (Architect's Insight)</h2>
+            <ul class="space-y-3 text-slate-700">
+                <li><span class="font-bold text-slate-900">Local(로컬) 라우팅의 완결성:</span> 베스천 서버가 Hub VPC 내의 퍼블릭 서브넷(NAT, ALB, NFW)과 통신할 때는 라우팅 테이블에 기본적으로 하드코딩되어 있는 <code>VPC CIDR ➔ Local</code> 규칙을 사용합니다. 이 규칙은 삭제 및 수정이 불가능하며, <strong>VPC 내부 통신을 위해 별도의 규칙을 수동으로 추가할 필요가 없습니다.</strong></li>
+                <li><span class="font-bold text-slate-900">TGW(Transit Gateway) 경로의 명시적 선언:</span> 베스천 서버가 타망(Spoke VPC)으로 진입하기 위해서는 베스천이 속한 서브넷의 라우팅 테이블에 반드시 <code>Spoke 대역 ➔ TGW-ID</code> 경로가 명시되어 있어야만 패킷이 라우터(TGW)로 정확히 전달됩니다.</li>
+            </ul>
+        </section>
+
+        <!-- Billing Warning -->
+        <section class="billing-warning rounded-2xl p-8 mb-8 shadow-sm">
+            <h2 class="text-red-700 text-xl font-bold mb-4"><i class="fas fa-file-invoice-dollar mr-2"></i>클라우드 과금 및 유료 서비스 주의사항 (Billing Warnings)</h2>
+            <ul class="space-y-3 text-slate-700">
+                <li><span class="font-bold">TGW 데이터 처리 요금 (유료):</span> 베스천 서버를 통해 Spoke VPC 내부의 서버로 덤프 파일이나 대용량 로그를 전송할 경우, 트래픽이 TGW를 횡단하므로 <strong>GB당 양방향 데이터 처리 요금</strong>이 부과됩니다.</li>
+                <li><span class="font-bold">NAT Gateway 데이터 요금 (유료):</span> 프라이빗 서브넷의 베스천 서버가 AWS Systems Manager(SSM) 컨트롤 플레인과 통신하기 위해 인터넷으로 나갈 때 NAT 게이트웨이를 통과하며 <strong>GB당 데이터 처리 비용</strong>이 지속적으로 청구됩니다.</li>
+                <li><span class="font-bold text-red-600">VPC Endpoint 대안 (비용 최적화):</span> NAT 트래픽 비용을 근본적으로 절감하기 위해, SSM 통신 전용으로 <strong>Interface VPC Endpoint(인터페이스 VPC 엔드포인트, 시간당 프로비저닝 요금 부과)</strong>를 프라이빗 서브넷에 직접 생성하여 내부망으로만 통신하도록 구성하는 것이 엔터프라이즈의 표준입니다.</li>
+            </ul>
+        </section>
+
+        <!-- Glossary -->
+        <footer class="bg-slate-800 rounded-2xl p-8 text-white">
+            <h2 class="text-xl font-bold mb-6">핵심 네트워크 용어 및 기술 주석</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-sm text-slate-300">
+                <div><span class="font-bold text-white">Bastion Host (베스천 호스트, 요새 호스트):</span> 외부에서 내부 프라이빗 네트워크 인프라에 접근하기 위해 유일하게 열어두는 단일 진입점 역할의 강력한 보안 경유 서버입니다.</div>
+                <div><span class="font-bold text-white">SSM (Systems Manager, 시스템스 매니저):</span> AWS 리소스를 가시화하고 제어하는 관리 서비스로, 인바운드 포트(예: SSH 22번)를 열지 않고도 안전한 터미널 접속을 제공하는 세션 매니저를 포함합니다.</div>
+                <div><span class="font-bold text-white">TGW (Transit Gateway, 트랜짓 게이트웨이):</span> 다수의 VPC와 온프레미스(사내 구축형) 네트워크를 단일 지점에서 중앙 집중식으로 연결하는 클라우드 라우터입니다.</div>
+                <div><span class="font-bold text-white">SSH (Secure Shell, 시큐어 셸):</span> 네트워크 상의 다른 컴퓨터에 암호화된 방식으로 원격 로그인하여 명령을 실행하기 위한 프로토콜입니다.</div>
+                <div><span class="font-bold text-white">NAT (Network Address Translation, 네트워크 주소 변환):</span> 프라이빗 망의 리소스가 외부 공인 망(인터넷)과 통신할 수 있도록 사설 IP를 공인 IP로 변환하는 서비스입니다.</div>
+                <div><span class="font-bold text-white">Interface VPC Endpoint (인터페이스 VPC 엔드포인트):</span> AWS 서비스로 향하는 트래픽이 인터넷 구간을 타지 않고 AWS 프라이빗 네트워크를 통해 직접 연결되도록 지원하는 ENI 기반 접점입니다.</div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
