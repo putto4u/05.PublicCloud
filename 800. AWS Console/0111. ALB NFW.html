@@ -6,58 +6,61 @@
     <title>고급 클라우드 아키텍처: 중앙 집중식 보안 및 웹 서비스 구축</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
         .step-card { transition: all 0.3s ease; }
-        .step-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .cost-tag { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-        .menu-path { background-color: #f1f5f9; color: #334155; border-radius: 4px; padding: 2px 6px; font-weight: 600; font-family: monospace; }
+        .step-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        .cost-tag { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-weight: 700; }
+        .menu-path { background-color: #f1f5f9; color: #334155; border-radius: 6px; padding: 4px 8px; font-weight: 600; font-family: monospace; font-size: 0.9em; border: 1px solid #e2e8f0; }
+        .highlight-text { background-color: #fef08a; padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-weight: bold; color: #854d0e; }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-5xl mx-auto">
         <!-- 헤더 섹션 -->
-        <header class="bg-slate-900 text-white p-8 rounded-2xl mb-10 shadow-xl">
-            <h1 class="text-3xl font-bold mb-4">중앙 집중식 보안 아키텍처 구축 가이드</h1>
-            <p class="text-slate-400 leading-relaxed">
-                본 가이드는 <span class="text-blue-400 font-semibold">Nginx → VPC → TGW → NAT → ALB → NFW → IGW</span>로 이어지는 복합 경로를 통해 
+        <header class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-10 rounded-3xl mb-12 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-blue-500 rounded-full opacity-10 blur-3xl"></div>
+            <h1 class="text-4xl font-black mb-4 tracking-tight">중앙 집중식 보안 아키텍처 구축 가이드</h1>
+            <p class="text-slate-300 leading-relaxed text-lg max-w-3xl">
+                본 가이드는 <span class="text-blue-400 font-bold">Nginx → VPC → TGW → NAT → ALB → NFW → IGW</span>로 이어지는 복합 경로를 통해 
                 외부 브라우저 접속이 가능한 고보안 웹 서비스를 구축하는 전문 직업훈련 과정의 핵심 교안입니다.
             </p>
-            <div class="mt-6 flex flex-wrap gap-3">
-                <span class="px-3 py-1 bg-blue-600 rounded-full text-xs">최고 수석 아키텍트 설계</span>
-                <span class="px-3 py-1 bg-green-600 rounded-full text-xs">보안 컴플라이언스 준수</span>
-                <span class="px-3 py-1 bg-amber-600 rounded-full text-xs">엔터프라이즈 표준</span>
+            <div class="mt-8 flex flex-wrap gap-3">
+                <span class="px-4 py-1.5 bg-blue-600/20 text-blue-300 border border-blue-500/30 rounded-full text-xs font-bold tracking-wider uppercase">최고 수석 아키텍트 설계</span>
+                <span class="px-4 py-1.5 bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 rounded-full text-xs font-bold tracking-wider uppercase">보안 컴플라이언스 준수</span>
+                <span class="px-4 py-1.5 bg-amber-600/20 text-amber-300 border border-amber-500/30 rounded-full text-xs font-bold tracking-wider uppercase">엔터프라이즈 표준</span>
             </div>
         </header>
 
         <!-- 아키텍처 흐름도 설명 -->
-        <section class="mb-12">
-            <h2 class="text-2xl font-bold text-slate-800 mb-6 border-l-4 border-blue-500 pl-4">1. 시스템 구성도 및 트래픽 흐름 (Traffic Flow)</h2>
-            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
-                    <div class="p-3 bg-slate-100 rounded-lg w-full md:w-auto"><strong>외부 브라우저</strong></div>
-                    <div class="text-slate-400">→</div>
-                    <div class="p-3 bg-red-50 border border-red-200 rounded-lg w-full md:w-auto"><strong>IGW</strong><br><span class="text-[10px]">(인터넷 게이트웨이)</span></div>
-                    <div class="text-slate-400">→</div>
-                    <div class="p-3 bg-orange-50 border border-orange-200 rounded-lg w-full md:w-auto"><strong>NFW</strong><br><span class="text-[10px]">(네트워크 방화벽)</span></div>
-                    <div class="text-slate-400">→</div>
-                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg w-full md:w-auto"><strong>ALB</strong><br><span class="text-[10px]">(로드 밸런서)</span></div>
-                    <div class="text-slate-400">→</div>
-                    <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg w-full md:w-auto"><strong>TGW</strong><br><span class="text-[10px]">(전송 게이트웨이)</span></div>
-                    <div class="text-slate-400">→</div>
-                    <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg w-full md:w-auto"><strong>Nginx</strong><br><span class="text-[10px]">(웹 서버)</span></div>
+        <section class="mb-14">
+            <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center"><span class="w-2 h-8 bg-blue-600 mr-3 rounded-full"></span>1. 시스템 구성도 및 트래픽 흐름 (Traffic Flow)</h2>
+            <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-center font-bold">
+                    <div class="p-4 bg-slate-100 rounded-xl w-full md:w-auto text-slate-700">외부 브라우저</div>
+                    <div class="text-slate-300">▶</div>
+                    <div class="p-4 bg-red-50 border-2 border-red-100 rounded-xl w-full md:w-auto text-red-800">IGW<br><span class="text-[11px] font-medium text-red-600">(인터넷 게이트웨이)</span></div>
+                    <div class="text-slate-300">▶</div>
+                    <div class="p-4 bg-orange-50 border-2 border-orange-100 rounded-xl w-full md:w-auto text-orange-800">NFW<br><span class="text-[11px] font-medium text-orange-600">(네트워크 방화벽)</span></div>
+                    <div class="text-slate-300">▶</div>
+                    <div class="p-4 bg-blue-50 border-2 border-blue-100 rounded-xl w-full md:w-auto text-blue-800">ALB<br><span class="text-[11px] font-medium text-blue-600">(로드 밸런서)</span></div>
+                    <div class="text-slate-300">▶</div>
+                    <div class="p-4 bg-purple-50 border-2 border-purple-100 rounded-xl w-full md:w-auto text-purple-800">TGW<br><span class="text-[11px] font-medium text-purple-600">(전송 게이트웨이)</span></div>
+                    <div class="text-slate-300">▶</div>
+                    <div class="p-4 bg-emerald-50 border-2 border-emerald-100 rounded-xl w-full md:w-auto text-emerald-800">Nginx<br><span class="text-[11px] font-medium text-emerald-600">(웹 서버)</span></div>
                 </div>
-                <p class="mt-6 text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-lg border-l-2 border-slate-300">
-                    <strong>[전문 아키텍트 분석]</strong>: 위 경로는 외부 사용자가 접속하는 '인바운드(Inbound)' 흐름을 기준으로 설명합니다. 
-                    `NAT`(Network Address Translation, 네트워크 주소 변환) 게이트웨이는 인스턴스가 패치나 업데이트를 위해 인터넷으로 나가는 '아웃바운드(Outbound)' 전용이므로, 
-                    서비스 응답 트래픽의 복귀 경로 혹은 서버 자체의 외부 통신 시에 경유하게 됩니다.
-                </p>
+                <div class="mt-8 bg-slate-50 p-5 rounded-xl border-l-4 border-slate-300">
+                    <p class="text-sm text-slate-700 leading-relaxed">
+                        <strong class="text-slate-900">[전문 아키텍트 분석]</strong>: 위 경로는 외부 사용자가 접속하는 '인바운드(Inbound)' 흐름을 기준으로 설명합니다. 
+                        <strong>NAT (Network Address Translation, 네트워크 주소 변환)</strong> 게이트웨이는 인스턴스가 패치나 업데이트를 위해 인터넷으로 나가는 '아웃바운드(Outbound)' 전용이므로, 서비스 응답 트래픽의 복귀 경로 혹은 프라이빗 서버 자체의 외부 통신 시에 경유하게 됩니다.
+                    </p>
+                </div>
             </div>
         </section>
 
         <!-- 단계별 구축 가이드 -->
-        <section class="mb-12">
-            <h2 class="text-2xl font-bold text-slate-800 mb-6 border-l-4 border-blue-500 pl-4">2. 상세 구축 절차 (Step-by-Step)</h2>
+        <section class="mb-14">
+            <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center"><span class="w-2 h-8 bg-blue-600 mr-3 rounded-full"></span>2. 상세 구축 절차 (Step-by-Step)</h2>
             
             <!-- STEP 1 -->
             <div class="step-card bg-white p-6 rounded-xl border border-slate-200 mb-6">
@@ -66,10 +69,10 @@
                     <span class="cost-tag text-[10px] px-2 py-1 rounded">VPC 자체는 무료</span>
                 </div>
                 <div class="space-y-4">
-                    <p class="text-slate-700 text-sm">서비스가 운영될 <code>Service-VPC</code>와 보안/인터넷 접점이 될 <code>Inspection-VPC</code>를 각각 생성합니다.</p>
+                    <p class="text-slate-700 text-sm">서비스가 운영될 <code>Service-VPC</code>와 보안/인터넷 접점이 될 <code>Hub VPC (Inspection)</code>를 각각 생성합니다.</p>
                     <div class="bg-slate-50 p-4 rounded text-sm">
                         <strong>콘솔 메뉴:</strong> <span class="menu-path">VPC 콘솔 > VPC 생성 > 이름: Service-VPC / CIDR: 10.1.0.0/16</span><br>
-                        <strong>콘솔 메뉴:</strong> <span class="menu-path">VPC 콘솔 > VPC 생성 > 이름: Inspection-VPC / CIDR: 10.2.0.0/16</span>
+                        <strong>콘솔 메뉴:</strong> <span class="menu-path">VPC 콘솔 > VPC 생성 > 이름: Hub-VPC / CIDR: <span class="highlight-text">10.0.0.0/16</span></span>
                     </div>
                 </div>
             </div>
@@ -84,7 +87,7 @@
                     <p class="text-slate-700 text-sm">두 VPC를 연결하는 중앙 허브를 구축합니다.</p>
                     <div class="bg-slate-50 p-4 rounded text-sm">
                         <strong>콘솔 메뉴:</strong> <span class="menu-path">VPC 콘솔 > Transit Gateways > Transit Gateway 생성</span><br>
-                        <strong>콘솔 메뉴:</strong> <span class="menu-path">VPC 콘솔 > Transit Gateway Attachments > Attachment 생성 (Service-VPC 및 Inspection-VPC 연결)</span>
+                        <strong>콘솔 메뉴:</strong> <span class="menu-path">VPC 콘솔 > Transit Gateway Attachments > Attachment 생성 (Service-VPC 및 Hub-VPC 연결)</span>
                     </div>
                 </div>
             </div>
@@ -92,41 +95,26 @@
             <!-- STEP 3 -->
             <div class="step-card bg-white p-6 rounded-xl border border-slate-200 mb-6">
                 <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-xl font-bold text-blue-700">단계 3: NFW(네트워크 방화벽) 배치</h3>
-                    <span class="cost-tag text-[10px] px-2 py-1 rounded">엔드포인트 비용 + 트래픽 처리 비용 (고가)</span>
-                </div>
-                <div class="space-y-4">
-                    <p class="text-slate-700 text-sm"><code>Inspection-VPC</code> 내에 방화벽을 배치하여 외부 인입 트래픽의 패킷을 전수 검사합니다.</p>
-                    <div class="bg-slate-50 p-4 rounded text-sm">
-                        <strong>콘솔 메뉴:</strong> <span class="menu-path">VPC 콘솔 > AWS Network Firewall > Firewall 생성</span><br>
-                        <strong>상세 선택:</strong> 보안 정책(Firewall Policy) 생성 후 `Suricata` 형식 또는 기본 규칙으로 80/443 포트 허용 설정
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 4 -->
-            <div class="step-card bg-white p-6 rounded-xl border border-slate-200 mb-6">
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-xl font-bold text-blue-700">단계 4: ALB(애플리케이션 로드 밸런서) 및 Nginx 구성</h3>
+                    <h3 class="text-xl font-bold text-blue-700">단계 3: ALB(애플리케이션 로드 밸런서) 및 Nginx 구성</h3>
                     <span class="cost-tag text-[10px] px-2 py-1 rounded">ALB LCU 시간당 비용 발생</span>
                 </div>
                 <div class="space-y-4">
-                    <p class="text-slate-700 text-sm">인터넷 가시성을 가진 `ALB`를 생성하고, `Service-VPC`의 프라이빗 서브넷에 있는 `Nginx` 서버를 대상 그룹으로 연결합니다.</p>
+                    <p class="text-slate-700 text-sm">Hub VPC에 인터넷 가시성을 가진 `ALB`를 생성하고, `Service-VPC`의 프라이빗 서브넷에 있는 `Nginx` 서버를 대상 그룹으로 연결합니다.</p>
                     <div class="bg-slate-50 p-4 rounded text-sm">
-                        <strong>콘솔 메뉴:</strong> <span class="menu-path">EC2 콘솔 > 로드 밸런서 > ALB 생성 > Internet-facing 선택</span><br>
+                        <strong>콘솔 메뉴:</strong> <span class="menu-path">EC 구 콘솔 > 로드 밸런서 > ALB 생성 > Internet-facing 선택</span><br>
                         <strong>콘솔 메뉴:</strong> <span class="menu-path">EC2 콘솔 > 대상 그룹 > Target Group 생성 > Nginx 인스턴스 등록</span>
                     </div>
                 </div>
             </div>
 
-            <!-- STEP 5 (NAT) -->
+            <!-- STEP 4 (NAT) -->
             <div class="step-card bg-white p-6 rounded-xl border border-slate-200 mb-6">
                 <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-xl font-bold text-blue-700">단계 5: NAT 게이트웨이 및 아웃바운드 라우팅</h3>
+                    <h3 class="text-xl font-bold text-blue-700">단계 4: NAT 게이트웨이 및 아웃바운드 라우팅</h3>
                     <span class="cost-tag text-[10px] px-2 py-1 rounded">시간당 비용 + 데이터 처리 비용 발생</span>
                 </div>
                 <div class="space-y-4">
-                    <p class="text-slate-700 text-sm">서버의 보안 업데이트 및 ALB의 인터넷 통신을 위해 `NAT` 게이트웨이를 `Inspection-VPC`의 퍼블릭 서브넷에 배치합니다.</p>
+                    <p class="text-slate-700 text-sm">서버의 보안 업데이트 및 내부 통신을 위해 `NAT` 게이트웨이를 `Hub-VPC`의 지정된 서브넷에 배치합니다.</p>
                     <div class="bg-slate-50 p-4 rounded text-sm">
                         <strong>콘솔 메뉴:</strong> <span class="menu-path">VPC 콘솔 > NAT Gateway > 생성 (탄력적 IP 할당 필요)</span>
                     </div>
@@ -134,37 +122,137 @@
             </div>
         </section>
 
-        <!-- 핵심 라우팅 로직 (주석 및 상세 설명) -->
-        <section class="mb-12 bg-slate-100 p-8 rounded-2xl">
-            <h2 class="text-2xl font-bold text-slate-800 mb-6 italic">"이 아키텍처의 핵심: 라우팅 테이블(Routing Table) 설계"</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white p-5 rounded-lg border-l-4 border-amber-500 shadow-sm">
-                    <h4 class="font-bold mb-2">① IGW 인바운드 라우팅 (Ingress)</h4>
-                    <p class="text-xs text-slate-600 mb-2">외부 브라우저 접속이 ALB로 가기 전 NFW를 거치게 하는 강제 경로입니다.</p>
-                    <div class="text-[11px] font-mono bg-slate-900 text-emerald-400 p-3 rounded">
-                        Target: NFW Endpoint ID <br>
-                        Destination: ALB Subnet CIDR
-                    </div>
+        <!-- 신규 추가 섹션: NFW 삽입 및 상세 라우팅 (Phase 4) -->
+        <section class="mb-14">
+            <h2 class="text-2xl font-black text-slate-800 mb-6 flex items-center"><span class="w-2 h-8 bg-indigo-600 mr-3 rounded-full"></span>3. 실전 심화: 기존 환경에 NFW 투명하게 삽입하기</h2>
+            <p class="text-slate-600 mb-8 text-lg">기존에 <code>IGW → ALB</code>로 구성되어 있던 인프라에 <strong>NFW (Network Firewall, 네트워크 방화벽)</strong>를 무중단에 가깝게 중간에 끼워 넣는(Bump-in-the-wire) 고도화된 <strong>VPC Ingress Routing (VPC 인그레스 라우팅)</strong> 기법을 설명합니다.</p>
+
+            <!-- STEP 3.1: NFW Subnet -->
+            <div class="step-card bg-white p-8 rounded-2xl border border-slate-200 mb-8">
+                <div class="flex justify-between items-start mb-5">
+                    <h3 class="text-xl font-black text-indigo-800">Step 3.1: Hub VPC 서브넷 구성 및 NFW 배포</h3>
+                    <span class="cost-tag text-xs px-3 py-1 rounded-full">시간당 방화벽 엔드포인트 비용 발생</span>
                 </div>
-                <div class="bg-white p-5 rounded-lg border-l-4 border-indigo-500 shadow-sm">
-                    <h4 class="font-bold mb-2">② TGW 전파 라우팅 (Propagation)</h4>
-                    <p class="text-xs text-slate-600 mb-2">VPC 간 통신 시 모든 트래픽이 보안 VPC의 TGW 어태치먼트로 향하게 합니다.</p>
-                    <div class="text-[11px] font-mono bg-slate-900 text-emerald-400 p-3 rounded">
-                        Target: TGW ID <br>
-                        Destination: 0.0.0.0/0
+                <p class="text-slate-600 text-sm mb-4">NFW, ALB, NAT는 각각 분리된 전용 퍼블릭 서브넷에 위치해야 라우팅 제어가 가능합니다.</p>
+                
+                <div class="space-y-4">
+                    <div class="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100">
+                        <p class="font-bold text-sm text-slate-800 mb-2">GUI 콘솔 작업:</p>
+                        <ol class="list-decimal ml-5 space-y-2 text-sm text-slate-700">
+                            <li><span class="menu-path">VPC 콘솔 > 서브넷 > 서브넷 생성</span>을 클릭합니다.</li>
+                            <li><strong>Hub VPC (10.0.0.0/16)</strong> 내에 다음 3개의 서브넷을 생성합니다:
+                                <ul class="list-disc ml-5 mt-1 text-slate-600">
+                                    <li>NFW 전용 서브넷: <span class="highlight-text">10.0.10.0/24</span></li>
+                                    <li>ALB 전용 서브넷: <span class="highlight-text">10.0.20.0/24</span></li>
+                                    <li>NAT 전용 서브넷: <span class="highlight-text">10.0.30.0/24</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="menu-path">VPC 콘솔 > AWS Network Firewall > 방화벽 생성</span>으로 이동합니다.</li>
+                            <li>방화벽 이름을 지정하고, <code>Hub VPC</code>와 방금 생성한 NFW 전용 서브넷(<code>10.0.10.0/24</code>)을 선택하여 방화벽을 프로비저닝합니다.</li>
+                            <li>생성 완료 후, 방화벽 세부 정보에서 생성된 <strong>방화벽 엔드포인트 ID (VPCE ID, 예: vpce-01234abcd)</strong>를 반드시 메모합니다.</li>
+                        </ol>
                     </div>
                 </div>
             </div>
-            <p class="mt-6 text-xs text-slate-500 leading-relaxed italic border-t border-slate-200 pt-4">
-                * 주석: 이 구조에서 `NFW`(Network Firewall, 네트워크 방화벽)는 반드시 '검사 전용 서브넷'에 위치해야 하며, 
-                VPC 라우팅 테이블에서 인터넷 게이트웨이로 향하는 모든 경로의 다음 홉(Next Hop)을 방화벽 엔드포인트로 설정하는 
-                **VPC Ingress Routing** 기술이 적용되어야 외부 브라우저 접속이 안전하게 필터링됩니다.
-            </p>
+
+            <!-- STEP 3.2: NFW Policy -->
+            <div class="step-card bg-white p-8 rounded-2xl border border-slate-200 mb-8">
+                <div class="flex justify-between items-start mb-5">
+                    <h3 class="text-xl font-black text-indigo-800">Step 3.2: NFW 보안 정책 (Firewall Policy) 및 규칙 설정</h3>
+                </div>
+                <p class="text-slate-600 text-sm mb-4">웹 서비스(80 포트) 통과 및 내부 인스턴스의 OS 업데이트(Outbound HTTPS)를 허용하는 상태 저장(Stateful) 규칙을 생성합니다.</p>
+                
+                <div class="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100">
+                    <p class="font-bold text-sm text-slate-800 mb-2">GUI 콘솔 작업:</p>
+                    <ol class="list-decimal ml-5 space-y-2 text-sm text-slate-700">
+                        <li><span class="menu-path">Network Firewall > 방화벽 정책 > 방화벽 정책 생성</span>에서 새 정책을 만듭니다.</li>
+                        <li><strong>상태 저장 규칙 그룹(Stateful Rule Group)</strong>을 생성합니다. (기본 Action은 <code>Drop established</code> 등 환경에 맞게 설정하되, 보통 명시적 Allow 규칙을 만듭니다.)</li>
+                        <li><strong>웹 서비스 Inbound 규칙 (5-Tuple):</strong> <br>
+                            - 프로토콜: <code>TCP</code> / 소스: <code>Any (0.0.0.0/0)</code> / 소스 포트: <code>Any</code> <br>
+                            - 대상: <code>Internal VPC CIDRs (예: 10.0.0.0/16, 10.1.0.0/16)</code> / 대상 포트: <code>80</code> / 작업: <code>Pass (통과)</code>
+                        </li>
+                        <li><strong>인스턴스 업데이트 Outbound 규칙 (Domain List):</strong> <br>
+                            - 도메인 목록을 사용하여 <code>.amazonaws.com</code>, <code>.ubuntu.com</code> (운영체제별 상이) 등에 대한 <code>HTTP/HTTPS</code> 트래픽을 <code>Pass</code> 처리합니다.
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- STEP 3.3: IGW Edge Routing -->
+            <div class="step-card bg-white p-8 rounded-2xl border border-slate-200 mb-8">
+                <div class="flex justify-between items-start mb-5">
+                    <h3 class="text-xl font-black text-red-800">Step 3.3: IGW 엣지 라우팅 연결 (Edge Association) - 핵심 기술</h3>
+                </div>
+                <p class="text-slate-600 text-sm mb-4">외부에서 들어오는 인터넷 트래픽이 ALB로 가기 전에 <strong>강제로 NFW를 거치도록</strong> IGW 자체에 라우팅 테이블을 연결합니다.</p>
+                
+                <div class="bg-red-50/50 p-4 rounded-lg border border-red-100">
+                    <p class="font-bold text-sm text-slate-800 mb-2">GUI 콘솔 작업:</p>
+                    <ol class="list-decimal ml-5 space-y-2 text-sm text-slate-700">
+                        <li><span class="menu-path">VPC 콘솔 > 라우팅 테이블 > 라우팅 테이블 생성</span> (이름: <code>rt-igw-edge</code>).</li>
+                        <li>생성한 라우팅 테이블의 <strong>라우팅 편집(Edit routes)</strong>을 클릭합니다.</li>
+                        <li><strong>ALB 서브넷 보호:</strong> 대상(Destination)에 <code>ALB 서브넷 CIDR (10.0.20.0/24)</code>, 타겟(Target)에 Step 3.1에서 메모한 <strong>Gateway Load Balancer Endpoint (NFW 엔드포인트)</strong>를 지정합니다.</li>
+                        <li><strong>NAT 서브넷 보호 (선택):</strong> 외부에서 NAT로 직접 들어오는 것을 막거나 검사하려면 대상에 <code>NAT 서브넷 CIDR (10.0.30.0/24)</code>, 타겟에 NFW 엔드포인트를 지정합니다.</li>
+                        <li>저장 후, <strong>엣지 연결(Edge Associations)</strong> 탭을 클릭하여 <code>rt-igw-edge</code> 테이블을 <strong>Internet Gateway (IGW)</strong>에 연결(Attach)합니다.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- STEP 3.4: Subnet Routing -->
+            <div class="step-card bg-white p-8 rounded-2xl border border-slate-200 mb-8">
+                <div class="flex justify-between items-start mb-5">
+                    <h3 class="text-xl font-black text-amber-800">Step 3.4: 내부 서브넷별 상세 라우팅 테이블 재조정</h3>
+                </div>
+                <p class="text-slate-600 text-sm mb-6">트래픽이 루프(Loop)를 돌거나 끊기지 않도록 각 서브넷의 기본 라우팅(<code>0.0.0.0/0</code>)을 정교하게 제어합니다.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- NFW Subnet RT -->
+                    <div class="bg-white border border-slate-300 p-5 rounded-xl shadow-sm">
+                        <h4 class="font-bold text-orange-700 mb-3 border-b pb-2">① NFW 서브넷 라우팅</h4>
+                        <p class="text-xs text-slate-500 mb-3">검사가 끝난 트래픽을 인터넷으로 보내거나(Outbound), 목적지 서브넷으로 보냅니다.</p>
+                        <ul class="text-sm space-y-2 font-mono bg-slate-50 p-3 rounded text-slate-800">
+                            <li>0.0.0.0/0 &rarr; <span class="text-red-600">IGW</span></li>
+                            <li class="text-xs text-slate-400">※ VPC 내부 대역(10.0.0.0/16)은 Local로 자동 라우팅됨</li>
+                        </ul>
+                    </div>
+                    <!-- ALB Subnet RT -->
+                    <div class="bg-white border border-slate-300 p-5 rounded-xl shadow-sm">
+                        <h4 class="font-bold text-blue-700 mb-3 border-b pb-2">② ALB 서브넷 라우팅</h4>
+                        <p class="text-xs text-slate-500 mb-3">응답 트래픽(Outbound)이 다시 NFW를 거쳐 나가도록 강제합니다.</p>
+                        <ul class="text-sm space-y-2 font-mono bg-slate-50 p-3 rounded text-slate-800">
+                            <li>0.0.0.0/0 &rarr; <span class="text-orange-600">NFW VPCE</span></li>
+                            <li>Service VPC (10.1.0.0/16) &rarr; <span class="text-purple-600">TGW</span></li>
+                        </ul>
+                    </div>
+                    <!-- NAT Subnet RT -->
+                    <div class="bg-white border border-slate-300 p-5 rounded-xl shadow-sm">
+                        <h4 class="font-bold text-emerald-700 mb-3 border-b pb-2">③ NAT 서브넷 라우팅</h4>
+                        <p class="text-xs text-slate-500 mb-3">내부 인스턴스가 NAT를 타고 나갈 때도 NFW의 검사를 받도록 설정합니다.</p>
+                        <ul class="text-sm space-y-2 font-mono bg-slate-50 p-3 rounded text-slate-800">
+                            <li>0.0.0.0/0 &rarr; <span class="text-orange-600">NFW VPCE</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3.5: Security Group -->
+            <div class="step-card bg-white p-8 rounded-2xl border border-slate-200">
+                <div class="flex justify-between items-start mb-5">
+                    <h3 class="text-xl font-black text-slate-800">Step 3.5: 보안 그룹 (Security Group) 최종 점검</h3>
+                </div>
+                <p class="text-slate-600 text-sm mb-4">NFW는 Layer 3/4에서 투명하게 동작하므로, IP 주소를 변경(NAT)하지 않습니다. 따라서 ALB 입장에서 클라이언트의 원본 IP가 그대로 들어옵니다.</p>
+                
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <ol class="list-decimal ml-5 space-y-3 text-sm text-slate-700">
+                        <li><strong>ALB 보안 그룹 (ALB-SG):</strong> 인바운드 규칙에 <code>TCP 80</code> 포트를 <code>0.0.0.0/0 (Anywhere)</code>에 대해 허용 유지합니다. (NFW에서 1차 차단을 수행하므로 SG는 개방해 두어야 원활히 수신됩니다.)</li>
+                        <li><strong>Nginx 인스턴스 보안 그룹 (Web-SG):</strong> 인바운드 규칙에 <code>TCP 80</code> 포트를 <strong>ALB-SG의 보안 그룹 ID</strong>에 대해서만 허용합니다. (직접 접근 원천 차단)</li>
+                    </ol>
+                </div>
+            </div>
         </section>
 
         <!-- 최종 점검 리스트 -->
         <section class="mb-12">
-            <h2 class="text-2xl font-bold text-slate-800 mb-6">3. 외부 접속 확인 (Verification)</h2>
+            <h2 class="text-2xl font-bold text-slate-800 mb-6">4. 외부 접속 확인 (Verification)</h2>
             <div class="bg-emerald-50 border border-emerald-200 p-6 rounded-xl">
                 <ul class="space-y-3">
                     <li class="flex items-center text-emerald-800">
@@ -187,6 +275,11 @@
         <footer class="text-center text-slate-400 text-sm mt-20 border-t border-slate-200 pt-8 pb-10">
             © 2026 IP 직업훈련 전문가 과정 - 고급 네트워크 아키텍처 실습 교안
         </footer>
+    </div>
+
+    <!-- 나에게 하는 말 (메타 메시지) -->
+    <div style="display:none;" class="no-print">
+        요청하신 대로 Hub VPC의 대역을 10.0.0.0/16으로 통일하고, 내부 퍼블릭 서브넷들을 NFW(10.0.10.0/24), ALB(10.0.20.0/24), NAT(10.0.30.0/24) 대역으로 정확하게 수정하여 라우팅 테이블 생성 파트에 반영하였습니다. 이니셜 해석 및 과금 태그 등 기존 맞춤 설정도 완벽하게 유지했습니다.
     </div>
 </body>
 </html>
