@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS 전문 가이드: CloudFront CDN & Auto Scaling 아키텍처</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #232f3e; --aws-orange: #ff9900; --accent-blue: #0073bb; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8f9fa; color: #16191f; line-height: 1.8; }
+        .page-break { border-top: 2px dashed #dee2e6; margin-top: 6rem; padding-top: 4rem; }
+        .prose-title { border-left: 8px solid var(--aws-orange); padding-left: 1.5rem; color: #0f172a; }
+        .code-font { font-family: 'Fira Code', monospace; }
+        .diagram-container { background: white; border: 1px solid #e9ecef; border-radius: 1rem; padding: 2rem; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2rem 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .shadow-premium { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+        .term-tag { background: #e7f3ff; color: #0073bb; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700; font-size: 0.9em; }
+        .cost-tag { display: inline-block; background-color: #fee2e2; color: #b91c1c; font-size: 0.75rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 9999px; margin-left: 0.5rem; vertical-align: middle; }
+        .cost-warning { border-left: 5px solid #ff4d4d; background: #fff5f5; padding: 1.5rem; margin: 2rem 0; border-radius: 0.5rem; }
+        .expert-note { border-left: 5px solid #10b981; background: #f0fdf4; padding: 1.5rem; margin: 2rem 0; font-size: 0.95rem; border-radius: 0.5rem; }
+        
+        /* GUI Step Styles */
+        .gui-step-container { background: white; border: 1px solid #e2e8f0; border-radius: 1.5rem; padding: 2.5rem; margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .console-path { background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 1rem 1.5rem; border-radius: 0.75rem; font-size: 0.95rem; display: flex; align-items: center; gap: 0.75rem; color: #475569; margin-bottom: 1.5rem; font-weight: 600; }
+        .console-path .badge { background-color: #3b82f6; color: white; padding: 0.2rem 0.6rem; border-radius: 0.5rem; font-size: 0.8rem; letter-spacing: 0.05em; }
+        .input-highlight { background-color: #fef08a; padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-weight: 700; color: #854d0e; }
+        .step-list { list-style-type: none; counter-reset: step-counter; padding-left: 0; margin-top: 1rem; }
+        .step-list li { position: relative; padding-left: 3.5rem; margin-bottom: 1.5rem; color: #334155; }
+        .step-list li::before { content: counter(step-counter); counter-increment: step-counter; position: absolute; left: 0; top: 0; width: 2.2rem; height: 2.2rem; background-color: #e2e8f0; color: #475569; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        @media print { .no-print { display: none; } .page-break { page-break-before: always; border: none; } }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="sticky top-0 z-50 bg-white border-b border-gray-200 px-6 py-3 no-print shadow-sm">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <span class="font-bold text-lg text-slate-800 tracking-tighter">AWS Infrastructure Professional Curriculum</span>
+            <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                <a href="#as-section" class="hover:text-orange-500">Auto Scaling</a>
+                <a href="#as-gui-section" class="hover:text-orange-500">AS GUI 실무</a>
+                <a href="#cf-section" class="hover:text-blue-600">CloudFront CDN</a>
+                <a href="#cf-gui-section" class="hover:text-blue-600">CF GUI 실무</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl mx-auto p-6 md:p-16 space-y-24 bg-white shadow-2xl my-10 rounded-xl">
+        
+        <!-- COVER PAGE -->
+        <header class="text-center py-24 border-b-4 border-double border-slate-200">
+            <div class="mb-8 flex justify-center">
+                <svg class="w-28 h-28 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+            </div>
+            <h1 class="text-5xl font-black text-slate-900 mb-8 leading-tight tracking-tighter uppercase">
+                CloudFront CDN & <br><span class="text-orange-500">Auto Scaling</span><br>전문가 기술 지침서
+            </h1>
+            <p class="text-2xl text-slate-500 font-light max-w-2xl mx-auto leading-relaxed">
+                전역 콘텐츠 전송 가속화와 지능형 자원 확장 시스템의 설계 및 운영 실무
+            </p>
+            <div class="mt-16 text-slate-400 text-sm font-bold tracking-[0.3em]">AWS ARCHITECT SERIES | 2026 EDITION</div>
+        </header>
+
+        <!-- PAGE 1: Auto Scaling의 본질 -->
+        <section id="as-section" class="space-y-10">
+            <h2 class="text-4xl font-black prose-title uppercase">Auto Scaling: 탄력적 인프라의 핵심</h2>
+            
+            <p class="text-xl leading-relaxed text-slate-700">
+                인프라스트럭처의 <span class="term-tag">Elasticity (탄력성, 부하에 따른 유연한 자원 조절 능력)</span>은 현대 클라우드 아키텍처의 성패를 가르는 기준입니다. <span class="term-tag">AS (Auto Scaling, 오토 스케일링)</span>은 단순히 서버를 늘리는 것을 넘어, 가용성 보장과 비용 최적화라는 두 마리 토끼를 잡는 지능형 자동화 서비스입니다.
+            </p>
+
+            <h3 class="text-2xl font-bold text-slate-800">고가용성 아키텍처의 기본 도식</h3>
+            <div class="diagram-container">
+                <svg width="600" height="350" viewBox="0 0 600 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="50" y="70" width="500" height="230" rx="15" stroke="#CBD5E1" stroke-width="3" stroke-dasharray="10 10"/>
+                    <text x="220" y="60" fill="#475569" font-size="16" font-weight="900">Auto Scaling Group (ASG, 오토 스케일링 그룹)</text>
+                    
+                    <!-- AZ 구분 -->
+                    <line x1="300" y1="80" x2="300" y2="290" stroke="#E2E8F0" stroke-width="2" stroke-dasharray="4 4"/>
+                    <text x="140" y="280" fill="#94A3B8" font-size="12">가용 영역 A (AZ-A)</text>
+                    <text x="380" y="280" fill="#94A3B8" font-size="12">가용 영역 B (AZ-B)</text>
+
+                    <!-- Instances -->
+                    <rect x="100" y="120" width="120" height="120" rx="10" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+                    <text x="120" y="185" fill="#C2410C" font-size="14" font-weight="bold">EC2 인스턴스</text>
+                    
+                    <rect x="380" y="120" width="120" height="120" rx="10" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+                    <text x="400" y="185" fill="#C2410C" font-size="14" font-weight="bold">EC2 인스턴스</text>
+                    
+                    <!-- 확장 화살표 -->
+                    <path d="M560 180 L610 180" stroke="#F97316" stroke-width="3" marker-end="url(#arrow-orange)"/>
+                    <text x="540" y="210" fill="#F97316" font-size="12" font-weight="bold">부하 증가 시 확장</text>
+                    
+                    <defs>
+                        <marker id="arrow-orange" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#F97316" />
+                        </marker>
+                    </defs>
+                </svg>
+                <p class="text-sm text-slate-500 mt-4 font-bold">그림 1-1: 다중 가용 영역(Multi-AZ) 기반의 인스턴스 자동 확장 구조</p>
+            </div>
+            
+            <p class="text-slate-600">
+                위 도식은 <span class="term-tag">ASG (Auto Scaling Group, 오토 스케일링 그룹)</span>가 여러 가용 영역에 걸쳐 인스턴스를 균형 있게 배치하는 모습을 보여줍니다. 특정 지역의 데이터 센터에 장애가 발생하더라도 다른 영역에서 자원을 즉시 보충하여 서비스의 연속성을 보장합니다.
+            </p>
+        </section>
+
+        <!-- PAGE 2: 시작 템플릿 심화 -->
+        <section class="page-break space-y-10">
+            <h2 class="text-4xl font-black prose-title uppercase">시작 템플릿 가이드와 구성 전략</h2>
+            
+            <p class="text-xl leading-relaxed text-slate-700">
+                <span class="term-tag">LT (Launch Template, 시작 템플릿)</span>는 인스턴스의 유전 정보를 담고 있는 설계도입니다. 인프라 구축 시 마주하게 되는 설정들의 실질적인 의미를 분석합니다.
+            </p>
+
+            <div class="expert-note">
+                <h4 class="font-black text-green-800 mb-2">PRO-TIP: "Auto Scaling 지침"의 진실</h4>
+                <p>
+                    콘솔 UI의 <strong>"Auto Scaling 지침(Auto Scaling Guidance)"</strong> 체크박스는 실제 리소스의 동작 방식을 바꾸지 않습니다. 이는 오토 스케일링에 적합하지 않은 구형 인스턴스나 복잡한 네트워크 구성을 사용자가 실수로 선택하지 않도록 필터링해주는 <strong>'안전장치'</strong>입니다. 숙련된 아키텍트라면 이를 해제하여 더 세밀한 사용자 정의 구성을 할 수 있습니다.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="p-8 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm">
+                    <h4 class="font-bold text-slate-900 mb-4">필수 구성 요소</h4>
+                    <ul class="space-y-3 text-sm text-slate-600">
+                        <li>• <span class="font-bold">AMI (Amazon Machine Image, 머신 이미지)</span>: OS 및 앱 패키지</li>
+                        <li>• <span class="font-bold">Instance Type (인스턴스 유형)</span>: CPU 및 메모리 사양</li>
+                        <li>• <span class="font-bold">Security Group (보안 그룹)</span>: 방화벽 규칙</li>
+                        <li>• <span class="font-bold">Key Pair (키 페어)</span>: 서버 접속 인증 키</li>
+                    </ul>
+                </div>
+                <div class="p-8 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm">
+                    <h4 class="font-bold text-slate-900 mb-4">고급 구성 요소</h4>
+                    <ul class="space-y-3 text-sm text-slate-600">
+                        <li>• <span class="font-bold">User Data (사용자 데이터)</span>: 부팅 시 실행할 스크립트</li>
+                        <li>• <span class="font-bold">IAM Role (IAM 역할)</span>: 서버에 부여할 AWS 권한</li>
+                        <li>• <span class="font-bold">Storage (스토리지)</span>: EBS 볼륨 및 스냅샷 설정</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="cost-warning">
+                <h4 class="font-black text-red-800 mb-2 underline italic">FINOPS ALERT: 과금 및 자원 관리</h4>
+                <p class="text-sm text-red-900 leading-relaxed">
+                    오토 스케일링 그룹 자체는 무료지만, 생성된 <strong>EC2 인스턴스</strong>와 <strong>EBS (Elastic Block Store, 가상 디스크)</strong>는 유료입니다. 공격적인 확장 정책은 비용 폭탄의 원인이 될 수 있습니다. 반드시 <strong>Cooldown (쿨다운, 확장 후 대기 시간)</strong>과 <strong>Warm-up (웜업, 준비 시간)</strong> 기간을 설정하여 불필요한 자원 요동(Thrashing)을 방지하십시오.
+                </p>
+            </div>
+        </section>
+
+        <!-- PAGE 3: Auto Scaling GUI 실무 -->
+        <section id="as-gui-section" class="page-break space-y-10">
+            <h2 class="text-4xl font-black prose-title uppercase text-orange-600 border-orange-500">구현 가이드: Auto Scaling 관리 콘솔 (GUI) 절차</h2>
+            
+            <p class="text-xl leading-relaxed text-slate-700">
+                아키텍처 설계도를 바탕으로 AWS Management Console 환경에서 인프라를 직접 프로비저닝(자원 할당)하는 단계별 표준 실무 절차입니다.
+            </p>
+
+            <div class="gui-step-container border-t-4 border-t-orange-500">
+                <h3 class="text-2xl font-bold text-slate-900 mb-6">Phase 1. 시작 템플릿 (Launch Template) 생성</h3>
+                <div class="console-path">
+                    <span class="badge bg-orange-500">PATH</span> EC2 콘솔 &gt; 인스턴스 &gt; 시작 템플릿 &gt; [시작 템플릿 생성]
+                </div>
+                <ul class="step-list">
+                    <li><strong>시작 템플릿 이름 및 설명:</strong> 템플릿 이름에 <span class="input-highlight">web-app-template-v1</span>을 입력하고, 버전 설명을 기록합니다.</li>
+                    <li><strong>Auto Scaling 지침 (선택 사항):</strong> <code>Auto Scaling 지침 설정</code> 체크박스를 선택하여 호환되지 않는 옵션을 필터링합니다.</li>
+                    <li><strong>AMI (Amazon Machine Image):</strong> 최근 안정화 버전인 <code>Amazon Linux 2023 AMI</code> 또는 비즈니스 요건에 맞는 OS를 선택합니다.</li>
+                    <li><strong>인스턴스 유형 (Instance Type) <span class="cost-tag">과금</span>:</strong> 부하 테스트 기준에 맞춰 <code>t3.micro</code> 또는 <code>t3.small</code>을 선택합니다.</li>
+                    <li><strong>키 페어 (Key pair):</strong> 서버 접근을 위한 기존 키 페어를 선택하거나 새 키 페어를 생성합니다.</li>
+                    <li><strong>네트워크 설정 (Network settings):</strong> VPC를 지정하지 않고(ASG에서 덮어씀), 기존에 생성한 웹 서버용 <strong>보안 그룹 (Security Group)</strong>(예: 80, 443 포트 허용)을 선택합니다.</li>
+                    <li><strong>고급 세부 정보 (Advanced details) &gt; 사용자 데이터 (User data):</strong> 서버 부팅 시 웹 서버(Nginx/Apache)를 자동 설치하고 구동하는 Bash 스크립트를 입력합니다.</li>
+                    <li>하단의 <strong>[시작 템플릿 생성]</strong> 버튼을 클릭하여 설계를 완료합니다.</li>
+                </ul>
+            </div>
+
+            <div class="gui-step-container border-t-4 border-t-orange-500">
+                <h3 class="text-2xl font-bold text-slate-900 mb-6">Phase 2. Auto Scaling 그룹 (ASG) 생성 및 네트워크 구성</h3>
+                <div class="console-path">
+                    <span class="badge bg-orange-500">PATH</span> EC2 콘솔 &gt; Auto Scaling &gt; Auto Scaling 그룹 &gt; [Auto Scaling 그룹 생성]
+                </div>
+                <ul class="step-list">
+                    <li><strong>이름 지정 및 템플릿 선택:</strong> 그룹 이름에 <span class="input-highlight">web-app-asg-prod</span>를 입력하고, 방금 생성한 <code>web-app-template-v1</code>을 선택 후 [다음]을 클릭합니다.</li>
+                    <li><strong>네트워크 구성:</strong> 대상 <strong>VPC</strong>를 선택하고, 고가용성을 위해 트래픽을 분산할 <strong>가용 영역 및 서브넷(Subnets)</strong>을 2개 이상 (예: <code>ap-northeast-2a</code>, <code>ap-northeast-2c</code>의 퍼블릭 또는 프라이빗 서브넷) 다중 선택합니다.</li>
+                    <li><strong>고급 옵션 구성 (로드 밸런싱):</strong> <code>기존 로드 밸런서에 연결</code>을 선택하고 사전에 생성한 <strong>ALB (Application Load Balancer)</strong>의 대상 그룹(Target Group)을 지정합니다.</li>
+                    <li><strong>상태 확인 (Health Checks):</strong> 기본 EC2 외에 <code>Elastic Load Balancing 상태 확인 켜기</code>를 체크하여, 앱이 죽었을 때도 인스턴스를 교체하도록 설정합니다.</li>
+                    <li><strong>그룹 크기 및 조정 정책:</strong> 
+                        <ul class="list-disc ml-6 mt-2 space-y-2 text-slate-600">
+                            <li><strong>원하는 용량 (Desired capacity):</strong> <span class="input-highlight">2</span></li>
+                            <li><strong>최소 용량 (Minimum capacity):</strong> <span class="input-highlight">2</span></li>
+                            <li><strong>최대 용량 (Maximum capacity):</strong> <span class="input-highlight">4</span> (트래픽 폭주 시 최대 확장 한계선)</li>
+                        </ul>
+                    </li>
+                    <li><strong>조정 정책 (Scaling Policy):</strong> <code>대상 추적 크기 조정 정책 (Target tracking)</code>을 선택하고, 지표 유형을 <code>평균 CPU 사용률</code>로, 대상 값을 <span class="input-highlight">50</span>(%)으로 설정합니다.</li>
+                    <li>검토 후 <strong>[Auto Scaling 그룹 생성]</strong>을 클릭하여 인프라 자동 확장을 개시합니다.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- PAGE 4: CloudFront CDN의 기초와 전역 네트워크 -->
+        <section id="cf-section" class="page-break space-y-10">
+            <h2 class="text-4xl font-black prose-title uppercase text-blue-700 border-blue-600">CloudFront: 전역 콘텐츠 전송 가속화</h2>
+            
+            <p class="text-xl leading-relaxed text-slate-700">
+                <span class="term-tag">CloudFront (클라우드프론트)</span>는 AWS의 고성능 <span class="term-tag">CDN (Content Delivery Network, 콘텐츠 전송 네트워크)</span> 서비스입니다. 이는 지리적 한계를 극복하고 전 세계 사용자에게 동일한 수준의 고속 서비스를 제공하는 아키텍처의 필수 요소입니다.
+            </p>
+
+            <h3 class="text-2xl font-bold text-slate-800">CloudFront 전역 인프라 도식</h3>
+            <div class="diagram-container bg-slate-50 border-blue-100 shadow-inner">
+                <svg width="700" height="400" viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <!-- 고급 발광 효과 필터 -->
+                        <filter id="glow-effect" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                        <!-- AWS 백본 네트워크 트래픽 그라데이션 (좌측) -->
+                        <linearGradient id="grad-left" x1="1" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#F43F5E" stop-opacity="0.8"/>
+                            <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.8"/>
+                        </linearGradient>
+                        <!-- AWS 백본 네트워크 트래픽 그라데이션 (우측) -->
+                        <linearGradient id="grad-right" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#F43F5E" stop-opacity="0.8"/>
+                            <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.8"/>
+                        </linearGradient>
+                        <!-- 데이터 흐름 애니메이션 스타일 -->
+                        <style>
+                            .data-flow {
+                                stroke-dasharray: 6 12;
+                                animation: flow-anim 15s linear infinite;
+                            }
+                            @keyframes flow-anim {
+                                from { stroke-dashoffset: 200; }
+                                to { stroke-dashoffset: 0; }
+                            }
+                        </style>
+                    </defs>
+
+                    <!-- 부드러운 배경 연결선 (Cubic Bezier 곡선 적용) -->
+                    <g fill="none" stroke-width="4" filter="url(#glow-effect)" opacity="0.25">
+                        <path d="M300 90 C 200 90, 100 140, 100 220" stroke="url(#grad-left)" />
+                        <path d="M330 110 C 280 180, 250 230, 250 290" stroke="url(#grad-left)" />
+                        <path d="M370 110 C 400 180, 450 200, 450 250" stroke="url(#grad-right)" />
+                        <path d="M400 90 C 500 90, 600 130, 600 190" stroke="url(#grad-right)" />
+                    </g>
+
+                    <!-- 애니메이션 데이터 흐름 선 -->
+                    <g fill="none" stroke-width="2.5" class="data-flow">
+                        <path d="M300 90 C 200 90, 100 140, 100 220" stroke="#3B82F6" />
+                        <path d="M330 110 C 280 180, 250 230, 250 290" stroke="#3B82F6" />
+                        <path d="M370 110 C 400 180, 450 200, 450 250" stroke="#3B82F6" />
+                        <path d="M400 90 C 500 90, 600 130, 600 190" stroke="#3B82F6" />
+                    </g>
+
+                    <!-- Origin (Korea Region) -->
+                    <rect x="300" y="40" width="100" height="100" rx="16" fill="#0F172A" stroke="#F43F5E" stroke-width="3" filter="url(#glow-effect)"/>
+                    <text x="350" y="90" fill="white" font-size="16" font-weight="900" text-anchor="middle">오리진</text>
+                    <text x="350" y="115" fill="#FDA4AF" font-size="11" font-weight="bold" text-anchor="middle">(서울 리전)</text>
+
+                    <!-- Edge Locations (Global) -->
+                    <!-- North America -->
+                    <circle cx="100" cy="250" r="32" fill="white" stroke="#3B82F6" stroke-width="4" filter="url(#glow-effect)"/>
+                    <text x="100" y="308" fill="#1E40AF" font-size="13" font-weight="900" text-anchor="middle">미국 엣지</text>
+                    
+                    <!-- Europe -->
+                    <circle cx="250" cy="320" r="32" fill="white" stroke="#3B82F6" stroke-width="4" filter="url(#glow-effect)"/>
+                    <text x="250" y="378" fill="#1E40AF" font-size="13" font-weight="900" text-anchor="middle">유럽 엣지</text>
+                    
+                    <!-- Asia (Tokyo) -->
+                    <circle cx="450" cy="280" r="32" fill="white" stroke="#3B82F6" stroke-width="4" filter="url(#glow-effect)"/>
+                    <text x="450" y="338" fill="#1E40AF" font-size="13" font-weight="900" text-anchor="middle">일본 엣지</text>
+                    
+                    <!-- Southeast Asia -->
+                    <circle cx="600" cy="220" r="32" fill="white" stroke="#3B82F6" stroke-width="4" filter="url(#glow-effect)"/>
+                    <text x="600" y="278" fill="#1E40AF" font-size="13" font-weight="900" text-anchor="middle">싱가포르 엣지</text>
+
+                    <!-- 라벨 배지 디자인 -->
+                    <rect x="230" y="195" width="240" height="32" rx="16" fill="rgba(255,255,255,0.95)" stroke="#CBD5E1" stroke-width="1.5" filter="drop-shadow(0 4px 3px rgba(0,0,0,0.07))"/>
+                    <text x="350" y="216" fill="#1E293B" font-size="12" font-weight="900" text-anchor="middle">AWS 백본 네트워크 (Backbone Network)</text>
+                </svg>
+                <p class="text-sm text-slate-500 mt-6 font-bold">그림 4-1: 오리진(Origin)과 전역 엣지 로케이션(Edge Locations) 간의 배포 구조</p>
+            </div>
+            
+            <p class="text-slate-600">
+                CloudFront는 전 세계 450개 이상의 <span class="term-tag">Edge Location (엣지 로케이션, 콘텐츠 전송 지점)</span>을 보유하고 있습니다. 사용자의 요청은 가장 가까운 엣지로 전달되며, 데이터가 없을 경우에만 AWS 전용 네트워크를 통해 오리진에서 데이터를 가져와 캐싱합니다.
+            </p>
+        </section>
+
+        <!-- PAGE 5: 엣지에서의 캐싱 및 보안 전략 -->
+        <section class="page-break space-y-10">
+            <h2 class="text-4xl font-black prose-title uppercase text-blue-700 border-blue-600">엣지 기술 심화: 캐싱 정책과 보안</h2>
+            
+            <p class="text-xl leading-relaxed text-slate-700">
+                효율적인 캐싱과 철저한 보안은 CloudFront 아키텍처의 완성도를 결정합니다.
+            </p>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="p-8 border border-slate-200 rounded-2xl shadow-sm">
+                    <h3 class="font-bold text-slate-900 mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 11V5h4v6h3l-5 5-5-5h3z"/></svg>
+                        캐싱 최적화 (Caching Policy)
+                    </h3>
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                        <span class="term-tag">TTL (Time To Live, 콘텐츠 유지 시간)</span> 설정을 통해 데이터의 신선도를 조절합니다. 정적 이미지(JPG, PNG)는 길게, 자주 변하는 API 데이터는 짧게 설정하는 것이 핵심입니다.
+                    </p>
+                </div>
+                <div class="p-8 border border-slate-200 rounded-2xl shadow-sm">
+                    <h3 class="font-bold text-slate-900 mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-3 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        보안 강화 (Edge Security)
+                    </h3>
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                        <span class="term-tag">OAC (Origin Access Control, 오리진 액세스 제어)</span>를 적용하면 오리진(S3 등)의 퍼블릭 접근을 완전히 차단하고 오직 CloudFront 서명 요청만 허용하여 데이터 유출을 방지합니다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="expert-note bg-blue-50 border-blue-200">
+                <h4 class="font-black text-blue-800 mb-2 underline">전문가 기술 지침: Invalidation (무효화) <span class="cost-tag ml-2">월 1,000회 초과 시 과금</span></h4>
+                <p class="text-blue-900">
+                    배포된 웹사이트의 코드를 수정했을 때 사용자가 즉각 변화를 보지 못한다면 엣지에 옛날 데이터가 캐싱되어 있기 때문입니다. 이때 <strong>Invalidation (무효화, 캐시 강제 삭제)</strong> 기능을 사용하십시오. 하지만 무분별한 전체 경로(<code>/*</code>) 삭제는 대규모 추가 비용을 발생시킬 수 있으므로 특정 파일 경로(예: <code>/images/logo.png</code>)만 지정하는 것이 경제적입니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- PAGE 6: CloudFront GUI 실무 -->
+        <section id="cf-gui-section" class="page-break space-y-12">
+            <h2 class="text-4xl font-black prose-title uppercase text-blue-700 border-blue-600">구현 가이드: CloudFront 관리 콘솔 (GUI) 절차</h2>
+            
+            <p class="text-xl leading-relaxed text-slate-700">
+                S3 (Simple Storage Service, 객체 스토리지) 버킷을 오리진으로 하는 안전한 정적 웹사이트 호스팅 및 CDN 배포 구성 절차입니다.
+            </p>
+
+            <div class="gui-step-container border-t-4 border-t-blue-600">
+                <h3 class="text-2xl font-bold text-slate-900 mb-6">Phase 1. 배포 (Distribution) 생성 및 오리진 바인딩</h3>
+                <div class="console-path">
+                    <span class="badge">PATH</span> CloudFront 대시보드 &gt; 배포 (Distributions) &gt; [배포 생성 (Create distribution)]
+                </div>
+                <ul class="step-list">
+                    <li><strong>오리진 도메인 (Origin domain):</strong> 드롭다운 목록에서 사전 생성해 둔 <strong>S3 버킷</strong> (예: <span class="input-highlight">corp-assets.s3.ap-northeast-2.amazonaws.com</span>)을 선택합니다.</li>
+                    <li><strong>오리진 액세스 (Origin access):</strong> 보안을 위해 반드시 <code>원본 액세스 제어 설정(권장) (Origin access control settings)</code>을 선택합니다.</li>
+                    <li><strong>제어 설정 생성 (Create control setting):</strong> [제어 설정 생성]을 클릭하고 기본값을 유지한 채 생성합니다. <br><em>(※ 중요: 배포 생성 완료 후, 제공되는 S3 버킷 정책(Bucket Policy)을 복사하여 해당 S3 버킷 권한 탭에 반드시 붙여넣어야 접근이 허용됩니다.)</em></li>
+                </ul>
+            </div>
+
+            <div class="gui-step-container border-t-4 border-t-blue-600">
+                <h3 class="text-2xl font-bold text-slate-900 mb-6">Phase 2. 기본 캐시 동작 (Default Cache Behavior) 설정</h3>
+                <p class="text-slate-600 mb-4 ml-2">엣지 로케이션에서 클라이언트의 요청을 어떻게 처리할지 정의합니다.</p>
+                <ul class="step-list">
+                    <li><strong>뷰어 프로토콜 정책 (Viewer protocol policy):</strong> 보안 강화를 위해 <code>HTTP를 HTTPS로 리디렉션 (Redirect HTTP to HTTPS)</code>을 선택합니다.</li>
+                    <li><strong>허용된 HTTP 메서드 (Allowed HTTP methods):</strong> 정적 콘텐츠 조회용이므로 <code>GET, HEAD</code>를 선택합니다.</li>
+                    <li><strong>캐시 키 및 오리진 요청 (Cache key and origin requests):</strong> <code>Cache policy and origin request policy (캐시 정책 및 오리진 요청 정책)</code>를 선택합니다.</li>
+                    <li><strong>캐시 정책 (Cache policy):</strong> AWS 관리형 정책인 <code>CachingOptimized</code>를 선택하여 기본 TTL 및 압축 옵션을 적용합니다.</li>
+                </ul>
+            </div>
+
+            <div class="gui-step-container border-t-4 border-t-blue-600">
+                <h3 class="text-2xl font-bold text-slate-900 mb-6">Phase 3. 글로벌 설정 및 배포 완료</h3>
+                <ul class="step-list">
+                    <li><strong>가격 등급 (Price class):</strong> 글로벌 서비스가 아닌 국내 전용 서비스일 경우, 비용 절감을 위해 <code>북미, 유럽, 아시아, 중동 및 아프리카 사용 (Use only North America, Europe, Asia, Middle East, and Africa)</code> 수준으로 제한합니다.</li>
+                    <li><strong>AWS WAF 웹 ACL (Web Application Firewall) <span class="cost-tag">과금 요인</span>:</strong> 추가 보안이 불필요한 기본 실습의 경우 <code>보안 보호 비활성화 (Do not enable security protections)</code>를 선택합니다. 활성화 시 별도의 WAF 과금이 발생합니다.</li>
+                    <li><strong>대체 도메인 이름 (CNAME) / 사용자 정의 SSL 인증서 (선택 사항):</strong> 자체 도메인(예: <code>www.mycorp.com</code>)을 연결하려면 도메인을 입력하고 <strong>ACM (AWS Certificate Manager, 인증서 관리자)</strong>에서 발급받은 인증서를 연결합니다.</li>
+                    <li><strong>기본 루트 객체 (Default root object):</strong> 도메인 최상단 접속 시 띄울 파일명인 <span class="input-highlight">index.html</span>을 입력합니다.</li>
+                    <li>설정 검토 후 맨 하단의 <strong>[배포 생성 (Create distribution)]</strong>을 클릭합니다. 배포 상태가 'Deploying'에서 완료되기까지 약 3~5분이 소요됩니다.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- PAGE 7: Terragrunt 기반 자동화 구현 -->
+        <section class="page-break space-y-10">
+            <h2 class="text-4xl font-black prose-title uppercase">구현 가이드: Terragrunt (IaC) 자동화</h2>
+            
+            <p class="text-slate-600 leading-relaxed">
+                실제 운영 환경에서는 <span class="term-tag">IaC (Infrastructure as Code, 코드형 인프라)</span> 도구를 통해 인프라를 형상 관리합니다. 아래는 <strong>Terragrunt (테라그런트)</strong>를 사용하여 표준화된 CloudFront 배포를 정의하는 코드입니다.
+            </p>
+
+            <div class="code-block bg-slate-900 text-blue-300 p-10 rounded-3xl shadow-2xl overflow-x-auto border-t-8 border-blue-500">
+<pre class="code-font text-sm leading-relaxed"><code><span class="text-gray-500"># terragrunt.hcl (CloudFront 배포 자동화 모듈)</span>
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "tfr:///terraform-aws-modules/cloudfront/aws//?version=3.4.0"
+}
+
+inputs = {
+  comment             = "엔터프라이즈 미디어 전송용 CDN"
+  enabled             = true
+  is_ipv6_enabled     = true
+  price_class         = "PriceClass_200" <span class="text-gray-500"># 비용 최적화 (북미/유럽/아시아 엣지 중심)</span>
+
+  <span class="text-gray-500"># S3 오리진 구성 (OAC 적용)</span>
+  origin = {
+    s3_origin = {
+      domain_name = "corp-data-production.s3.amazonaws.com"
+      origin_access_control_id = "E1A2B3C4D5E6"
+    }
+  }
+
+  default_cache_behavior = {
+    target_origin_id       = "s3_origin"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+    query_string           = false
+  }
+}</code></pre>
+            </div>
+            
+            <p class="text-sm text-slate-500 font-bold text-center mt-4">
+                * 테라폼 모듈을 활용하여 재사용성을 극대화한 인프라 정의 예시
+            </p>
+        </section>
+
+        <!-- FINAL PAGE: 총평 및 향후 과제 -->
+        <section class="page-break pb-24 space-y-12">
+            <div class="bg-slate-900 text-white p-12 rounded-[3rem] text-center shadow-2xl border border-slate-700">
+                <h2 class="text-4xl font-black mb-8 text-white">학습 마무리</h2>
+                <div class="max-w-3xl mx-auto space-y-6 text-slate-400 leading-loose">
+                    <p>
+                        본 교재를 통해 <strong>Auto Scaling</strong>의 동적 유연성과 <strong>CloudFront</strong>의 전역 전송 최적화의 본질을 이해하고, 관리 콘솔을 통한 정교한 실무 프로비저닝 기법을 습득하였습니다. 고성능 인프라는 기술의 나열이 아닌, 사용자 경험과 비용 사이의 정교한 <strong>Trade-off (트레이드오프, 균형 맞추기)</strong>를 통해 완성됩니다.
+                    </p>
+                    <div class="pt-10 flex flex-wrap justify-center gap-6 text-xs font-black tracking-widest uppercase">
+                        <span class="px-4 py-2 border border-slate-700 rounded-full bg-slate-800">High Availability</span>
+                        <span class="px-4 py-2 border border-slate-700 rounded-full bg-slate-800">Global Distribution</span>
+                        <span class="px-4 py-2 border border-slate-700 rounded-full bg-slate-800">Cost Optimization</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-white p-8 no-print border-t border-slate-800">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs opacity-50 space-y-4 md:space-y-0">
+            <p>&copy; 2026 AWS Master Curriculum. Authoritative Document for Cloud Architects.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
