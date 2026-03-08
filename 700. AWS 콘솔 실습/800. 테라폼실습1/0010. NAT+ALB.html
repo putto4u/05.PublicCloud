@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terragrunt 기반 AWS 중앙 집중형 네트워크 구축 실무</title>
+    <style>
+        :root {
+            --primary-color: #232F3E;
+            --secondary-color: #FF9900;
+            --text-color: #333333;
+            --bg-color: #F8F9FA;
+            --border-color: #E2E8F0;
+        }
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #FFFFFF;
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        h1 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            font-size: 2.2rem;
+        }
+        h2 {
+            color: var(--primary-color);
+            margin-top: 2.5rem;
+            border-left: 5px solid var(--primary-color);
+            padding-left: 10px;
+        }
+        h3 {
+            color: #4A5568;
+            margin-top: 2rem;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 5px;
+        }
+        p, li {
+            font-size: 1.05rem;
+        }
+        .flow-diagram {
+            background: #F1F5F9;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            margin: 1.5rem 0;
+        }
+        .flow-diagram b {
+            color: #E53E3E;
+        }
+        .box-warning {
+            background-color: #FFF5F5;
+            border-left: 5px solid #E53E3E;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .box-warning strong {
+            color: #C53030;
+        }
+        .box-tip {
+            background-color: #EBF8FF;
+            border-left: 5px solid #3182CE;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .box-mistake {
+            background-color: #FFFFF0;
+            border-left: 5px solid #D69E2E;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        pre {
+            background-color: #2D3748;
+            color: #F7FAFC;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.95rem;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        a {
+            color: #3182CE;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .footnotes {
+            margin-top: 4rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: #718096;
+        }
+        sup {
+            color: #3182CE;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>프로젝트 1: Terragrunt 기반 중앙 집중형 네트워크 아키텍처 구축</h1>
+
+    <h2>1. 프로젝트 소개</h2>
+    <p>본 과정에서는 중견 기업 이상의 엔터프라이즈 환경에서 필수적으로 요구되는 <strong>Hub & Spoke(허브 앤 스포크)</strong> 기반의 네트워크 아키텍처를 <a href="https://terragrunt.gruntwork.io/" target="_blank">Terragrunt(테라그런트)</a>를 활용하여 코드(IaC, Infrastructure as Code, 코드로서의 인프라)로 구축합니다.</p>
+    <p>외부에서 들어오는 모든 인바운드 트래픽과 내부에서 외부로 나가는 모든 아웃바운드 트래픽을 중앙의 <strong>Hub-VPC(Virtual Private Cloud, 가상 사설 클라우드)</strong>를 통제 지점으로 삼아 통과하게 함으로써, 보안 검사, 트래픽 모니터링, 그리고 비용 최적화를 달성하는 것이 핵심 목표입니다.<sup><a href="#fn1">1</a></sup></p>
+
+    <div class="box-warning">
+        <strong>[과금 주의 및 유료 서비스 안내]</strong><br>
+        본 실습 아키텍처에는 다음과 같은 리소스가 포함되며, AWS 프리티어(Free Tier)를 초과하여 시간당 비용이 발생합니다. 실습 완료 후 반드시 리소스를 삭제(Destroy)해야 합니다.<br>
+        - <strong>TGW (Transit Gateway, 전송 게이트웨이)</strong>: 시간당 연결 비용 및 데이터 처리 비용 발생<br>
+        - <strong>NAT (Network Address Translation Gateway, 네트워크 주소 변환 게이트웨이)</strong>: 시간당 구동 비용 및 데이터 처리 비용 발생<br>
+        - <strong>ALB (Application Load Balancer, 애플리케이션 로드 밸런서)</strong>: 시간당 LCU(Load Balancer Capacity Units) 비용 발생
+    </div>
+
+    <h2>2. 네트워크 구성도 및 아키텍처 흐름</h2>
+    <p>네트워크 트래픽의 흐름은 명확하게 인바운드와 아웃바운드로 나뉘며, TGW가 핵심 라우터 역할을 수행합니다.</p>
+
+    <h3>2.1 인바운드 흐름 (외부 접속)</h3>
+    <div class="flow-diagram">
+        외부 브라우저 &rarr; <b>IGW</b>(Hub-VPC) &rarr; <b>ALB</b>(Hub-VPC Public Subnet) &rarr; <b>TGW</b> &rarr; <b>Nginx</b>(Service-VPC Private Subnet)
+    </div>
+    <p>사용자의 요청은 중앙 Hub-VPC의 IGW(Internet Gateway, 인터넷 게이트웨이)를 통해 들어와 ALB에서 트래픽 부하 분산이 이루어진 후, TGW를 타고 실제 서비스가 구동 중인 Service-VPC의 사설망(Private Subnet) 내부 Nginx 서버로 전달됩니다.</p>
+
+    <h3>2.2 아웃바운드 흐름 (업데이트 등)</h3>
+    <div class="flow-diagram">
+        <b>Nginx</b>(Service-VPC) &rarr; <b>TGW</b> &rarr; <b>NAT Gateway</b>(Hub-VPC Public Subnet) &rarr; <b>IGW</b> &rarr; 외부 인터넷
+    </div>
+    <p>내부 Nginx 서버가 패치 업데이트 등을 위해 인터넷이 필요할 경우, Service-VPC에는 외부로 나가는 통로가 없습니다. 트래픽은 TGW를 거쳐 Hub-VPC로 전달되고, Hub-VPC에 위치한 NAT Gateway를 통해 공인 IP(Public IP)로 변환된 후 외부 인터넷으로 나갑니다.</p>
+
+    <h2>3. Terragrunt 디렉터리 구조도</h2>
+    <p>중복 코드를 제거하고 환경(Dev, Prod 등) 간의 독립성을 유지하기 위해 (DRY, Don't Repeat Yourself 원칙 적용) 다음과 같은 디렉터리 구조를 설계합니다.</p>
+
+<pre><code>infrastructure/
+├── terragrunt.hcl              # 최상위 설정 파일 (Provider, S3 Backend 공통 설정)
+└── prod/                       # 운영 환경 디렉터리
+    ├── env.hcl                 # prod 환경 공용 변수 (Region, Environment Name 등)
+    ├── 01-hub-vpc/             # Hub VPC 구축 로직
+    │   └── terragrunt.hcl
+    ├── 02-service-vpc/         # Service VPC 구축 로직
+    │   └── terragrunt.hcl
+    ├── 03-tgw/                 # Transit Gateway 및 라우팅 구축 로직
+    │   └── terragrunt.hcl
+    ├── 04-alb/                 # Application Load Balancer 구축 로직
+    │   └── terragrunt.hcl
+    └── 05-ec2-nginx/           # Nginx 인스턴스 구축 로직
+        └── terragrunt.hcl
+</code></pre>
+
+    <div class="box-tip">
+        <strong>[실전 팁] 디렉터리 넘버링의 중요성</strong><br>
+        인프라스트럭처는 의존성(Dependency)이 존재합니다. VPC가 있어야 TGW를 붙일 수 있고, TGW가 있어야 라우팅을 할 수 있습니다. 디렉터리명 앞에 01, 02 숫자를 붙이면 <code>terragrunt run-all apply</code> 실행 시 개발자가 의도한 순서대로 실행 흐름을 파악하기 쉽고, 의존성 오류를 디버깅할 때 매우 직관적입니다.
+    </div>
+
+    <h2>4. 상세 작업 내용과 각 단계별 HCL 코드</h2>
+    <p>아래는 위에서 정의한 디렉터리 구조에 맞추어 실제로 작성해야 하는 HCL(HashiCorp Configuration Language, 하시코프 설정 언어) 코드 전문입니다.</p>
+
+    <h3>4.1 최상위 설정 및 환경 변수 구성</h3>
+    <p>가장 먼저 인프라의 상태를 저장할 원격 저장소와 클라우드 공급자(Provider) 설정을 정의합니다.</p>
+
+    <h4>[파일 경로: <code>infrastructure/terragrunt.hcl</code>]</h4>
+<pre><code># 로컬 변수(Local Variables)를 통해 하위 디렉터리의 환경 설정 파일을 읽어옵니다.
+locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+  aws_region = local.env_vars.locals.aws_region
+}
+
+# Provider (클라우드 공급자) 자동 생성 설정
+generate "provider" {
+  path      = "provider.tf"
+  if_exists = "overwrite_terragrunt"
+  contents  = &lt;&lt;EOF
+provider "aws" {
+  region = "${local.aws_region}"
+}
+EOF
+}
+
+# S3 (Simple Storage Service, 단순 스토리지 서비스)를 활용한 원격 상태 저장소(Remote State Backend) 설정
+remote_state {
+  backend = "s3"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    bucket         = "my-org-terraform-state-bucket-unique" # 고유한 버킷 이름으로 변경 필요
+    key            = "${path_relative_to_include()}/terraform.tfstate"
+    region         = local.aws_region
+    encrypt        = true
+    dynamodb_table = "terraform-locks" # 상태 파일 잠금을 위한 DynamoDB 테이블
+  }
+}</code></pre>
+
+    <h4>[파일 경로: <code>infrastructure/prod/env.hcl</code>]</h4>
+<pre><code># 환경별(운영, 개발 등) 공통 변수를 정의합니다.
+locals {
+  environment = "prod"
+  aws_region  = "ap-northeast-2" # 아시아 태평양 (서울) 리전
+}</code></pre>
+
+    <h3>4.2 Hub VPC 생성 (네트워크의 중심)</h3>
+    <p>외부와 직접 통신하며 NAT Gateway를 호스팅하는 중심 VPC입니다.</p>
+
+    <h4>[파일 경로: <code>infrastructure/prod/01-hub-vpc/terragrunt.hcl</code>]</h4>
+<pre><code>include "root" {
+  path = find_in_parent_folders()
+}
+
+# 오픈소스 Terraform AWS VPC 모듈 사용
+terraform {
+  source = "tfr:///terraform-aws-modules/vpc/aws?version=5.0.0"
+}
+
+inputs = {
+  name = "hub-vpc"
+  cidr = "10.0.0.0/16" # Hub VPC의 전체 IP 대역
+  
+  azs             = ["ap-northeast-2a", "ap-northeast-2c"]
+  public_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]
+  private_subnets = ["10.0.11.0/24", "10.0.12.0/24"]
+
+  # NAT Gateway (네트워크 주소 변환 게이트웨이) 활성화
+  enable_nat_gateway = true
+  single_nat_gateway = true # 실습 비용 절감을 위해 1개만 생성 (운영 환경에서는 false 권장)
+  
+  tags = {
+    Environment = "prod"
+    Role        = "hub"
+  }
+}</code></pre>
+
+    <h3>4.3 Service VPC 생성 (격리된 서비스 영역)</h3>
+    <p>실제 애플리케이션(Nginx)이 배포되는 영역으로, 직접적인 인터넷 연결 통로(IGW)나 NAT가 없습니다.</p>
+
+    <h4>[파일 경로: <code>infrastructure/prod/02-service-vpc/terragrunt.hcl</code>]</h4>
+<pre><code>include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "tfr:///terraform-aws-modules/vpc/aws?version=5.0.0"
+}
+
+inputs = {
+  name = "service-vpc"
+  cidr = "10.1.0.0/16" # Service VPC의 전체 IP 대역 (Hub VPC와 겹치지 않아야 함)
+  
+  azs             = ["ap-northeast-2a", "ap-northeast-2c"]
+  private_subnets = ["10.1.1.0/24", "10.1.2.0/24"] # Public 서브넷 없음
+
+  # 자체 NAT를 가지지 않고 Hub VPC의 NAT를 활용하기 위해 비활성화
+  enable_nat_gateway = false 
+
+  tags = {
+    Environment = "prod"
+    Role        = "service"
+  }
+}</code></pre>
+
+    <h3>4.4 TGW (Transit Gateway) 생성 및 라우팅 설정</h3>
+    <p>Hub VPC와 Service VPC를 연결하는 핵심 라우터입니다. 각 VPC를 연결(Attachment)합니다.</p>
+
+    <h4>[파일 경로: <code>infrastructure/prod/03-tgw/terragrunt.hcl</code>]</h4>
+<pre><code>include "root" {
+  path = find_in_parent_folders()
+}
+
+# 이전 단계에서 생성된 VPC들의 출력(Outputs) 값을 가져오기 위한 의존성 선언
+dependency "hub_vpc" {
+  config_path = "../01-hub-vpc"
+}
+dependency "service_vpc" {
+  config_path = "../02-service-vpc"
+}
+
+terraform {
+  source = "tfr:///terraform-aws-modules/transit-gateway/aws?version=2.10.0"
+}
+
+inputs = {
+  name = "main-tgw"
+  
+  # TGW에 VPC들을 연결(Attachment)
+  vpc_attachments = {
+    hub = {
+      vpc_id       = dependency.hub_vpc.outputs.vpc_id
+      subnet_ids   = dependency.hub_vpc.outputs.private_subnets # TGW ENI가 배치될 서브넷
+      transit_gateway_default_route_table_association = true
+      transit_gateway_default_route_table_propagation = true
+    }
+    service = {
+      vpc_id       = dependency.service_vpc.outputs.vpc_id
+      subnet_ids   = dependency.service_vpc.outputs.private_subnets
+      transit_gateway_default_route_table_association = true
+      transit_gateway_default_route_table_propagation = true
+    }
+  }
+}</code></pre>
+    <div class="box-mistake">
+        <strong>[자주 하는 실수] 비대칭 라우팅(Asymmetric Routing)</strong><br>
+        TGW 연결 이후 각 VPC의 라우팅 테이블(Route Table)을 직접 수정하여, Service-VPC의 <code>0.0.0.0/0</code> 대상이 TGW를 향하도록 하고, Hub-VPC는 Service-VPC의 CIDR(<code>10.1.0.0/16</code>) 요청 시 TGW로 응답하도록 AWS 콘솔이나 추가 코드로 세밀하게 라우팅을 매핑해야 패킷 유실이 발생하지 않습니다.
+    </div>
+
+    <h3>4.5 중앙 ALB (Application Load Balancer) 구성</h3>
+    <p>Hub VPC의 Public 영역에 위치하며, 트래픽을 Service VPC 내부로 전달합니다.</p>
+
+    <h4>[파일 경로: <code>infrastructure/prod/04-alb/terragrunt.hcl</code>]</h4>
+<pre><code>include "root" {
+  path = find_in_parent_folders()
+}
+
+dependency "hub_vpc" {
+  config_path = "../01-hub-vpc"
+}
+
+terraform {
+  source = "tfr:///terraform-aws-modules/alb/aws?version=8.7.0"
+}
+
+inputs = {
+  name               = "hub-central-alb"
+  load_balancer_type = "application"
+  vpc_id             = dependency.hub_vpc.outputs.vpc_id
+  subnets            = dependency.hub_vpc.outputs.public_subnets # 외부에 노출
+  
+  # HTTP 80 포트 리스너 설정
+  http_tcp_listeners = [
+    {
+      port               = 80
+      protocol           = "HTTP"
+      target_group_index = 0
+    }
+  ]
+
+  # 타겟 그룹 (Target Group) 설정
+  target_groups = [
+    {
+      name             = "service-nginx-tg"
+      backend_protocol = "HTTP"
+      backend_port     = 80
+      # 다른 VPC의 인스턴스를 지정하기 위해 반드시 'ip' 주소 유형 사용
+      target_type      = "ip" 
+      # 이 부분의 IP는 다음 단계에서 생성될 EC2의 Private IP를 콘솔에서 수동/자동 매핑해야 합니다.
+    }
+  ]
+}</code></pre>
+
+    <h3>4.6 컴퓨팅 자원 배포 (Service VPC 내부 Nginx)</h3>
+    <p>실제 서비스를 담당할 인스턴스를 프라이빗 환경에 배포합니다.</p>
+
+    <h4>[파일 경로: <code>infrastructure/prod/05-ec2-nginx/terragrunt.hcl</code>]</h4>
+<pre><code>include "root" {
+  path = find_in_parent_folders()
+}
+
+dependency "service_vpc" {
+  config_path = "../02-service-vpc"
+}
+
+terraform {
+  source = "tfr:///terraform-aws-modules/ec2-instance/aws?version=5.0.0"
+}
+
+inputs = {
+  name = "nginx-service-instance"
+  
+  instance_type = "t3.micro"
+  ami           = "ami-0c9c942bd7bf113a2" # Ubuntu 22.04 LTS (ap-northeast-2 기준)
+  
+  vpc_security_group_ids = [dependency.service_vpc.outputs.default_security_group_id]
+  subnet_id              = dependency.service_vpc.outputs.private_subnets[0]
+
+  # User Data를 통한 Nginx 자동 설치 스크립트
+  # 인터넷(아웃바운드)이 정상 연결되어야 apt-get 다운로드가 성공합니다.
+  user_data = &lt;&lt;-EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install -y nginx
+              systemctl start nginx
+              systemctl enable nginx
+              echo "<h1>Welcome to Centralized Network Nginx!</h1>" > /var/www/html/index.html
+              EOF
+
+  tags = {
+    Environment = "prod"
+    Service     = "web"
+  }
+}</code></pre>
+
+
+    <h2>5. 실행 방법</h2>
+    <p>인프라를 배포할 때는 예기치 않은 변경을 방지하기 위해 <strong>계획 파일(Plan file)</strong>을 생성하여 검토한 후, 해당 파일(out 파일)을 기반으로 적용(Apply)하는 것이 실무 모범 사례(Best Practice)입니다.<sup><a href="#fn3">3</a></sup></p>
+    <p>모든 코드가 작성되었다면 최상위 디렉터리(<code>infrastructure/prod/</code>)에서 다음 명령어를 실행합니다.</p>
+<pre><code># 1. 변경 사항 미리보기 및 파일로 저장 (Plan & Save)
+# 각 하위 디렉터리(01-hub-vpc 등)마다 'tgplan.out' 이라는 이름으로 계획 결과가 저장됩니다.
+terragrunt run-all plan -out=tgplan.out
+
+# 2. 저장된 계획 파일로 인프라 실제 배포 (Apply)
+# 앞서 저장한 'tgplan.out' 파일의 내용과 정확히 일치하는 리소스만 생성/변경합니다.
+# 실행 시 의존성(Dependencies)에 따라 01-hub-vpc부터 05-ec2-nginx까지 순차적으로 배포됩니다.
+terragrunt run-all apply "tgplan.out"
+</code></pre>
+
+    <div class="box-tip">
+        <strong>[실전 팁] Plan 파일 사용의 중요성</strong><br>
+        단순히 <code>apply</code>를 실행하면 Plan(미리보기)과 Apply(적용) 사이에 다른 작업자가 코드를 변경했을 때 의도치 않은 인프라 변경이 발생할 수 있습니다. <code>-out</code> 옵션으로 출력 파일을 생성하고 이를 적용하면, 검토한 상태 그대로 배포됨을 보장받을 수 있어 보안 및 안정성 측면에서 매우 중요합니다.
+    </div>
+
+    <h2>6. 브라우저 확인 방법 및 검증</h2>
+    <p>배포가 완료되면 터미널에 출력된 ALB의 DNS(Domain Name System, 도메인 네임 시스템) 주소를 복사합니다.</p>
+    
+    <ol>
+        <li><strong>인바운드 확인:</strong> 웹 브라우저 주소창에 ALB DNS 주소를 입력합니다. Nginx의 환영 페이지("Welcome to Centralized Network Nginx!")가 보인다면 외부 &rarr; Hub &rarr; TGW &rarr; Service 로의 인바운드 라우팅이 완벽하게 구성된 것입니다.</li>
+        <li><strong>아웃바운드 확인:</strong> 
+            <ul>
+                <li>AWS SSM (Systems Manager, 시스템 매니저)의 Session Manager를 통해 Service-VPC 내부의 Nginx 인스턴스에 안전하게 접속합니다.</li>
+                <li>터미널에서 <code>curl https://www.google.com</code> 명령어를 실행하여 HTML 코드가 반환되는지 확인합니다. 이는 트래픽이 Service &rarr; TGW &rarr; Hub VPC NAT &rarr; 외부 인터넷으로 나갔음을 증명합니다.</li>
+            </ul>
+        </li>
+    </ol>
+
+    <div class="footnotes">
+        <hr>
+        <p id="fn1"><b>1. Hub & Spoke 아키텍처:</b> 자전거 바퀴의 중심(Hub)과 빗살(Spoke) 모양에서 유래한 네트워크 토폴로지입니다. 모든 통신이 중앙 Hub를 거치게 함으로써, 각 Spoke VPC마다 NAT Gateway나 방화벽을 개별적으로 두지 않아도 되어 관리의 편의성과 비용 절감 효과를 얻을 수 있는 엔터프라이즈급 표준 아키텍처입니다.</p>
+        <p id="fn2"><b>2. Target Type (대상 유형):</b> 로드밸런서가 트래픽을 전달할 대상의 종류입니다. 인스턴스 ID(Instance), IP 주소(IP), 람다 함수(Lambda) 등이 있으며, TGW를 넘어가는 트래픽은 식별을 위해 IP 주소를 직접 매핑하는 방식을 사용해야 합니다.</p>
+        <p id="fn3"><b>3. Plan File (계획 파일, .out 파일):</b> IaC(Infrastructure as Code, 코드로서의 인프라) 도구가 코드를 분석하여 실제로 어떤 리소스를 생성, 수정, 삭제할지 미리 계산해 둔 바이너리 파일입니다. 이를 통해 멱등성(Idempotence, 연산을 여러 번 적용하더라도 결과가 달라지지 않는 성질)을 안전하게 보장합니다.</p>
+    </div>
+</div>
+
+</body>
+</html>
