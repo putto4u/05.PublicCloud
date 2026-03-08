@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테라폼 아키텍트 전문가 과정: 대화형 입력과 보안 검증</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #ffffff; color: #1e293b; line-height: 1.8; }
+        .code-block { background-color: #1e293b; color: #f8f8f2; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; margin: 15px 0; overflow-x: auto; }
+        .code-title { background-color: #334155; color: #cbd5e1; padding: 5px 15px; border-radius: 4px 4px 0 0; font-size: 0.8rem; font-weight: bold; display: inline-block; margin-top: 10px; }
+        .diagram-container { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; margin: 30px 0; display: flex; flex-direction: column; align-items: center; }
+        .expert-note { border-left: 4px solid #2563eb; background-color: #eff6ff; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+        .warning-box { border-left: 4px solid #ef4444; background-color: #fef2f2; padding: 20px; border-radius: 0 8px 8px 0; margin: 25px 0; }
+        .highlight { color: #2563eb; font-weight: 700; }
+        .step-badge { background-color: #1e293b; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; margin-right: 8px; }
+    </style>
+</head>
+<body class="p-6 md:p-12">
+
+    <header class="max-w-5xl mx-auto mb-16 border-b-8 border-slate-900 pb-10">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">테라폼 변수 보안: 대화형 입력 실습</h1>
+        <p class="text-xl text-slate-500 font-medium italic">Interactive Input(대화형 입력)을 활용한 민감 정보 처리 및 아키텍처적 한계 분석</p>
+    </header>
+
+    <main class="max-w-5xl mx-auto">
+        <!-- Section 1: Overview -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-6 flex items-center">
+                <span class="bg-slate-900 text-white w-10 h-10 flex items-center justify-center rounded-lg mr-4 text-xl">1</span>
+                개요 및 아키텍트의 시각
+            </h2>
+            <p class="text-lg">
+                인프라스트럭처 프로비저닝(Infrastructure Provisioning, 인프라 자원 준비 및 배치) 과정에서 데이터베이스 암호와 같은 민감 정보가 코드나 파일에 기록되는 순간, 보안 사고의 위험은 기하급수적으로 증가합니다. 
+                이를 방어하기 위해 테라폼은 파일에 값을 저장하지 않고 실행 시점에 입력을 요구하는 <span class="highlight">Interactive Input(대화형 입력)</span> 방식을 지원합니다.
+            </p>
+            
+            <div class="expert-note">
+                <p class="font-bold text-blue-800 mb-1">💡 아키텍트의 진실 확인 (Truth Check):</p>
+                <p class="text-sm">
+                    사용자가 키보드로 입력한 값은 <span class="highlight">VCS(Version Control System, 버전 관리 시스템)</span>의 추적을 피할 수 있지만, 테라폼 엔진이 인프라 상태를 추적하는 <span class="highlight">State File(상태 파일)</span>에는 여전히 평문으로 남습니다. 즉, 입력 방식의 변경만으로는 완전한 보안을 달성할 수 없으며, 반드시 상태 파일의 격리 및 암호화가 병행되어야 합니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 2: Setup -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-6 flex items-center">
+                <span class="bg-slate-900 text-white w-10 h-10 flex items-center justify-center rounded-lg mr-4 text-xl">2</span>
+                실습 환경 및 코드 구현
+            </h2>
+            <p>기존 설정 파일들과의 충돌을 방지하기 위해 독립된 작업 디렉터리(Directory, 컴퓨터 폴더)를 생성합니다.</p>
+            <div class="code-block">
+$ mkdir terraform-interactive-input
+$ cd terraform-interactive-input
+            </div>
+
+            <h3 class="text-xl font-bold mt-10 mb-4">1. 변수 선언 (variables.tf)</h3>
+            <p class="text-sm text-slate-600 mb-2">기본값(Default)을 명시하지 않아야 테라폼이 실행 시 값을 요청하게 됩니다.</p>
+            <div class="code-title">variables.tf</div>
+            <pre class="code-block">
+variable "db_admin_password" {
+  description = "MySQL Database 관리자 비밀번호"
+  type        = string
+  sensitive   = true  # 화면 출력 시 마스킹 처리를 위한 속성
+}</pre>
+
+            <h3 class="text-xl font-bold mt-10 mb-4">2. 리소스 정의 (main.tf)</h3>
+            <div class="code-title">main.tf</div>
+            <pre class="code-block">
+resource "local_file" "mysql_admin_config" {
+  content  = &lt;&lt;EOF
+[client]
+host=mysql-secure-db.example.com
+user=admin
+password=${var.db_admin_password}
+EOF
+
+  filename = "${path.module}/secure_mysql_admin.cnf"
+}</pre>
+        </section>
+
+        <!-- Section 3: Execution (Diagram 3 Area) -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-6 flex items-center">
+                <span class="bg-slate-900 text-white w-10 h-10 flex items-center justify-center rounded-lg mr-4 text-xl">3</span>
+                실행 계획 수립 및 대화형 주입
+            </h2>
+            
+            <p class="mb-6">
+                실무 아키텍처 표준인 <span class="highlight">Plan Output(실행 계획 파일 저장)</span> 전략을 사용합니다. 이는 보안 정보 입력의 번거로움을 줄이고 운영 사고를 방지하는 핵심 기법입니다.
+            </p>
+
+            <div class="diagram-container">
+                <svg width="700" height="350" viewBox="0 0 700 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- User -->
+                    <rect x="50" y="50" width="120" height="60" rx="8" fill="#1e293b" />
+                    <text x="110" y="85" text-anchor="middle" fill="white" font-weight="bold" font-size="12">사용자 (User)</text>
+                    
+                    <!-- Keyboard Action -->
+                    <path d="M110 110V180" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <text x="110" y="150" text-anchor="middle" fill="#2563eb" font-size="10" font-weight="bold">1. 비밀번호 입력</text>
+
+                    <!-- Terminal Prompt -->
+                    <rect x="50" y="200" width="180" height="100" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+                    <text x="65" y="230" fill="#475569" font-size="10" font-family="monospace">Enter a value:</text>
+                    <text x="65" y="255" fill="#2563eb" font-size="11" font-family="monospace" font-weight="bold">MySecretPass123!</text>
+
+                    <!-- Logic -->
+                    <path d="M230 250H320" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <text x="275" y="240" text-anchor="middle" fill="#64748b" font-size="10">2. Plan 수립</text>
+
+                    <!-- Plan File -->
+                    <rect x="350" y="150" width="120" height="150" rx="4" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="410" y="180" text-anchor="middle" fill="#1e40af" font-weight="bold" font-size="12">secure_plan</text>
+                    <text x="410" y="200" text-anchor="middle" fill="#1e40af" font-size="9">.tfplan</text>
+                    <path d="M370 220H450M370 240H450M370 260H450" stroke="#bfdbfe" stroke-width="2"/>
+                    <text x="410" y="320" text-anchor="middle" fill="#1e40af" font-weight="bold" font-size="10">(Binary File, 이진 파일)</text>
+
+                    <!-- Apply -->
+                    <path d="M470 225H550" stroke="#10b981" stroke-width="3" marker-end="url(#arrowhead)"/>
+                    <text x="510" y="215" text-anchor="middle" fill="#059669" font-size="10" font-weight="bold">3. Apply (No Prompt)</text>
+
+                    <!-- Infrastructure -->
+                    <rect x="580" y="180" width="100" height="90" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+                    <text x="630" y="225" text-anchor="middle" fill="#065f46" font-weight="bold" font-size="12">보안 설정</text>
+                    <text x="630" y="245" text-anchor="middle" fill="#065f46" font-size="10">생성 완료</text>
+
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                        </marker>
+                    </defs>
+                </svg>
+                <p class="diagram-title">[도식 3] 대화형 입력과 실행 계획 파일을 결합한 보안 워크플로우</p>
+            </div>
+
+            <div class="code-block">
+$ terraform init
+$ terraform plan -out=secure_plan.tfplan
+            </div>
+            <p class="text-sm text-slate-600">위 명령 실행 시 비밀번호를 묻는 프롬프트가 나타나면 키보드로 암호를 입력합니다.</p>
+
+            <div class="code-block">
+$ terraform apply "secure_plan.tfplan"
+            </div>
+
+            <div class="expert-note">
+                <p class="font-bold text-blue-800 mb-1">💡 실전 아키텍처 전략:</p>
+                <p class="text-sm">
+                    `-out` 플래그를 사용하지 않으면 `plan` 시점에 한 번, `apply` 시점에 또 한 번 비밀번호를 입력해야 합니다. 이는 자동화된 <span class="highlight">CI/CD Pipeline(지속적 통합/배포 파이프라인)</span> 구축 시 사용자 응답을 기다리며 무한 대기하는 현상을 유발하므로, 실행 계획 저장 방식이 아키텍처 설계의 기본입니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 4: Verification (Diagram 4 Area) -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-6 flex items-center">
+                <span class="bg-slate-900 text-white w-10 h-10 flex items-center justify-center rounded-lg mr-4 text-xl">4</span>
+                보안 검증 및 잔존 위협 분석
+            </h2>
+            <p>실행 후 터미널 화면과 물리적 파일에 저장된 암호의 형태를 비교하여 기술적 한계를 분석합니다.</p>
+
+            <div class="diagram-container">
+                <svg width="750" height="300" viewBox="0 0 750 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- CLI Output -->
+                    <rect x="50" y="80" width="280" height="150" rx="8" fill="#1e293b" />
+                    <text x="190" y="70" text-anchor="middle" font-weight="bold" fill="#334155" font-size="14">CLI 화면 (출력)</text>
+                    <text x="70" y="120" fill="#10b981" font-size="11" font-family="monospace">password = </text>
+                    <text x="145" y="120" fill="#fbbf24" font-size="11" font-family="monospace">(sensitive value)</text>
+                    <rect x="70" y="140" width="240" height="60" rx="4" fill="#334155"/>
+                    <text x="190" y="175" text-anchor="middle" fill="#94a3b8" font-size="10">화면에는 마스킹되어 안전함</text>
+
+                    <!-- The Gap -->
+                    <path d="M350 155H400" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrowhead-red)"/>
+                    <text x="375" y="145" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="bold">보안 공백</text>
+
+                    <!-- State File -->
+                    <rect x="420" y="80" width="280" height="150" rx="8" fill="#ffffff" stroke="#ef4444" stroke-width="2"/>
+                    <text x="560" y="70" text-anchor="middle" font-weight="bold" fill="#991b1b" font-size="14">terraform.tfstate (파일 내부)</text>
+                    <text x="440" y="130" fill="#475569" font-size="10" font-family="monospace">"password": </text>
+                    <text x="510" y="130" fill="#e11d48" font-size="11" font-family="monospace" font-weight="bold">"MySecretPass123!"</text>
+                    <rect x="440" y="160" width="240" height="40" rx="4" fill="#fef2f2"/>
+                    <text x="560" y="185" text-anchor="middle" fill="#b91c1c" font-size="10" font-weight="bold">평문(Plaintext)으로 노출됨</text>
+
+                    <defs>
+                        <marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" />
+                        </marker>
+                    </defs>
+                </svg>
+                <p class="diagram-title">[도식 4] 테라폼 보안의 역설: 화면 출력 마스킹과 상태 파일 평문 저장의 괴리</p>
+            </div>
+
+            <div class="warning-box">
+                <p class="font-bold text-red-800 mb-1">⚠️ 보안 전문가의 긴급 진단:</p>
+                <p class="text-sm">
+                    `cat terraform.tfstate` 명령을 통해 확인한 결과, 키보드로 정성껏 입력했던 암호가 최종 파일에는 고스란히 저장되어 있습니다. 
+                    이는 테라폼이 인프라를 관리하기 위해 필요한 정보를 속성(Attribute)에 모두 저장해야 하는 구조적 한계 때문입니다. 
+                    따라서 <strong>로컬 환경에 상태 파일을 남기는 것은 보안상 매우 위험</strong>합니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- Final Recommendation -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-6 flex items-center">
+                <span class="bg-slate-900 text-white w-10 h-10 flex items-center justify-center rounded-lg mr-4 text-xl">5</span>
+                최종 아키텍처 설계 제안
+            </h2>
+            <div class="tech-box p-8 bg-slate-50 border border-slate-200 rounded-2xl">
+                <p class="mb-4">최고 수준의 보안 가버넌스를 위해 다음과 같은 단계별 조치를 강력히 권고합니다.</p>
+                <ul class="space-y-4">
+                    <li class="flex items-start">
+                        <span class="step-badge">Phase 1</span>
+                        <p class="text-sm"><strong>상태 파일 원격 격리:</strong> AWS S3와 같이 서버 측 암호화(SSE)와 IAM 정책 제어가 가능한 원격 백엔드로 상태 파일을 즉시 이전하십시오.</p>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="step-badge">Phase 2</span>
+                        <p class="text-sm"><strong>버전 관리 제외:</strong> `.gitignore` 파일을 작성하여 상태 파일과 부산물이 Git 저장소에 절대 포함되지 않도록 원천 차단하십시오.</p>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="step-badge">Phase 3</span>
+                        <p class="text-sm"><strong>과금 관리:</strong> 원격 백엔드 운영 시 발생하는 S3 저장 및 데이터 처리 비용을 주기적으로 모니터링하십시오. (S3는 저장 용량 대비 저렴하지만 API 호출 비용이 수반됩니다.)</p>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Footnotes -->
+        <footer class="mt-20 pt-10 border-t border-slate-200 text-sm text-slate-500 space-y-2">
+            <p><strong>주석 및 용어 정의:</strong></p>
+            <ul class="list-disc list-inside">
+                <li><strong>CLI (Command Line Interface, 명령 줄 인터페이스):</strong> 사용자가 텍스트 형식의 명령어를 입력하여 프로그램을 제어하는 환경입니다.</li>
+                <li><strong>Binary File (이진 파일):</strong> 텍스트가 아닌 컴퓨터가 직접 해석할 수 있는 형식으로 구성된 파일로, 일반 편집기로는 내용 확인이 불가능합니다.</li>
+                <li><strong>Prompt (프롬프트):</strong> 컴퓨터가 사용자에게 입력을 기다리고 있음을 알리는 신호 또는 입력창을 의미합니다.</li>
+                <li><strong>Masking (마스킹):</strong> 민감한 데이터의 일부 또는 전체를 특정 문자(예: *)로 가려 노출을 방지하는 기술입니다.</li>
+                <li><strong>AWS Network Firewall 비용 안내:</strong> 이 실습 자체는 로컬 파일을 다루므로 과금되지 않으나, 추후 AWS S3 백엔드 및 네트워크 방화벽 도입 시 시간당 사용료와 데이터 처리 GB당 비용이 발생하므로 주의가 필요합니다.</li>
+            </ul>
+        </footer>
+    </main>
+
+    <div class="max-w-5xl mx-auto mt-16 flex justify-between items-center text-sm font-bold text-slate-400">
+        <span>© 2026 IaC Security Architect Series</span>
+        <span class="text-blue-600">Next Step: .gitignore를 활용한 민감 파일 버전 관리(Version Control) 추적 제외 설정</span>
+    </div>
+
+</body>
+</html>
