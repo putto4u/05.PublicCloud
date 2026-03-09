@@ -565,7 +565,15 @@ terragrunt run-all init -upgrade
 terragrunt run-all plan
 
 # 3. 실제 프로비저닝 수행 (초기 배포 시 -out 옵션 사용 금지)
-terragrunt run-all apply</code></pre>
+terragrunt run-all apply
+
+###### 이후 정상완료 후 수정할때 #####
+# 1. 계획을 파일로 캡처하여 변조를 방지하는 실무 명령어
+terragrunt plan -out=tfplan
+
+# 2. 저장된 계획 파일을 정확히 그대로 실행하여 인프라에 반영
+terragrunt apply tfplan    
+</code></pre>
 
     <div class="admonition mistake-common">
         <div class="admonition-title">
