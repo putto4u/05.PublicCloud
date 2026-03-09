@@ -512,11 +512,21 @@ resource "aws_lb_target_group_attachment" "nginx_attach" {
 <pre><code class="language-bash"># 1. 의존성 트리에 맞춰 모든 하위 디렉터리 플러그인 초기화
 terragrunt run-all init -upgrade
 
-# 2. 실행 계획을 파일로 저장하여 예측 가능성 확보
-terragrunt run-all plan -out=tgplan.out
+# 2. 변경 사항 미리보기 (선택 사항)
+terragrunt run-all plan
 
-# 3. 승인된 계획 파일을 바탕으로 병렬 프로비저닝 수행
-terragrunt run-all apply "tgplan.out"</code></pre>
+# 3. 실제 프로비저닝 수행 (초기 배포 시 -out 옵션 사용 금지)
+terragrunt run-all apply</code></pre>
+
+        <div class="callout callout-warning">
+            <div class="flex items-center mb-2">
+                <i class="fas fa-exclamation-triangle callout-icon mr-2 text-xl"></i>
+                <h4 class="callout-title font-bold m-0 text-lg">경고: 초기 배포 시 Plan 파일(-out) 사용 금지</h4>
+            </div>
+            <p class="text-sm m-0 text-slate-700">
+                일반적인 단일 테라폼 실행에서는 <code>plan -out=tgplan.out</code> 방식을 권장하지만, <strong>Terragrunt의 <code>run-all</code>을 통한 최초 배포(Cold Start) 시에는 절대 사용해서는 안 됩니다.</strong> 모의 출력값(Mock Outputs)이 계획 파일(Plan File)에 하드코딩(Hardcoding)되어, 실제 <code>apply</code> 시 AWS API (Application Programming Interface, 애플리케이션 프로그래밍 인터페이스)에 가짜 ID(예: <code>vpc-mock-12345</code>)를 전송하여 치명적인 오류를 발생시킵니다.
+            </p>
+        </div>
 
         <div class="callout callout-tip">
             <div class="flex items-center mb-2">
@@ -529,16 +539,63 @@ terragrunt run-all apply "tgplan.out"</code></pre>
             </p>
         </div>
 
+        <!-- Section 8 -->
+        <h2>8. 트러블슈팅: 초기 배포(Cold Start) 에러 완벽 해결</h2>
+        
+        <h3>8.1 출력값 미감지 에러 (detected no outputs)</h3>
+        <p>
+            위 7번의 배포 과정 중, 인프라를 처음 배포하기 위해 <code>terragrunt run-all init</code> 또는 <code>plan</code>을 실행할 때 아래와 같이 <strong>"detected no outputs (출력값이 감지되지 않음)"</strong> 에러가 발생할 수 있습니다.
+        </p>
+
+        <div class="my-6">
+<pre><code class="language-text">time=2026-03-10T05:44:18+09:00 level=error msg=Module C:/.../04-alb has finished with an error: 
+.../01-hub-vpc/terragrunt.hcl is a dependency of .../04-alb/terragrunt.hcl but detected no outputs.</code></pre>
+        </div>
+
+        <div class="callout callout-explanation">
+            <div class="flex items-center mb-2">
+                <i class="fas fa-info-circle callout-icon mr-2 text-xl"></i>
+                <h4 class="callout-title font-bold m-0 text-lg">원인 분석 및 해결 방안</h4>
+            </div>
+            <p class="text-sm m-0 text-slate-700">
+                하위 리소스가 참조할 진짜 값이 <strong>State File (상태 파일)</strong>에 아직 존재하지 않기 때문입니다. 이를 해결하기 위해 <code>dependency</code> 블록 내에 <strong><code>mock_outputs</code> (모의 출력값)</strong>을 명시하여 해결합니다. 본 교재의 코드(5, 6 섹션)에는 이미 이 해결책이 모두 반영되어 있습니다.
+            </p>
+        </div>
+
+        <h3>8.2 의존성 계획(Plan) 파일 충돌 에러 (Malformed / Not Found)</h3>
+        <p>
+            만약 초기 배포 시 <code>terragrunt run-all apply "tgplan.out"</code>과 같이 저장된 계획 파일을 강제로 실행할 경우, 아래와 같은 에러가 다수 발생하며 인프라 생성이 중단됩니다.
+        </p>
+
+        <div class="my-6">
+<pre><code class="language-text">Warning: Ignoring variable when applying a saved plan
+The variable public_subnets cannot be overriden when applying a saved plan file...
+...
+Error: creating Security Group (hub-alb-sg): ... api error InvalidVpcId.Malformed: The vpc ID 'vpc-mock-12345' is malformed
+...
+Error: creating EC2 Transit Gateway VPC Attachment: ... api error InvalidSubnetID.NotFound: The subnet ID 'subnet-mock-2' does not exist</code></pre>
+        </div>
+
+        <div class="callout callout-explanation">
+            <div class="flex items-center mb-2">
+                <i class="fas fa-info-circle callout-icon mr-2 text-xl"></i>
+                <h4 class="callout-title font-bold m-0 text-lg">원인 분석 및 해결 방안</h4>
+            </div>
+            <p class="text-sm m-0 text-slate-700">
+                이 에러는 <code>plan</code> 단계에서 사용되었던 가짜 모의 값(<code>vpc-mock-12345</code> 등)이 <code>.out</code> 파일에 영구적으로 기록되었기 때문에 발생합니다. 실제 <code>apply</code>가 실행되면서 상위 리소스가 진짜 VPC를 생성하여 <code>vpc-09f7b...</code> 형태의 진짜 ID를 넘겨주려 하지만, 테라폼은 <strong>"저장된 계획 파일의 값(Mock)과 현재 주입된 값(Real)이 다르다"</strong>며 업데이트를 거부하고 AWS API에 Mock 값을 그대로 전달합니다.<br><br>
+                <strong>해결책:</strong> 생성된 <code>tgplan.out</code> 파일을 삭제하고, 위 7번 섹션의 가이드에 따라 단순히 <strong><code>terragrunt run-all apply</code></strong> 명령어를 텍스트 파라미터 없이 실행하십시오. Terragrunt가 자동으로 의존성 순서에 맞춰 상위 리소스를 생성한 뒤, 진짜 출력값을 하위 리소스에 즉각 전달하여 에러 없이 배포를 완수합니다.
+            </p>
+        </div>
+
     </main>
 </div>
 
-<!-- 코드 블록 복사 기능을 위한 JS (JavaScript, 자바스크립트) -->
+<!-- 코드 복사 기능을 위한 JS -->
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const preElements = document.querySelectorAll('pre');
         
         preElements.forEach(pre => {
-            // 복사 버튼 동적 생성
             const btn = document.createElement('button');
             btn.className = 'copy-btn';
             btn.innerHTML = '<i class="far fa-copy"></i> 복사';
@@ -548,7 +605,6 @@ terragrunt run-all apply "tgplan.out"</code></pre>
                 const codeBlock = pre.querySelector('code');
                 const textToCopy = codeBlock ? codeBlock.innerText : pre.innerText;
                 
-                // iFrame (Inline Frame, 인라인 프레임) 보안 제약을 우회하기 위해 임시 textarea 활용
                 const textarea = document.createElement('textarea');
                 textarea.value = textToCopy;
                 textarea.style.position = 'fixed';
@@ -557,14 +613,9 @@ terragrunt run-all apply "tgplan.out"</code></pre>
                 textarea.select();
                 
                 try {
-                    // 클립보드에 복사 명령 실행
                     document.execCommand('copy');
-                    
-                    // 성공 시 UI (User Interface, 사용자 인터페이스) 변경
                     btn.innerHTML = '<i class="fas fa-check"></i> 완료';
                     btn.classList.add('copied');
-                    
-                    // 2초 후 원래 상태로 복구
                     setTimeout(() => {
                         btn.innerHTML = '<i class="far fa-copy"></i> 복사';
                         btn.classList.remove('copied');
@@ -576,7 +627,6 @@ terragrunt run-all apply "tgplan.out"</code></pre>
                 }
             });
             
-            // pre 태그 내부 우측 상단에 버튼 추가
             pre.appendChild(btn);
         });
     });
