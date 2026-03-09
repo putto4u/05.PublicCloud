@@ -452,6 +452,29 @@ resource "aws_route" "service_to_hub" {
   route_table_id         = var.service_private_route_tables[count.index]
   destination_cidr_block = "0.0.0.0/0"
   transit_gateway_id     = var.tgw_id
+    
+# 3. HUB VPC (Private) -> 외부 인터넷 (0.0.0.0/0) 라우팅
+resource "aws_route" "hubpub_igw" {
+  count                  = length(var.hubpub_igw_route_tables)
+  route_table_id         = var.hubpub_igw_route_tables[count.index]
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id     = var.hub_igw_id
+}
+
+EOF
+}
+
+# 동적 생성된 Terraform 코드의 변수에 매핑할 실제 값을 주입합니다.
+inputs = {
+  hub_public_route_tables      = dependency.hub_vpc.outputs.public_route_table_ids
+  hub_pub_igw_route_tables     = dependency.hub_vpc.outputs.public_route_table_ids
+  service_private_route_tables = dependency.service_vpc.outputs.private_route_table_ids
+  tgw_id                       = dependency.tgw.outputs.ec2_transit_gateway_id
+  hub_igw_id                   = dependency.hub_vpc.outputs.igw_id
+
+    
+
+    
 }
 EOF
 }
