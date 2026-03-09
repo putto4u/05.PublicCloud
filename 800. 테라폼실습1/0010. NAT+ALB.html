@@ -1,390 +1,108 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>프로젝트: Terragrunt 기반 중앙 집중형 네트워크 아키텍처 (NatAlb)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f8fafc; color: #1e293b; }
-        .prose pre { position: relative; background-color: #1e293b; color: #e2e8f0; border-radius: 0.5rem; padding: 2.5rem 1rem 1rem 1rem; overflow-x: auto; margin-top: 1rem; margin-bottom: 1.5rem; }
-        .prose code { font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.875em; }
-        .prose h2 { color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-top: 2.5rem; margin-bottom: 1.25rem; font-size: 1.5rem; font-weight: 700; }
-        .prose h3 { color: #334155; margin-top: 2rem; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600; }
-        .prose p { margin-bottom: 1rem; line-height: 1.7; }
+<!-- 기존 교재의 '7. 전체 배포 및 검증 파이프라인' 하단에 이어서 추가해 주세요. -->
         
-        /* Custom Callouts */
-        .callout { border-left-width: 4px; padding: 1rem; border-radius: 0.375rem; margin-top: 1.5rem; margin-bottom: 1.5rem; background-color: #ffffff; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-        .callout-warning { border-left-color: #ef4444; }
-        .callout-warning .callout-title { color: #b91c1c; }
-        .callout-warning .callout-icon { color: #ef4444; }
-        
-        .callout-tip { border-left-color: #10b981; }
-        .callout-tip .callout-title { color: #047857; }
-        .callout-tip .callout-icon { color: #10b981; }
-        
-        .callout-mistake { border-left-color: #f59e0b; }
-        .callout-mistake .callout-title { color: #b45309; }
-        .callout-mistake .callout-icon { color: #f59e0b; }
-
-        .callout-explanation { border-left-color: #3b82f6; background-color: #eff6ff; }
-        .callout-explanation .callout-title { color: #1d4ed8; }
-        .callout-explanation .callout-icon { color: #3b82f6; }
-
-        .filepath { background-color: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.875rem; color: #475569; border: 1px solid #e2e8f0; margin-bottom: 0.5rem; display: inline-block; }
-        
-        /* 코드 복사 버튼 스타일 정의 */
-        .copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; background-color: #334155; color: #cbd5e1; border: 1px solid #475569; border-radius: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease-in-out; display: inline-flex; align-items: center; gap: 0.375rem; }
-        .copy-btn:hover { background-color: #475569; color: #ffffff; }
-        .copy-btn.copied { background-color: #10b981; color: #ffffff; border-color: #10b981; }
-    </style>
-</head>
-<body class="antialiased">
-
-<div class="max-w-5xl mx-auto px-4 py-12">
-    <!-- Header -->
-    <header class="mb-12 text-center">
-        <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl mb-4">
-            프로젝트: 중앙 집중형 네트워크 아키텍처 구축
-        </h1>
-        <p class="text-xl text-slate-600 font-medium">
-            Terragrunt 기반 NatAlb 프로젝트 실습 교재
-        </p>
-    </header>
-
-    <!-- Content -->
-    <main class="prose prose-slate max-w-none">
-
-        <!-- Section 1 -->
-        <h2>1. 프로젝트 소개 및 아키텍처 개요</h2>
+        <!-- Section 8 -->
+        <h2>8. 트러블슈팅: 초기 배포 시 의존성 출력값 에러 (Cold Start Dependency Error)</h2>
         <p>
-            본 과정에서는 중견 기업 이상의 엔터프라이즈 환경에서 필수적으로 요구되는 <strong>Hub & Spoke (허브 앤 스포크)</strong> 기반의 네트워크 아키텍처를 <a href="https://terragrunt.gruntwork.io/" target="_blank" class="text-blue-600 hover:underline">Terragrunt (테라그런트)</a>를 활용하여 <strong>IaC (Infrastructure as Code, 코드형 인프라)</strong>로 구축합니다. 본 프로젝트의 루트 디렉터리 명칭은 <code>NatAlb</code>로 명명합니다.
-        </p>
-        
-        <div class="my-8 text-center bg-slate-100 p-4 rounded-lg border border-slate-200">
-            <span class="text-slate-500 italic"></span>
-        </div>
-
-        <div class="callout callout-warning">
-            <div class="flex items-center mb-2">
-                <i class="fas fa-exclamation-triangle callout-icon mr-2 text-xl"></i>
-                <h4 class="callout-title font-bold m-0 text-lg">[과금 주의 및 유료 서비스 안내]</h4>
-            </div>
-            <p class="text-sm m-0 text-slate-700">
-                본 실습 아키텍처를 <a href="https://aws.amazon.com/ko/" target="_blank" class="text-blue-600 hover:underline">AWS (Amazon Web Services, 아마존 웹 서비스)</a>에 배포할 경우 프리티어(Free Tier) 범위를 초과하는 즉각적인 과금이 발생합니다. 실습 완료 후 반드시 리소스를 삭제해야 합니다.
-            </p>
-            <ul class="text-sm mt-2 mb-0 text-slate-700 list-disc pl-5">
-                <li><strong>TGW (Transit Gateway, 전송 게이트웨이):</strong> 시간당 연결 유지 비용 및 트래픽 처리(GB당) 비용 발생</li>
-                <li><strong>NAT (Network Address Translation Gateway, 네트워크 주소 변환 게이트웨이):</strong> 시간당 구동 비용 및 데이터 처리 비용 발생</li>
-                <li><strong>ALB (Application Load Balancer, 애플리케이션 로드 밸런서):</strong> 시간당 LCU (Load Balancer Capacity Units, 로드 밸런서 용량 단위) 비용 발생</li>
-                <li><strong>EC2 (Elastic Compute Cloud, 엘라스틱 컴퓨트 클라우드):</strong> 인스턴스 유형(t3.micro 등)에 따른 시간당 컴퓨팅 과금 발생</li>
-            </ul>
-        </div>
-
-        <!-- Section 2 -->
-        <h2>2. 하이브리드 디렉터리 구조 설계</h2>
-        <p>
-            테라그런트의 강력한 환경 분리 기능과 테라폼의 모듈화 장점을 결합하기 위해, 각 리소스 단계별 디렉터리 내에 <code>terragrunt.hcl</code>과 <code>.tf</code> 파일들을 함께 배치하는 <strong>하이브리드 모듈(Hybrid Module)</strong> 방식을 적용합니다. 이를 통해 코드의 응집도를 높이고 디버깅을 단순화합니다.
-        </p>
-<pre><code>NatAlb/
-├── terragrunt.hcl              # 전역 프로바이더 및 로컬 백엔드 설정
-└── prod/                       # 운영 환경
-    ├── env.hcl                 # 공통 환경 변수 (리전 등)
-    ├── 01-hub-vpc/             
-    │   ├── terragrunt.hcl      # 변수 주입 및 모듈 호출 (source = ".")
-    │   └── main.tf             # Hub VPC 실제 구성 코드
-    ├── 02-service-vpc/         # Service VPC 구성
-    ├── 03-tgw/                 # Transit Gateway 및 라우팅 구성
-    ├── 04-alb/                 # ALB 및 인바운드 보안 그룹 구성
-    └── 05-ec2-nginx/           # Nginx 인스턴스 및 아웃바운드 보안 그룹 구성</code></pre>
-        
-        <div class="callout callout-explanation">
-            <div class="flex items-center mb-2">
-                <i class="fas fa-info-circle callout-icon mr-2 text-xl"></i>
-                <h4 class="callout-title font-bold m-0 text-lg">설명: 디렉터리 의존성</h4>
-            </div>
-            <p class="text-sm m-0 text-slate-700">
-                위 구조는 인프라의 의존성 흐름(01 → 05)을 명확히 보여줍니다. 각 하위 디렉터리는 독립적인 <strong>State (상태)</strong>를 가지면서도 테라그런트의 <code>dependency</code> 블록을 통해 상위 리소스의 결과값을 동적으로 참조합니다.
-            </p>
-        </div>
-
-        <!-- Section 3 -->
-        <h2>3. 글로벌 및 환경 공통 설정</h2>
-        <p>
-            최상위 계층에서는 클라우드 인증 정보와 상태 파일이 저장될 백엔드를 정의합니다. 비용 최적화와 빠른 로컬 테스트를 위해 <strong>로컬 상태 저장소(Local State Backend)</strong>를 활용합니다.
+            인프라를 처음 배포하기 위해 <code>terragrunt run-all plan</code>을 실행할 때 아래와 같이 <strong>"detected no outputs (출력값이 감지되지 않음)"</strong> 에러가 발생하며 실행이 중단되는 현상은 Terragrunt (테라그런트) 환경에서 발생하는 가장 대표적인 <strong>콜드 스타트(Cold Start)</strong> 문제입니다.
         </p>
 
-        <div class="filepath">NatAlb/terragrunt.hcl</div>
-<pre><code class="language-hcl">locals {
-  env_vars   = read_terragrunt_config(find_in_parent_folders("env.hcl"))
-  aws_region = local.env_vars.locals.aws_region
-}
-
-generate "provider" {
-  path      = "provider.tf"
-  if_exists = "overwrite_terragrunt"
-  contents  = <<EOF
-provider "aws" {
-  region = "${local.aws_region}"
-}
-EOF
-}
-
-# PC (Personal Computer, 개인용 컴퓨터) 디렉터리 기반 로컬 상태 저장소 설정
-remote_state {
-  backend = "local"
-  generate = {
-    path      = "backend.tf"
-    if_exists = "overwrite_terragrunt"
-  }
-  config = {
-    path = "${get_terragrunt_dir()}/terraform.tfstate"
-  }
-}</code></pre>
-
-        <div class="filepath">NatAlb/prod/env.hcl</div>
-<pre><code class="language-hcl">locals {
-  environment = "prod"
-  aws_region  = "ap-northeast-2"
-}</code></pre>
+        <div class="my-6">
+<pre><code>time=2026-03-10T05:31:05+09:00 level=error msg=Module C:/.../04-alb has finished with an error: 
+.../01-hub-vpc/terragrunt.hcl is a dependency of .../04-alb/terragrunt.hcl but detected no outputs. 
+Either the target module has not been applied yet, or the module has no outputs.</code><button class="copy-btn" title="코드 복사하기"><i class="far fa-copy"></i> 복사</button></pre>
+        </div>
 
         <div class="callout callout-explanation">
             <div class="flex items-center mb-2">
                 <i class="fas fa-info-circle callout-icon mr-2 text-xl"></i>
-                <h4 class="callout-title font-bold m-0 text-lg">설명: DRY 원칙의 적용</h4>
+                <h4 class="callout-title font-bold m-0 text-lg">원인 분석 및 해결 방안</h4>
             </div>
             <p class="text-sm m-0 text-slate-700">
-                <code>read_terragrunt_config</code> 및 <code>find_in_parent_folders</code> 내장 함수를 사용하여 하위 디렉터리 어디에서 실행하든 항상 최상위의 공통 설정을 상속받도록 <strong>DRY (Don't Repeat Yourself, 중복 배제 원칙)</strong> 구조를 구성했습니다. 상태 파일은 각 리소스가 위치한 하위 디렉터리에 <code>terraform.tfstate</code> 이름으로 자동 생성됩니다.
+                하위 디렉터리(예: <code>04-alb</code>)는 상위 디렉터리(예: <code>01-hub-vpc</code>)가 생성한 <code>vpc_id</code> 값을 참조해야 합니다. 하지만 아직 실제 인프라가 배포(Apply)되지 않았기 때문에 <strong>State File (상태 파일)</strong>에 해당 결과값이 존재하지 않아 Terragrunt가 Plan (계획) 단계를 진행하지 못하는 것입니다.<br><br>
+                이를 해결하기 위해서는 <code>dependency</code> 블록 내에 <strong><code>mock_outputs</code> (모의 출력값)</strong> 속성을 명시하여, 실제 자원이 생성되기 전인 <code>plan</code> 단계에서는 테라폼이 임시 가짜 값을 사용하여 유효성 검사를 통과하도록 아키텍처 코드를 보완해야 합니다.
             </p>
         </div>
 
-        <!-- Section 4 -->
-        <h2>4. 코어 네트워크 구축 (Hub & Service VPC)</h2>
-        <p>외부 통신을 전담하는 Hub VPC와 실제 서비스가 격리되는 Service VPC를 각각 구성합니다.</p>
-
-        <h3>4.1 Hub VPC (NAT 및 IGW 포함)</h3>
-        <div class="filepath">NatAlb/prod/01-hub-vpc/terragrunt.hcl</div>
-<pre><code class="language-hcl">include "root" {
-  path = find_in_parent_folders()
-}
-
-terraform {
-  source = "." # 현재 디렉터리의 .tf 파일들을 실행
-}
-
-inputs = {
-  vpc_name = "hub-vpc"
-  vpc_cidr = "10.0.0.0/16"
-}</code></pre>
-
-        <div class="filepath">NatAlb/prod/01-hub-vpc/main.tf</div>
-<pre><code class="language-terraform">variable "vpc_name" { type = string }
-variable "vpc_cidr" { type = string }
-
-module "hub_vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "5.0.0"
-
-  name = var.vpc_name
-  cidr = var.vpc_cidr
-
-  azs             = ["ap-northeast-2a", "ap-northeast-2c"]
-  public_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]
-  private_subnets = ["10.0.11.0/24", "10.0.12.0/24"]
-
-  enable_nat_gateway = true
-  single_nat_gateway = true # 실습용 단일 NAT
-}
-
-output "vpc_id" { value = module.hub_vpc.vpc_id }
-output "public_subnets" { value = module.hub_vpc.public_subnets }
-output "private_subnets" { value = module.hub_vpc.private_subnets }
-output "private_route_table_ids" { value = module.hub_vpc.private_route_table_ids }</code></pre>
-
-        <h3>4.2 Service VPC (격리망)</h3>
-        <div class="filepath">NatAlb/prod/02-service-vpc/terragrunt.hcl</div>
-<pre><code class="language-hcl">include "root" { path = find_in_parent_folders() }
-terraform { source = "." }
-inputs = {
-  vpc_name = "service-vpc"
-  vpc_cidr = "10.1.0.0/16"
-}</code></pre>
-
-        <div class="filepath">NatAlb/prod/02-service-vpc/main.tf</div>
-<pre><code class="language-terraform">variable "vpc_name" { type = string }
-variable "vpc_cidr" { type = string }
-
-module "service_vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "5.0.0"
-
-  name = var.vpc_name
-  cidr = var.vpc_cidr
-
-  azs             = ["ap-northeast-2a", "ap-northeast-2c"]
-  private_subnets = ["10.1.1.0/24", "10.1.2.0/24"]
-
-  enable_nat_gateway = false # NAT 없음 (Hub VPC 의존)
-}
-
-output "vpc_id" { value = module.service_vpc.vpc_id }
-output "private_subnets" { value = module.service_vpc.private_subnets }
-output "private_route_table_ids" { value = module.service_vpc.private_route_table_ids }</code></pre>
-
-        <!-- Section 5 -->
-        <h2>5. 중앙 라우팅 구축 (TGW 및 라우팅 테이블)</h2>
+        <h3>8.1 의존성 코드 보완 (Mock Outputs 적용)</h3>
         <p>
-            TGW를 생성하고, <strong>Service VPC의 아웃바운드 트래픽이 Hub VPC로 향하도록 라우팅을 강제</strong>합니다.
+            에러가 발생한 하위 디렉터리들의 <code>terragrunt.hcl</code> 파일 내 <code>dependency</code> 블록을 아래와 같이 수정합니다. (사용자가 별도로 생성한 <code>03-2-routtb</code> 등의 디렉터리가 있다면 동일한 방식으로 적용해야 합니다.)
         </p>
 
-        <div class="filepath">NatAlb/prod/03-tgw/terragrunt.hcl</div>
+        <div class="filepath">NatAlb/prod/03-tgw/terragrunt.hcl (수정)</div>
 <pre><code class="language-hcl">include "root" { path = find_in_parent_folders() }
 
-dependency "hub" { config_path = "../01-hub-vpc" }
-dependency "service" { config_path = "../02-service-vpc" }
+dependency "hub" { 
+  config_path = "../01-hub-vpc" 
+  mock_outputs = {
+    vpc_id                  = "vpc-mock-12345"
+    private_subnets         = ["subnet-mock-1", "subnet-mock-2"]
+    public_subnets          = ["subnet-mock-pub1", "subnet-mock-pub2"]
+    private_route_table_ids = ["rtb-mock-1", "rtb-mock-2"]
+  }
+  mock_outputs_allowed_terraform_commands = ["plan", "validate"]
+}
+
+dependency "service" { 
+  config_path = "../02-service-vpc" 
+  mock_outputs = {
+    vpc_id                  = "vpc-mock-67890"
+    private_subnets         = ["subnet-mock-3", "subnet-mock-4"]
+    private_route_table_ids = ["rtb-mock-3", "rtb-mock-4"]
+  }
+  mock_outputs_allowed_terraform_commands = ["plan", "validate"]
+}
 
 terraform { source = "." }
 
 inputs = {
-  hub_vpc_id            = dependency.hub.outputs.vpc_id
-  hub_subnet_ids        = dependency.hub.outputs.private_subnets
-  service_vpc_id        = dependency.service.outputs.vpc_id
-  service_subnet_ids    = dependency.service.outputs.private_subnets
-  
-  # 라우팅 테이블 주입
+  hub_vpc_id              = dependency.hub.outputs.vpc_id
+  hub_subnet_ids          = dependency.hub.outputs.private_subnets
+  service_vpc_id          = dependency.service.outputs.vpc_id
+  service_subnet_ids      = dependency.service.outputs.private_subnets
   hub_route_table_ids     = dependency.hub.outputs.private_route_table_ids
   service_route_table_ids = dependency.service.outputs.private_route_table_ids
-}</code></pre>
+}</code><button class="copy-btn" title="코드 복사하기"><i class="far fa-copy"></i> 복사</button></pre>
 
-        <div class="filepath">NatAlb/prod/03-tgw/main.tf</div>
-<pre><code class="language-terraform">variable "hub_vpc_id" { type = string }
-variable "hub_subnet_ids" { type = list(string) }
-variable "service_vpc_id" { type = string }
-variable "service_subnet_ids" { type = list(string) }
-variable "hub_route_table_ids" { type = list(string) }
-variable "service_route_table_ids" { type = list(string) }
 
-# TGW 생성
-resource "aws_ec2_transit_gateway" "main" {
-  description = "Hub and Spoke TGW"
-  tags = { Name = "main-tgw" }
-}
-
-# Hub VPC 연결
-resource "aws_ec2_transit_gateway_vpc_attachment" "hub" {
-  subnet_ids         = var.hub_subnet_ids
-  transit_gateway_id = aws_ec2_transit_gateway.main.id
-  vpc_id             = var.hub_vpc_id
-  tags = { Name = "hub-attachment" }
-}
-
-# Service VPC 연결
-resource "aws_ec2_transit_gateway_vpc_attachment" "service" {
-  subnet_ids         = var.service_subnet_ids
-  transit_gateway_id = aws_ec2_transit_gateway.main.id
-  vpc_id             = var.service_vpc_id
-  tags = { Name = "service-attachment" }
-}
-
-# [핵심 라우팅] Service VPC에서 외부(0.0.0.0/0)로 가는 트래픽을 TGW로 전송
-resource "aws_route" "service_to_tgw" {
-  count                  = length(var.service_route_table_ids)
-  route_table_id         = var.service_route_table_ids[count.index]
-  destination_cidr_block = "0.0.0.0/0"
-  transit_gateway_id     = aws_ec2_transit_gateway.main.id
-  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.service]
-}
-
-# [핵심 라우팅] Hub VPC에서 Service VPC(10.1.0.0/16)로 가는 트래픽을 TGW로 전송
-resource "aws_route" "hub_to_service" {
-  count                  = length(var.hub_route_table_ids)
-  route_table_id         = var.hub_route_table_ids[count.index]
-  destination_cidr_block = "10.1.0.0/16"
-  transit_gateway_id     = aws_ec2_transit_gateway.main.id
-  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.hub]
-}</code></pre>
-
-        <div class="callout callout-mistake">
-            <div class="flex items-center mb-2">
-                <i class="fas fa-exclamation-circle callout-icon mr-2 text-xl"></i>
-                <h4 class="callout-title font-bold m-0 text-lg">자주 오해하거나 실수하는 부분: 비대칭 라우팅 및 누락</h4>
-            </div>
-            <p class="text-sm m-0 text-slate-700">
-                TGW를 생성하고 연결(Attachment)만 맺었다고 해서 통신이 이루어지지 않습니다. 반드시 VPC 내부의 <strong>Route Table (라우팅 테이블)</strong>에 목적지 대역에 대한 정적 라우팅(Static Route)을 위 코드처럼 명시적으로 추가해주어야 패킷이 TGW 방향으로 정상적으로 흘러갑니다.
-            </p>
-        </div>
-
-        <!-- Section 6 -->
-        <h2>6. 트래픽 분산 및 애플리케이션 계층 배포 (ALB & EC2)</h2>
-        <p>보안 그룹(SG) 차단 문제를 해결한 최종 로드 밸런서와 Nginx 웹 서버를 배포합니다.</p>
-
-        <h3>6.1 ALB 배포 (명시적 보안 그룹 포함)</h3>
-        <div class="filepath">NatAlb/prod/04-alb/terragrunt.hcl</div>
+        <div class="filepath">NatAlb/prod/04-alb/terragrunt.hcl (수정)</div>
 <pre><code class="language-hcl">include "root" { path = find_in_parent_folders() }
-dependency "hub" { config_path = "../01-hub-vpc" }
+
+dependency "hub" { 
+  config_path = "../01-hub-vpc" 
+  mock_outputs = {
+    vpc_id         = "vpc-mock-12345"
+    public_subnets = ["subnet-mock-pub1", "subnet-mock-pub2"]
+  }
+  mock_outputs_allowed_terraform_commands = ["plan", "validate"]
+}
 
 terraform { source = "." }
 
 inputs = {
   vpc_id         = dependency.hub.outputs.vpc_id
   public_subnets = dependency.hub.outputs.public_subnets
-}</code></pre>
+}</code><button class="copy-btn" title="코드 복사하기"><i class="far fa-copy"></i> 복사</button></pre>
 
-        <div class="filepath">NatAlb/prod/04-alb/main.tf</div>
-<pre><code class="language-terraform">variable "vpc_id" { type = string }
-variable "public_subnets" { type = list(string) }
 
-# ALB 전용 보안 그룹 (인바운드: 외부 허용, 아웃바운드: Service VPC 대역 허용)
-resource "aws_security_group" "alb_sg" {
-  name        = "hub-alb-sg"
-  description = "ALB Security Group"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["10.1.0.0/16"] # Service VPC 향 트래픽 허용
-  }
-}
-
-module "alb" {
-  source  = "terraform-aws-modules/alb/aws"
-  version = "8.7.0"
-
-  name               = "hub-central-alb"
-  load_balancer_type = "application"
-  vpc_id             = var.vpc_id
-  subnets            = var.public_subnets
-  security_groups    = [aws_security_group.alb_sg.id]
-
-  http_tcp_listeners = [{ port = 80, protocol = "HTTP", target_group_index = 0 }]
-  target_groups = [
-    {
-      name             = "service-nginx-tg"
-      backend_protocol = "HTTP"
-      backend_port     = 80
-      target_type      = "ip" # 크로스 VPC 라우팅을 위한 IP 타겟 필수 지정
-    }
-  ]
-}
-
-output "target_group_arns" { value = module.alb.target_group_arns }
-output "alb_dns_name" { value = module.alb.lb_dns_name }</code></pre>
-
-        <h3>6.2 Nginx EC2 배포 (격리된 보안 그룹 적용)</h3>
-        <div class="filepath">NatAlb/prod/05-ec2-nginx/terragrunt.hcl</div>
+        <div class="filepath">NatAlb/prod/05-ec2-nginx/terragrunt.hcl (수정)</div>
 <pre><code class="language-hcl">include "root" { path = find_in_parent_folders() }
-dependency "service" { config_path = "../02-service-vpc" }
-dependency "alb" { config_path = "../04-alb" }
+
+dependency "service" { 
+  config_path = "../02-service-vpc" 
+  mock_outputs = {
+    vpc_id          = "vpc-mock-67890"
+    private_subnets = ["subnet-mock-3", "subnet-mock-4"]
+  }
+  mock_outputs_allowed_terraform_commands = ["plan", "validate"]
+}
+
+dependency "alb" { 
+  config_path = "../04-alb" 
+  mock_outputs = {
+    target_group_arns = ["arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:targetgroup/mock/123"]
+  }
+  mock_outputs_allowed_terraform_commands = ["plan", "validate"]
+}
 
 terraform { source = "." }
 
@@ -392,142 +110,14 @@ inputs = {
   vpc_id           = dependency.service.outputs.vpc_id
   subnet_id        = dependency.service.outputs.private_subnets[0]
   target_group_arn = dependency.alb.outputs.target_group_arns[0]
-}</code></pre>
-
-        <div class="filepath">NatAlb/prod/05-ec2-nginx/main.tf</div>
-<pre><code class="language-terraform">variable "vpc_id" { type = string }
-variable "subnet_id" { type = string }
-variable "target_group_arn" { type = string }
-
-# Nginx 전용 보안 그룹 (인바운드: Hub VPC 대역만 허용)
-resource "aws_security_group" "nginx_sg" {
-  name        = "nginx-service-sg"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"] # TGW를 넘어오는 Hub VPC 트래픽 수용
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"] # OS 업데이트용 외부 아웃바운드 허용
-  }
-}
-
-resource "aws_instance" "nginx" {
-  ami           = "ami-0c9c942bd7bf113a2" # Ubuntu 22.04 LTS
-  instance_type = "t3.micro"
-  subnet_id     = var.subnet_id
-  vpc_security_group_ids = [aws_security_group.nginx_sg.id]
-
-  user_data = <<-EOF
-              #!/bin/bash
-              apt-get update -y
-              apt-get install -y nginx
-              systemctl start nginx
-              systemctl enable nginx
-              echo "Welcome to Centralized Network Nginx!" > /var/www/html/index.html
-              EOF
-  tags = { Name = "nginx-service-instance" }
-}
-
-# ALB 타겟 그룹에 생성된 EC2의 Private IP 자동 등록 매핑
-resource "aws_lb_target_group_attachment" "nginx_attach" {
-  target_group_arn = var.target_group_arn
-  target_id        = aws_instance.nginx.private_ip
-  port             = 80
-}</code></pre>
-
-        <div class="callout callout-explanation">
-            <div class="flex items-center mb-2">
-                <i class="fas fa-info-circle callout-icon mr-2 text-xl"></i>
-                <h4 class="callout-title font-bold m-0 text-lg">설명: 동적 바인딩(Dynamic Binding) 자동화</h4>
-            </div>
-            <p class="text-sm m-0 text-slate-700">
-                마지막 05번 단계에서는 생성된 EC2의 <strong>Private IP (프라이빗 IP)</strong>를 앞서 생성한 ALB의 타겟 그룹에 동적으로 바인딩(묶음)하는 <code>aws_lb_target_group_attachment</code> 리소스를 포함시켰습니다. 이를 통해 인프라 배포 완료 후 관리자가 콘솔에서 수동으로 IP를 등록해야 하는 번거로움을 제거하여 진정한 완전 자동화를 달성했습니다.
-            </p>
-        </div>
-
-        <!-- Section 7 -->
-        <h2>7. 전체 배포 및 검증 파이프라인</h2>
-        <p>모든 코드가 작성되었다면 최상위 실행 디렉터리(<code>NatAlb/prod/</code>)로 이동하여 터미널(Terminal)에서 아래 명령어를 순서대로 실행합니다.</p>
-
-<pre><code class="language-bash"># 1. 의존성 트리에 맞춰 모든 하위 디렉터리 플러그인 초기화
-terragrunt run-all init -upgrade
-
-# 2. 실행 계획을 파일로 저장하여 예측 가능성 확보
-terragrunt run-all plan -out=tgplan.out
-
-# 3. 승인된 계획 파일을 바탕으로 병렬 프로비저닝 수행
-terragrunt run-all apply "tgplan.out"</code></pre>
+}</code><button class="copy-btn" title="코드 복사하기"><i class="far fa-copy"></i> 복사</button></pre>
 
         <div class="callout callout-tip">
             <div class="flex items-center mb-2">
                 <i class="fas fa-lightbulb callout-icon mr-2 text-xl"></i>
-                <h4 class="callout-title font-bold m-0 text-lg">실전 팁: 상태 검증 및 리소스 삭제 방법</h4>
+                <h4 class="callout-title font-bold m-0 text-lg">실전 팁: mock_outputs_allowed_terraform_commands</h4>
             </div>
             <p class="text-sm m-0 text-slate-700">
-                배포 완료 후 콘솔 출력에 나타난 <code>alb_dns_name</code> 값을 복사하여 웹 브라우저 주소창에 붙여넣기 합니다. "Welcome to Centralized Network Nginx!" 메시지가 정상 노출된다면 인바운드와 아웃바운드(Nginx 설치를 위한 인터넷 연결), 라우팅, 방화벽(SG)이 모두 완벽하게 상호작용하고 있는 것입니다.<br><br>
-                <strong>※ 실습이 끝나면 과금을 방지하기 위해 동일한 디렉터리에서 <code>terragrunt run-all destroy</code>를 반드시 실행하십시오.</strong>
+                <code>mock_outputs_allowed_terraform_commands = ["plan", "validate"]</code> 옵션은 매우 중요합니다. 이 옵션이 없으면 실제 인프라를 배포하는 <code>apply</code> 단계에서도 가짜 값(Mock)을 AWS API (Application Programming Interface, 애플리케이션 프로그래밍 인터페이스)로 전송하여 치명적인 배포 실패를 유발할 수 있습니다. 위 옵션을 통해 오직 검증(Plan/Validate) 단계에서만 Mock 값을 사용하도록 안전장치를 걸어둡니다. 수정 완료 후 다시 <code>terragrunt run-all plan</code>을 실행하면 에러 없이 정상 통과됩니다.
             </p>
         </div>
-
-    </main>
-</div>
-
-<!-- 코드 블록 복사 기능을 위한 JS (JavaScript, 자바스크립트) -->
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const preElements = document.querySelectorAll('pre');
-        
-        preElements.forEach(pre => {
-            // 복사 버튼 동적 생성
-            const btn = document.createElement('button');
-            btn.className = 'copy-btn';
-            btn.innerHTML = '<i class="far fa-copy"></i> 복사';
-            btn.title = '코드 복사하기';
-            
-            btn.addEventListener('click', () => {
-                const codeBlock = pre.querySelector('code');
-                const textToCopy = codeBlock ? codeBlock.innerText : pre.innerText;
-                
-                // iFrame (Inline Frame, 인라인 프레임) 보안 제약을 우회하기 위해 임시 textarea 활용
-                const textarea = document.createElement('textarea');
-                textarea.value = textToCopy;
-                textarea.style.position = 'fixed';
-                textarea.style.opacity = '0';
-                document.body.appendChild(textarea);
-                textarea.select();
-                
-                try {
-                    // 클립보드에 복사 명령 실행
-                    document.execCommand('copy');
-                    
-                    // 성공 시 UI (User Interface, 사용자 인터페이스) 변경
-                    btn.innerHTML = '<i class="fas fa-check"></i> 완료';
-                    btn.classList.add('copied');
-                    
-                    // 2초 후 원래 상태로 복구
-                    setTimeout(() => {
-                        btn.innerHTML = '<i class="far fa-copy"></i> 복사';
-                        btn.classList.remove('copied');
-                    }, 2000);
-                } catch (err) {
-                    console.error('코드 복사 실패', err);
-                } finally {
-                    document.body.removeChild(textarea);
-                }
-            });
-            
-            // pre 태그 내부 우측 상단에 버튼 추가
-            pre.appendChild(btn);
-        });
-    });
-</script>
-</body>
-</html>
