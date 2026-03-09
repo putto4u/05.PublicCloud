@@ -420,14 +420,13 @@ terragrunt run-all plan
 # 2. 저장된 계획 파일로 인프라 실제 배포 (Apply)
 # 앞서 저장한 'tgplan.out' 파일의 내용과 정확히 일치하는 리소스만 생성/변경합니다.
 # 실행 시 의존성(Dependencies)에 따라 01-hub-vpc부터 05-ec2-nginx까지 순차적으로 배포됩니다.
-
+# 최상위 디렉토리(예: prod/)에서 실행하여 모든 하위 모듈의 플러그인을 최신화합니다.
+terragrunt run-all init -upgrade
+    
 terragrunt run-all apply 
 
     
 ##################################################################################
-# 최상위 디렉토리(예: prod/)에서 실행하여 모든 하위 모듈의 플러그인을 최신화합니다.
-terragrunt run-all init -upgrade
-----------------------------------------------------------------------------------
     tfenv를 통해 특정 버전(또는 최신 버전) 설치 및 활성화 예시
 tfenv install latest
 tfenv use latest
