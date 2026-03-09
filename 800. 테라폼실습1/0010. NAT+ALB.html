@@ -546,6 +546,8 @@ resource "aws_lb_target_group_attachment" "nginx_attach" {
   target_group_arn = var.target_group_arn
   target_id        = aws_instance.nginx.private_ip
   port             = 80
+  # 대상 IP가 VPC 네트워크 범위 외부일 경우 반드시 추가해야 하는 설정
+  availability_zone = "all"  
 }</code></pre>
 
     <div class="explanation-box">
