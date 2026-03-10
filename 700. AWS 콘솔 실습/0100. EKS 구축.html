@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>허브 앤 스포크 네트워크 환경의 스포크 VPC 내 EKS 구축 실무 가이드</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+        :root {
+            --primary-color: #232F3E; /* AWS Navy */
+            --secondary-color: #FF9900; /* AWS Orange */
+            --text-main: #333333;
+            --text-light: #666666;
+            --bg-light: #F8F9FA;
+            --border-color: #E0E0E0;
+            --warning-bg: #FFF3E0;
+            --warning-border: #FFB74D;
+            --tip-bg: #E3F2FD;
+            --tip-border: #64B5F6;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #E9ECEF;
+        }
+
+        .textbook-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            background-color: #FFFFFF;
+            padding: 50px 60px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-radius: 8px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            margin-top: 40px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 1.6em;
+        }
+
+        h3 {
+            color: #1A73E8;
+            margin-top: 25px;
+            font-size: 1.3em;
+        }
+
+        p {
+            margin-bottom: 15px;
+            font-size: 1.05em;
+        }
+
+        .explanation {
+            font-size: 0.95em;
+            color: var(--text-light);
+            background-color: var(--bg-light);
+            padding: 15px;
+            border-left: 4px solid var(--border-color);
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .menu-path {
+            font-family: 'Consolas', monospace;
+            background-color: #2C3E50;
+            color: #ECF0F1;
+            padding: 10px 15px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        ul, ol {
+            margin-bottom: 20px;
+            padding-left: 30px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #D32F2F;
+        }
+
+        /* SVG Diagram Container */
+        .diagram-container {
+            width: 100%;
+            background-color: #FFFFFF;
+            border: 1px solid #E0E0E0;
+            text-align: center;
+            padding: 20px 0;
+            margin: 30px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            overflow: hidden;
+        }
+
+        .diagram-container svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .diagram-caption {
+            text-align: center;
+            font-size: 0.9em;
+            color: var(--text-light);
+            margin-top: -15px;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        /* Callout Boxes */
+        .callout {
+            padding: 20px;
+            border-radius: 6px;
+            margin: 25px 0;
+        }
+
+        .callout-warning {
+            background-color: var(--warning-bg);
+            border-left: 5px solid var(--warning-border);
+        }
+
+        .callout-tip {
+            background-color: var(--tip-bg);
+            border-left: 5px solid var(--tip-border);
+        }
+
+        .callout-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .callout-title svg {
+            margin-right: 10px;
+            width: 24px;
+            height: 24px;
+        }
+
+        a {
+            color: #1A73E8;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .footnote {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            border-top: 1px solid #ecf0f1;
+            padding-top: 10px;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="textbook-container">
+
+    <h1>허브 앤 스포크 네트워크 환경의 스포크 VPC 내 EKS 구축 실무</h1>
+
+    <p>허브 앤 스포크(Hub and Spoke) 네트워크 토폴로지가 완성된 상태에서, 특정 스포크 VPC (Virtual Private Cloud, 가상 사설 클라우드)에 EKS (Elastic Kubernetes Service, 완전 관리형 쿠버네티스 서비스)를 안전하고 효율적으로 배포하기 위한 구성 가이드입니다.</p>
+    
+    <div class="explanation">
+        <strong>* 스포크 VPC (Spoke VPC):</strong> 허브 앤 스포크 네트워크 구조에서 외부 인터넷과 직접 연결되지 않고, 중앙의 허브 VPC를 통해서만 트래픽이 제어되고 라우팅되는 격리된 사설 네트워크 단위를 의미합니다.
+    </div>
+
+    <!-- 다이어그램 1: 아키텍처 -->
+    <div class="diagram-container">
+        <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#666" />
+                </marker>
+            </defs>
+            <!-- Background Cloud -->
+            <rect x="10" y="10" width="780" height="380" rx="15" fill="#f8f9fa" stroke="#e0e0e0" stroke-width="2"/>
+            <text x="30" y="40" font-family="Noto Sans KR" font-size="16" font-weight="bold" fill="#232f3e">AWS 클라우드 (AWS Cloud)</text>
+            
+            <!-- Hub VPC -->
+            <rect x="40" y="60" width="280" height="300" rx="8" fill="#e3f2fd" stroke="#90caf9" stroke-width="2" stroke-dasharray="5,5"/>
+            <text x="50" y="85" font-family="Noto Sans KR" font-size="14" font-weight="bold" fill="#1565c0">허브 VPC (Hub VPC)</text>
+            <rect x="60" y="110" width="240" height="60" rx="4" fill="#ffffff" stroke="#bbdefb" stroke-width="1"/>
+            <text x="180" y="145" font-family="Noto Sans KR" font-size="12" text-anchor="middle" fill="#333">퍼블릭 서브넷 (Public Subnet)</text>
+            <rect x="70" y="120" width="60" height="40" rx="4" fill="#ffcc80" />
+            <text x="100" y="145" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#333">NAT GW</text>
+            
+            <rect x="60" y="190" width="240" height="60" rx="4" fill="#ffffff" stroke="#bbdefb" stroke-width="1"/>
+            <text x="180" y="225" font-family="Noto Sans KR" font-size="12" text-anchor="middle" fill="#333">프라이빗 서브넷 (Private Subnet)</text>
+            <rect x="70" y="200" width="80" height="40" rx="4" fill="#a5d6a7" />
+            <text x="110" y="225" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#333">배스천 호스트</text>
+            
+            <!-- TGW -->
+            <circle cx="400" cy="210" r="40" fill="#ce93d8" stroke="#ab47bc" stroke-width="2"/>
+            <text x="400" y="205" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff">TGW</text>
+            <text x="400" y="225" font-family="Noto Sans KR" font-size="10" text-anchor="middle" fill="#fff">(전송 게이트웨이)</text>
+
+            <!-- Spoke VPC -->
+            <rect x="480" y="60" width="280" height="300" rx="8" fill="#fff3e0" stroke="#ffb74d" stroke-width="2" stroke-dasharray="5,5"/>
+            <text x="490" y="85" font-family="Noto Sans KR" font-size="14" font-weight="bold" fill="#e65100">스포크 VPC (Spoke VPC)</text>
+            
+            <!-- EKS Control Plane -->
+            <rect x="500" y="110" width="240" height="70" rx="4" fill="#ffffff" stroke="#ffe0b2" stroke-width="2"/>
+            <rect x="510" y="125" width="40" height="40" rx="4" fill="#ffb74d" />
+            <text x="530" y="150" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff">EKS</text>
+            <text x="640" y="140" font-family="Noto Sans KR" font-size="13" font-weight="bold" text-anchor="middle" fill="#333">제어 평면 (Control Plane)</text>
+            <text x="640" y="160" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#666">AWS 관리형 계정 영역</text>
+
+            <!-- Worker Nodes -->
+            <rect x="500" y="200" width="240" height="130" rx="4" fill="#ffffff" stroke="#ffe0b2" stroke-width="1"/>
+            <text x="620" y="225" font-family="Noto Sans KR" font-size="12" text-anchor="middle" fill="#333">프라이빗 서브넷 (워커 노드)</text>
+            
+            <rect x="520" y="240" width="90" height="70" rx="4" fill="#e0e0e0" />
+            <text x="565" y="260" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">EC2 Node</text>
+            <rect x="530" y="270" width="70" height="30" rx="4" fill="#90caf9" />
+            <text x="565" y="290" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#333">Pods</text>
+
+            <rect x="630" y="240" width="90" height="70" rx="4" fill="#e0e0e0" />
+            <text x="675" y="260" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">EC2 Node</text>
+            <rect x="640" y="270" width="70" height="30" rx="4" fill="#90caf9" />
+            <text x="675" y="290" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#333">Pods</text>
+
+            <!-- Connections -->
+            <line x1="320" y1="210" x2="360" y2="210" stroke="#666" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+            <line x1="440" y1="210" x2="480" y2="210" stroke="#666" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+            <path d="M 620 180 L 620 200" stroke="#ff9900" stroke-width="2" stroke-dasharray="4,4" fill="none"/>
+        </svg>
+    </div>
+    <div class="diagram-caption">그림 1: TGW(Transit Gateway) 기반 허브 앤 스포크 환경에서의 EKS 아키텍처</div>
+
+    <div class="callout callout-warning">
+        <div class="callout-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#E65100" stroke-width="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            과금 주의 안내 (Billing Warning)
+        </div>
+        <p>EKS 클러스터는 생성 시점부터 제어 평면(Control Plane)에 대해 <strong>시간당 $0.10</strong>의 비용이 지속적으로 발생합니다. 또한 워커 노드로 사용되는 EC2 (Elastic Compute Cloud, 탄력적 클라우드 컴퓨팅) 인스턴스 비용, 노드 간 통신에 따른 데이터 전송 비용, 그리고 허브 VPC의 NAT (Network Address Translation, 네트워크 주소 변환) 게이트웨이 데이터 처리 비용이 별도로 청구됩니다.</p>
+    </div>
+
+    <!-- Section 1 -->
+    <h2>1. 사전 준비: IAM 역할(Role) 생성 및 권한 부여</h2>
+
+    <p>EKS 클러스터 제어 평면과 워커 노드가 AWS의 다른 리소스에 접근할 수 있도록 IAM (Identity and Access Management, 신원 및 접근 관리) 역할을 사전에 생성해야 합니다. 이 과정이 누락되거나 권한이 부족하면 클러스터 생성 자체가 실패하거나 워커 노드가 클러스터에 조인(Join)하지 못하는 치명적인 오류가 발생합니다.</p>
+
+    <!-- 다이어그램 2: IAM 역할 -->
+    <div class="diagram-container">
+        <svg viewBox="0 0 800 250" xmlns="http://www.w3.org/2000/svg">
+            <!-- Left Side: Control Plane -->
+            <rect x="50" y="50" width="150" height="60" rx="8" fill="#ffb74d" stroke="#f57c00" stroke-width="2"/>
+            <text x="125" y="85" font-family="Noto Sans KR" font-size="14" font-weight="bold" text-anchor="middle" fill="#fff">EKS 제어 평면</text>
+            
+            <path d="M 200 80 L 250 80" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+            
+            <rect x="250" y="50" width="200" height="60" rx="30" fill="#f8f9fa" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="4,2"/>
+            <text x="350" y="75" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">IAM 역할 (Role)</text>
+            <text x="350" y="95" font-family="Consolas" font-size="11" text-anchor="middle" fill="#d32f2f">eks-cluster-role</text>
+
+            <path d="M 450 80 L 500 80" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+
+            <rect x="500" y="50" width="250" height="60" rx="8" fill="#e3f2fd" stroke="#64b5f6" stroke-width="2"/>
+            <text x="625" y="75" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">AWS 리소스 접근 권한</text>
+            <text x="625" y="95" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#666">VPC 네트워크 제어 (ENI 생성 등)</text>
+
+            <!-- Right Side: Worker Node -->
+            <rect x="50" y="140" width="150" height="60" rx="8" fill="#a5d6a7" stroke="#388e3c" stroke-width="2"/>
+            <text x="125" y="175" font-family="Noto Sans KR" font-size="14" font-weight="bold" text-anchor="middle" fill="#fff">EC2 워커 노드</text>
+            
+            <path d="M 200 170 L 250 170" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+            
+            <rect x="250" y="140" width="200" height="60" rx="30" fill="#f8f9fa" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="4,2"/>
+            <text x="350" y="165" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">IAM 역할 (Role)</text>
+            <text x="350" y="185" font-family="Consolas" font-size="11" text-anchor="middle" fill="#d32f2f">eks-node-role</text>
+
+            <path d="M 450 170 L 500 170" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+
+            <rect x="500" y="140" width="250" height="60" rx="8" fill="#e3f2fd" stroke="#64b5f6" stroke-width="2"/>
+            <text x="625" y="165" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">AWS 리소스 접근 권한</text>
+            <text x="625" y="185" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#666">ECR 이미지 풀(Pull), CNI 설정</text>
+        </svg>
+    </div>
+    <div class="diagram-caption">그림 2: EKS 제어 평면과 워커 노드의 IAM 역할 기반 권한 위임 구조</div>
+
+    <h3>1.1 클러스터 역할 (Cluster Role) 생성</h3>
+    <p>EKS 제어 평면이 AWS 리소스(예: 보안 그룹, 탄력적 네트워크 인터페이스 등)를 생성하고 관리할 수 있도록 권한을 위임합니다.</p>
+
+    <div class="menu-path">
+        경로: <a href="https://console.aws.amazon.com/iam/" target="_blank" style="color: #64B5F6;">AWS IAM 콘솔</a> ➔ [역할(Roles)] ➔ [역할 생성(Create role)]
+    </div>
+
+    <ol>
+        <li><strong>신뢰할 수 있는 엔터티 선택</strong>: 
+            <ul>
+                <li>엔터티 유형: <code>AWS 서비스(AWS service)</code> 선택</li>
+                <li>사용 사례: 검색창에 <code>EKS</code> 입력 후 나타나는 목록에서 <strong><code>EKS - Cluster</code></strong> 선택 ➔ [다음]</li>
+            </ul>
+        </li>
+        <li><strong>권한 추가</strong>: <code>AmazonEKSClusterPolicy</code>가 자동으로 추가되어 있는지 확인 ➔ [다음]</li>
+        <li><strong>이름 지정, 검토 및 생성</strong>: 
+            <ul>
+                <li>역할 이름: <code>eks-spoke-cluster-role</code> 등 직관적인 이름 입력 ➔ [역할 생성]</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h3>1.2 노드 역할 (Node Role) 생성</h3>
+    <p>워커 노드(EC2)가 EKS 제어 평면과 안정적으로 통신하고, ECR (Elastic Container Registry, 탄력적 컨테이너 레지스트리)에서 컨테이너 이미지를 다운로드하기 위해 필요합니다.</p>
+
+    <div class="menu-path">
+        경로: AWS IAM 콘솔 ➔ [역할(Roles)] ➔ [역할 생성(Create role)]
+    </div>
+
+    <ol>
+        <li><strong>신뢰할 수 있는 엔터티 선택</strong>: 
+            <ul>
+                <li>엔터티 유형: <code>AWS 서비스(AWS service)</code> 선택</li>
+                <li>사용 사례: 검색창에 <code>EC2</code> 입력 후 <strong><code>EC2</code></strong> 선택 ➔ [다음]</li>
+            </ul>
+        </li>
+        <li><strong>권한 추가</strong>: 다음 3가지 정책을 검색하여 체크박스를 선택합니다.
+            <ul>
+                <li><code>AmazonEKSWorkerNodePolicy</code> (노드 통신 권한)</li>
+                <li><code>AmazonEC2ContainerRegistryReadOnly</code> (이미지 다운로드 권한)</li>
+                <li><code>AmazonEKS_CNI_Policy</code> (네트워크 인터페이스 구성 권한)</li>
+            </ul>
+        </li>
+        <li><strong>이름 지정, 검토 및 생성</strong>: 
+            <ul>
+                <li>역할 이름: <code>eks-spoke-node-role</code> 등 입력 ➔ [역할 생성]</li>
+            </ul>
+        </li>
+    </ol>
+
+    <div class="callout callout-tip">
+        <div class="callout-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1976D2" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            실전 팁 및 자주 실수하는 부분
+        </div>
+        <p>노드 역할을 생성할 때, <strong>'사용 사례(Use case)'를 <code>EKS</code>가 아닌 반드시 <code>EC2</code>로 선택</strong>해야 합니다. 워커 노드의 실체는 EC2 인스턴스이므로, EC2가 해당 역할을 인스턴스 프로파일(Instance Profile) 형태로 부여받아야만 정상적으로 권한이 행사됩니다.</p>
+    </div>
+
+    <!-- Section 2 -->
+    <h2>2. EKS 클러스터 생성 (제어 평면 구성)</h2>
+
+    <p>IAM 준비가 완료되었다면 실제 클러스터의 제어 평면을 배포합니다. 이 단계에서 정의하는 네트워크 아키텍처가 보안의 핵심입니다.</p>
+
+    <div class="menu-path">
+        경로: <a href="https://console.aws.amazon.com/eks/" target="_blank" style="color: #64B5F6;">AWS EKS 콘솔</a> ➔ [클러스터(Clusters)] ➔ [클러스터 추가(Add cluster)] ➔ [생성(Create)]
+    </div>
+
+    <h3>2.1 클러스터 구성 (Configure cluster)</h3>
+    <ul>
+        <li><strong>이름</strong>: 클러스터의 고유 식별자 입력.</li>
+        <li><strong>Kubernetes 버전</strong>: 가급적 최신 안정화 버전(Stable Version) 선택.</li>
+        <li><strong>클러스터 서비스 역할</strong>: 1.1단계에서 생성한 <code>eks-spoke-cluster-role</code> 선택.</li>
+    </ul>
+
+    <h3>2.2 네트워킹 지정 (Specify networking)</h3>
+    <p>허브 앤 스포크 아키텍처의 설계 사상을 반영하는 가장 중요한 섹션입니다.</p>
+    
+    <ul>
+        <li><strong>VPC</strong>: 워크로드가 배치될 <strong>스포크 VPC</strong>를 선택합니다.</li>
+        <li><strong>서브넷 (Subnets)</strong>: 스포크 VPC 내의 <strong>프라이빗 서브넷(Private Subnet)</strong>을 최소 2개 이상의 가용 영역(Availability Zone)에 걸쳐 선택합니다.</li>
+        <li><strong>보안 그룹 (Security groups)</strong>: 제어 평면과 워커 노드 간의 통신을 제어합니다. (특별한 요건이 없다면 EKS가 자동 생성하는 기본값 사용 권장)</li>
+        <li><strong>클러스터 엔드포인트 액세스 (Cluster endpoint access)</strong>:
+            <ul>
+                <li><span style="text-decoration: line-through; color: #999;">퍼블릭(Public)</span> 및 <span style="text-decoration: line-through; color: #999;">퍼블릭 및 프라이빗(Public and private)</span></li>
+                <li class="highlight">프라이빗(Private): 반드시 이것을 선택합니다.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <div class="explanation">
+        <strong>* 클러스터 엔드포인트 프라이빗 (Private Endpoint):</strong> 이를 선택하면 스포크 VPC 내부, 또는 TGW (Transit Gateway, 전송 게이트웨이)로 연결된 허브 VPC/온프레미스 망에서만 쿠버네티스 API(제어 평면)에 접근할 수 있습니다. 엔터프라이즈 환경에서 외부의 악의적인 공격(예: 포트 스캐닝, API 탈취)을 원천 차단하기 위한 필수 보안 설정입니다.
+    </div>
+
+    <!-- 다이어그램 3: Private Endpoint -->
+    <div class="diagram-container">
+        <svg viewBox="0 0 800 250" xmlns="http://www.w3.org/2000/svg">
+            <!-- Admin -->
+            <rect x="20" y="80" width="80" height="60" rx="4" fill="#cfd8dc" stroke="#90a4ae" stroke-width="2"/>
+            <text x="60" y="105" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">관리자 PC</text>
+            <text x="60" y="125" font-family="Consolas" font-size="10" text-anchor="middle" fill="#d32f2f">kubectl</text>
+
+            <path d="M 100 110 L 160 110" stroke="#d32f2f" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrow)"/>
+            
+            <!-- Hub VPC -->
+            <rect x="160" y="40" width="180" height="140" rx="8" fill="#e3f2fd" stroke="#90caf9" stroke-width="2"/>
+            <text x="250" y="65" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#1565c0">허브 VPC (인터넷 연결)</text>
+            <rect x="200" y="80" width="100" height="60" rx="4" fill="#a5d6a7" stroke="#81c784" stroke-width="2"/>
+            <text x="250" y="105" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">배스천 호스트</text>
+            <text x="250" y="125" font-family="Noto Sans KR" font-size="10" text-anchor="middle" fill="#666">(또는 VPN)</text>
+
+            <path d="M 300 110 L 370 110" stroke="#d32f2f" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrow)"/>
+
+            <!-- TGW -->
+            <circle cx="410" cy="110" r="40" fill="#ce93d8" stroke="#ab47bc" stroke-width="2"/>
+            <text x="410" y="115" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff">TGW</text>
+
+            <path d="M 450 110 L 520 110" stroke="#d32f2f" stroke-width="3" stroke-dasharray="5,5" marker-end="url(#arrow)"/>
+
+            <!-- Spoke VPC -->
+            <rect x="520" y="40" width="250" height="140" rx="8" fill="#fff3e0" stroke="#ffb74d" stroke-width="2"/>
+            <text x="645" y="65" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#e65100">스포크 VPC (격리망)</text>
+            <rect x="570" y="80" width="150" height="60" rx="4" fill="#ffffff" stroke="#ffb74d" stroke-width="2"/>
+            <text x="645" y="105" font-family="Noto Sans KR" font-size="12" font-weight="bold" text-anchor="middle" fill="#333">EKS 제어 평면</text>
+            <text x="645" y="125" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#d32f2f">Private Endpoint</text>
+        </svg>
+    </div>
+    <div class="diagram-caption">그림 3: 허브 배스천을 통한 EKS 프라이빗 엔드포인트(Private Endpoint) 접근 흐름도</div>
+
+    <h3>2.3 로깅 구성 (Configure logging)</h3>
+    <ul>
+        <li>필요에 따라 API 서버, 감사(Audit), 인증자(Authenticator) 등의 로그 활성화 여부를 선택합니다.</li>
+        <li><span class="highlight">과금 주의</span>: 로깅을 켜면 CloudWatch Logs로 데이터가 전송되며, 데이터 수집 및 보관에 따른 상당한 추가 비용이 발생할 수 있으므로 디버깅 목적 외에는 신중히 켜야 합니다.</li>
+    </ul>
+
+    <!-- Section 3 -->
+    <h2>3. 관리형 노드 그룹 (Managed Node Group) 추가</h2>
+
+    <p>클러스터 상태가 <code>Active</code>로 변경(약 10~15분 소요)된 후, 실제 파드(Pod) 형태의 컨테이너 어플리케이션이 구동될 워커 노드를 생성합니다.</p>
+
+    <div class="menu-path">
+        경로: EKS 클러스터 상세 페이지 ➔ [컴퓨팅(Compute)] 탭 ➔ [노드 그룹 추가(Add node group)]
+    </div>
+
+    <h3>3.1 노드 그룹 및 컴퓨팅 구성</h3>
+    <ul>
+        <li><strong>노드 IAM 역할</strong>: 1.2단계에서 생성한 <code>eks-spoke-node-role</code> 선택.</li>
+        <li><strong>AMI 유형</strong>: <code>Amazon Linux 2</code> 또는 컨테이너에 최적화된 경량 OS인 <code>Bottlerocket (보틀로켓)</code> 중 선택.</li>
+        <li><strong>인스턴스 유형</strong>: 워크로드 특성(CPU/Memory 집약적 등)에 맞게 <code>m5.large</code>, <code>c5.xlarge</code> 등 선택. <br>
+            <span style="color: #D32F2F; font-size: 0.9em;">(*과금 주의: 선택한 인스턴스 스펙과 수량 단위로 요금이 청구됩니다.)</span></li>
+        <li><strong>노드 그룹 크기 조정</strong>: 오토스케일링(Auto Scaling)을 위한 최소, 최대, 원하는(Desired) 노드 수 지정.</li>
+    </ul>
+
+    <h3>3.2 네트워킹 지정 (Specify networking)</h3>
+    <ul>
+        <li><strong>서브넷</strong>: 외부 노출을 막기 위해 반드시 스포크 VPC 내의 <strong>프라이빗 서브넷</strong>만 지정합니다. (퍼블릭 서브넷은 선택 해제)</li>
+    </ul>
+
+    <div class="callout callout-tip">
+        <div class="callout-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1976D2" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            라우팅 테이블 확인 필수! (가장 잦은 장애 원인)
+        </div>
+        <p>프라이빗 서브넷에 배치된 노드가 부팅되면서 EKS 제어 평면과 통신하거나 컨테이너 이미지를 받아오려면 아웃바운드 인터넷 연결이 필수적입니다. 따라서 스포크 VPC 프라이빗 서브넷의 라우팅 테이블(Route Table)에 <code>0.0.0.0/0</code> 트래픽이 <strong>허브 VPC의 NAT 게이트웨이(TGW를 경유)</strong>를 향하도록 올바르게 설정되어 있는지 반드시 확인하십시오. 이 라우팅이 막혀있으면 노드 생성은 완료되지만 클러스터에 합류하지 못해 영원히 <code>NotReady</code> 상태에 머물게 됩니다.</p>
+    </div>
+
+    <!-- Section 4 -->
+    <h2>4. 필수 애드온(Add-ons) 내부 요소 설명</h2>
+
+    <p>클러스터 및 노드 구성이 완료되면 EKS 상세 페이지의 <strong>[애드온(Add-ons)]</strong> 탭에서 다음 3가지 핵심 애드온이 정상적으로 작동하는지 확인해야 합니다.</p>
+
+    <!-- 다이어그램 4: 애드온 구조 -->
+    <div class="diagram-container">
+        <svg viewBox="0 0 800 350" xmlns="http://www.w3.org/2000/svg">
+            <!-- Node Boundary -->
+            <rect x="150" y="30" width="500" height="290" rx="8" fill="#f5f5f5" stroke="#9e9e9e" stroke-width="2"/>
+            <text x="400" y="60" font-family="Noto Sans KR" font-size="16" font-weight="bold" text-anchor="middle" fill="#333">워커 노드 (EC2 Instance)</text>
+            
+            <!-- VPC CNI -->
+            <rect x="200" y="80" width="160" height="80" rx="4" fill="#e8eaf6" stroke="#3f51b5" stroke-width="2"/>
+            <text x="280" y="110" font-family="Noto Sans KR" font-size="14" font-weight="bold" text-anchor="middle" fill="#1a237e">VPC CNI</text>
+            <text x="280" y="130" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#3f51b5">VPC IP 주소를 파드에 할당</text>
+
+            <!-- CoreDNS -->
+            <rect x="440" y="80" width="160" height="80" rx="4" fill="#e8f5e9" stroke="#4caf50" stroke-width="2"/>
+            <text x="520" y="110" font-family="Noto Sans KR" font-size="14" font-weight="bold" text-anchor="middle" fill="#1b5e20">CoreDNS</text>
+            <text x="520" y="130" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#4caf50">내부 서비스 도메인 변환</text>
+
+            <!-- kube-proxy -->
+            <rect x="320" y="180" width="160" height="80" rx="4" fill="#fff3e0" stroke="#ff9800" stroke-width="2"/>
+            <text x="400" y="210" font-family="Noto Sans KR" font-size="14" font-weight="bold" text-anchor="middle" fill="#e65100">kube-proxy</text>
+            <text x="400" y="230" font-family="Noto Sans KR" font-size="11" text-anchor="middle" fill="#f57c00">네트워크 규칙 (iptables)</text>
+
+            <!-- Flow lines inside Node -->
+            <path d="M 360 120 L 440 120" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="3,3" />
+            <path d="M 280 160 L 280 220 L 320 220" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="3,3" />
+            <path d="M 520 160 L 520 220 L 480 220" stroke="#9e9e9e" stroke-width="2" stroke-dasharray="3,3" />
+        </svg>
+    </div>
+    <div class="diagram-caption">그림 4: 워커 노드 내부의 필수 애드온 구성 및 상호작용 요소</div>
+
+    <ol>
+        <li><strong>VPC CNI (Virtual Private Cloud Container Network Interface, 가상 사설 클라우드 컨테이너 네트워크 인터페이스)</strong>
+            <p>AWS 네트워크 환경과 쿠버네티스를 결합하는 핵심 요소입니다. 파드(Pod)에 가상 IP가 아닌 <strong>스포크 VPC 대역의 실제 프라이빗 IP 주소를 직접 할당</strong>합니다. 덕분에 파드는 VPC 내부의 일반적인 EC2 인스턴스처럼 취급되며, TGW 라우팅을 통해 다른 스포크 VPC의 리소스와 별도의 NAT 없이 오버레이 네트워크 오버헤드 없이 직접 통신할 수 있습니다.</p>
+        </li>
+        <li><strong>CoreDNS (코어디엔에스, 쿠버네티스용 내부 DNS 서버)</strong>
+            <p>클러스터 내부의 서비스 디스커버리(Service Discovery) 및 네임 리졸루션(Name Resolution)을 담당합니다. 파드가 <code>my-service.default.svc.cluster.local</code>과 같은 도메인 이름으로 다른 서비스를 찾을 수 있게 해줍니다.</p>
+        </li>
+        <li><strong>kube-proxy (큐브 프록시)</strong>
+            <p>각 워커 노드에서 데몬셋(DaemonSet) 형태로 실행됩니다. 쿠버네티스 '서비스(Service)' 개념을 구현하기 위해 노드의 네트워크 라우팅 규칙(일반적으로 <code>iptables</code> 또는 <code>IPVS</code>)을 관리하여, 서비스 IP로 들어온 트래픽을 백엔드의 실제 파드들로 로드밸런싱합니다.</p>
+        </li>
+    </ol>
+
+    <div class="footnote">
+        <p><strong>참고 문헌 및 출처:</strong></p>
+        <p>- <a href="https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html" target="_blank">AWS 공식 문서: Amazon EKS 사용 설명서</a></p>
+        <p>- <a href="https://docs.aws.amazon.com/eks/latest/userguide/cluster-endpoint.html" target="_blank">AWS 공식 문서: Amazon EKS 클러스터 엔드포인트 액세스 제어</a></p>
+    </div>
+
+</div>
+
+</body>
+</html>
