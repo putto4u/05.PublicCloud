@@ -172,9 +172,9 @@ include "root" {
   path = find_in_parent_folders()
 }
 
-terraform { source = "." }        ## 테라폼 파일  .tf  위치. 발견하면 자동 실행됨
+terraform { source = "." }       
 
-inputs = {                                          ## 테라폼에 주입하려는 데이터, 변수값                          
+inputs = {                                                                    
   vpc_name = "service-vpc"
   vpc_cidr = "10.1.0.0/16"
 }
@@ -187,6 +187,7 @@ $
 
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/02-service-vpc
 $ cat main.tf
+```   
 variable "vpc_name" { type = string }
 variable "vpc_cidr" { type = string }
 
@@ -627,11 +628,3 @@ resource "aws_lb_target_group_attachment" "nginx_attach" {
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/05-ec2-nginx
 $
 
-B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/05-ec2-nginx
-$
-
-B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/05-ec2-nginx
-$
-
-B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/05-ec2-nginx
-$
