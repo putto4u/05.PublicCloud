@@ -517,32 +517,7 @@ output "alb_dns_name" {
     <p>프라이빗 서브넷에 위치한 EC2 인스턴스에 안전하게 접근하기 위해, 외부 인터넷에 직접 노출되는 SSH 포트(22번)를 개방하는 대신 AWS <strong>SSM (Systems Manager, 시스템 매니저)</strong>의 Session Manager (세션 매니저)를 활용합니다. 이를 위해 <strong>IAM (Identity and Access Management, 식별 및 접근 관리)</strong> 역할과 인스턴스 프로파일을 생성하여 EC2에 부여합니다.</p>
 
     <div class="filename-badge">NatAlb/prod/05-ec2-nginx/terragrunt.hcl</div>
-<pre class="language-hcl" style="margin-top: 0;"><code class="language-hcl">include "root" { path = find_in_parent_folders() }
-
-dependency "service" { 
-  config_path = "../02-service-vpc" 
-  mock_outputs = {
-    vpc_id          = "vpc-mock-67890"
-    private_subnets = ["subnet-mock-3", "subnet-mock-4"]
-  }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
-}
-
-dependency "alb" { 
-  config_path = "../04-alb" 
-  mock_outputs = {
-    target_group_arns = ["arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:targetgroup/mock/123"]
-  }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
-}
-
-terraform { source = "." }
-
-inputs = {
-  vpc_id           = dependency.service.outputs.vpc_id
-  subnet_id        = dependency.service.outputs.private_subnets[0]
-  target_group_arn = dependency.alb.outputs.target_group_arns[0]
-}</code></pre>
+<pre class="language-hcl" style="margin-top: 0;"><code class="language-hcl">t</code></pre>
 
     <div class="filename-badge">NatAlb/prod/05-ec2-nginx/main.tf</div>
 <pre class="language-hcl" style="margin-top: 0;"><code class="language-hcl">variable "vpc_id" { type = string }
@@ -586,6 +561,7 @@ resource "aws_iam_role" "ssm_role" {
   })
 }
 
+
 # 2. 역할에 SSM 관리형 정책(AmazonSSMManagedInstanceCore) 연결
 resource "aws_iam_role_policy_attachment" "ssm_policy" {
   role       = aws_iam_role.ssm_role.name
@@ -605,17 +581,17 @@ resource "aws_instance" "nginx" {
   instance_type = "t3.micro"
   subnet_id     = var.subnet_id
   vpc_security_group_ids = [aws_security_group.nginx_sg.id]
-  
+
   # 생성한 SSM 인스턴스 프로파일을 EC2에 적용
   iam_instance_profile = aws_iam_instance_profile.ssm_profile.name
 
-  user_data = &lt;&lt;-EOF
+  user_data = <<-EOF
               #!/bin/bash
               apt-get update -y
               apt-get install -y nginx
               systemctl start nginx
               systemctl enable nginx
-              echo "Welcome to Centralized Network Nginx!" &gt; /var/www/html/index.html
+              echo "Welcome to Centralized Network Nginx!" > /var/www/html/index.html
               EOF
   tags = { Name = "nginx-service-instance" }
 }
@@ -626,7 +602,7 @@ resource "aws_lb_target_group_attachment" "nginx_attach" {
   target_id        = aws_instance.nginx.private_ip
   port             = 80
   # 대상 IP가 VPC 네트워크 범위 외부일 경우 반드시 추가해야 하는 설정
-  availability_zone = "all"  
+  availability_zone = "all"
 }</code></pre>
 
     <div class="explanation-box">
