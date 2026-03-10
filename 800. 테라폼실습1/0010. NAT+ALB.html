@@ -203,6 +203,7 @@ inputs = {
 
     <div class="filename-badge">NatAlb/prod/01-hub-vpc/main.tf</div>
 <pre class="language-hcl" style="margin-top: 0;"><code class="language-hcl">variable "vpc_name" { type = string }
+variable "vpc_name" { type = string }
 variable "vpc_cidr" { type = string }
 
 module "hub_vpc" {
@@ -223,7 +224,9 @@ module "hub_vpc" {
 output "vpc_id" { value = module.hub_vpc.vpc_id }
 output "public_subnets" { value = module.hub_vpc.public_subnets }
 output "private_subnets" { value = module.hub_vpc.private_subnets }
-output "private_route_table_ids" { value = module.hub_vpc.private_route_table_ids }</code></pre>
+output "private_route_table_ids" { value = module.hub_vpc.private_route_table_ids }
+output "public_route_table_ids" { value  = module.hub_vpc.public_route_table_ids }
+output "nat_gateway_ids" { value = module.hub_vpc.nat_gateway_ids }</code></pre>
 
     <h3>4.2 Service VPC (격리망)</h3>
 
@@ -262,25 +265,31 @@ output "private_route_table_ids" { value = module.service_vpc.private_route_tabl
     <div class="filename-badge">NatAlb/prod/03-tgw/terragrunt.hcl</div>
 <pre class="language-hcl" style="margin-top: 0;"><code class="language-hcl">include "root" { path = find_in_parent_folders() }
 
-dependency "hub" { 
-  config_path = "../01-hub-vpc" 
+#dependency "hub" { config_path = "../01-hub-vpc" }
+#dependency "service" { config_path = "../02-service-vpc" }
+
+
+dependency "hub" {
+  config_path = "../01-hub-vpc"
   mock_outputs = {
     vpc_id                  = "vpc-mock-12345"
     private_subnets         = ["subnet-mock-1", "subnet-mock-2"]
     public_subnets          = ["subnet-mock-pub1", "subnet-mock-pub2"]
     private_route_table_ids = ["rtb-mock-1", "rtb-mock-2"]
+    public_route_table_ids  = ["rtb-mock-pub1", "rtb-mock-pub2"]
+
   }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init","plan", "validate"]
 }
 
-dependency "service" { 
-  config_path = "../02-service-vpc" 
+dependency "service" {
+  config_path = "../02-service-vpc"
   mock_outputs = {
     vpc_id                  = "vpc-mock-67890"
     private_subnets         = ["subnet-mock-3", "subnet-mock-4"]
     private_route_table_ids = ["rtb-mock-3", "rtb-mock-4"]
   }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init","plan", "validate"]
 }
 
 terraform { source = "." }
@@ -290,10 +299,12 @@ inputs = {
   hub_subnet_ids          = dependency.hub.outputs.private_subnets
   service_vpc_id          = dependency.service.outputs.vpc_id
   service_subnet_ids      = dependency.service.outputs.private_subnets
-  
-  # 라우팅 테이블 주입
   hub_route_table_ids     = dependency.hub.outputs.private_route_table_ids
+  hub_public_route_table_ids = dependency.hub.outputs.public_route_table_ids
   service_route_table_ids = dependency.service.outputs.private_route_table_ids
+  # [핵심 수정] Hub VPC 모듈에서 생성된 NAT Gateway ID를 주입합니다.
+  # 01-hub-vpc/main.tf의 모듈 출력값 명칭을 확인해야 합니다.
+  nat_gateway_ids         = dependency.hub.outputs.nat_gateway_ids
 }</code></pre>
 
     <div class="admonition tip-practical">
@@ -307,11 +318,14 @@ inputs = {
 
     <div class="filename-badge">NatAlb/prod/03-tgw/main.tf</div>
 <pre class="language-hcl" style="margin-top: 0;"><code class="language-hcl">variable "hub_vpc_id" { type = string }
+variable "hub_public_route_table_ids" { type = list(string) }
 variable "hub_subnet_ids" { type = list(string) }
 variable "service_vpc_id" { type = string }
 variable "service_subnet_ids" { type = list(string) }
 variable "hub_route_table_ids" { type = list(string) }
 variable "service_route_table_ids" { type = list(string) }
+variable "nat_gateway_ids" { type = list(string) }
+
 
 # TGW 생성
 resource "aws_ec2_transit_gateway" "main" {
@@ -345,13 +359,54 @@ resource "aws_route" "service_to_tgw" {
 }
 
 # [핵심 라우팅] Hub VPC에서 Service VPC(10.1.0.0/16)로 가는 트래픽을 TGW로 전송
-resource "aws_route" "hub_to_service" {
+resource "aws_route" "hub_private_to_service" {
   count                  = length(var.hub_route_table_ids)
   route_table_id         = var.hub_route_table_ids[count.index]
   destination_cidr_block = "10.1.0.0/16"
   transit_gateway_id     = aws_ec2_transit_gateway.main.id
   depends_on             = [aws_ec2_transit_gateway_vpc_attachment.hub]
-}</code></pre>
+}
+
+# [수정] Hub VPC의 Public Subnet에서 Service VPC(10.1.0.0/16)로 가는 트래픽을 TGW로 전송
+resource "aws_route" "hub_pub_to_service" {
+  count                  = length(var.hub_public_route_table_ids)
+  route_table_id         = var.hub_public_route_table_ids[count.index]
+  destination_cidr_block = "10.1.0.0/16"
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.hub]
+}
+
+
+
+# 7. [수정 추가] TGW Route Table 내 외부(0.0.0.0/0) 경로 추가
+# TGW 자체가 어디로 인터넷 트래픽을 보낼지 결정하는 설정입니다.
+resource "aws_ec2_transit_gateway_route" "tgw_default_route" {
+  destination_cidr_block         = "0.0.0.0/0"
+  transit_gateway_route_table_id = aws_ec2_transit_gateway.main.association_default_route_table_id
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.hub.id
+  depends_on                     = [aws_ec2_transit_gateway_vpc_attachment.hub]
+}
+
+
+# 8. [신규 추가] Hub Private Route Table -> NAT Gateway (인터넷 통로)
+# 이 설정이 있어야 Hub Private 서브넷 및 TGW에서 넘어온 트래픽이 인터넷으로 나갑니다.
+resource "aws_route" "hub_private_to_nat" {
+  count                  = length(var.hub_route_table_ids)
+  route_table_id         = var.hub_route_table_ids[count.index]
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = var.nat_gateway_ids[count.index]
+}
+
+# 8. [출력] 결과 확인을 위한 아웃풋 설정
+output "tgw_final_info" {
+  value = {
+    tgw_id            = aws_ec2_transit_gateway.main.id
+    tgw_route_table   = aws_ec2_transit_gateway.main.association_default_route_table_id
+    hub_attachment_id = aws_ec2_transit_gateway_vpc_attachment.hub.id
+    nat_routes_count  = length(aws_route.hub_private_to_nat)
+  }
+}
+</code></pre>
 
     <div class="admonition mistake-common">
         <div class="admonition-title">
@@ -412,7 +467,8 @@ resource "aws_security_group" "alb_sg" {
 
 module "alb" {
   source  = "terraform-aws-modules/alb/aws"
-  version = "8.7.0"
+  version = "~> 9.0" # 최신 9.x 버전 대역으로 마이그레이션
+  #version = "8.7.0"
 
   name               = "hub-central-alb"
   load_balancer_type = "application"
@@ -420,19 +476,42 @@ module "alb" {
   subnets            = var.public_subnets
   security_groups    = [aws_security_group.alb_sg.id]
 
-  http_tcp_listeners = [{ port = 80, protocol = "HTTP", target_group_index = 0 }]
-  target_groups = [
-    {
-      name             = "service-nginx-tg"
-      backend_protocol = "HTTP"
-      backend_port     = 80
-      target_type      = "ip" # 크로스 VPC 라우팅을 위한 IP 타겟 필수 지정
+  # 최신 문법: http_tcp_listeners 속성이 listeners 맵(Map) 구조로 변경됨
+
+  listeners = {
+    http = {
+      port     = 80
+      protocol = "HTTP"
+      forward = {
+        target_group_key = "nginx_tg" # 아래 target_groups 블록에서 선언할 키(Key) 값 참조
+      }
     }
-  ]
+  }
+  target_groups = {
+    nginx_tg = {
+      name_prefix      = "ngnx-" # 이름이 길면 에러가 날 수 있으므로 prefix 권장
+      protocol         = "HTTP"
+      port             = 80
+      target_type      = "ip"
+      # 모듈 내부에서 자체적으로 attachment를 생성하려 할 때 발생하는 에러를 방지하기 위해
+      # 아래 create_attachment 속성을 false로 하거나, targets 블록을 정확히 정의해야 합니다.
+      create_attachment = false
+    }
+  }
+
 }
 
-output "target_group_arns" { value = module.alb.target_group_arns }
-output "alb_dns_name" { value = module.alb.lb_dns_name }</code></pre>
+# [수정됨] 최신 문법에 맞춘 출력값(Outputs) 속성명 변경
+output "target_group_arns" {
+  # 최신 버전에서는 target_groups가 객체 맵이므로 특정 키(nginx_tg)의 arn을 추출하여 단일 리스트로 묶어 하위 호환성(05-ec2-nginx 모듈 연동용) 유지
+  value = [module.alb.target_groups["nginx_tg"].arn]
+}
+
+output "alb_dns_name" {
+  # 최신 버전의 DNS 속성명은 lb_dns_name에서 dns_name으로 변경됨
+  value = module.alb.dns_name
+}
+</code></pre>
 
     <h3>6.2 Nginx EC2 배포 (격리된 보안 그룹 및 SSM 접속 적용)</h3>
     <p>프라이빗 서브넷에 위치한 EC2 인스턴스에 안전하게 접근하기 위해, 외부 인터넷에 직접 노출되는 SSH 포트(22번)를 개방하는 대신 AWS <strong>SSM (Systems Manager, 시스템 매니저)</strong>의 Session Manager (세션 매니저)를 활용합니다. 이를 위해 <strong>IAM (Identity and Access Management, 식별 및 접근 관리)</strong> 역할과 인스턴스 프로파일을 생성하여 EC2에 부여합니다.</p>
