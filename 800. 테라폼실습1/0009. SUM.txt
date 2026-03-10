@@ -2,12 +2,14 @@
 
 ## 트러블 슈팅 
 -----------------------------
-1. 문법 변경, 모듈명, 변수명, 네임명, 표현 형식
+1. 문법 변경, 모듈명, 변수명, 네임명, 표현 형식, 버전 문제, 서비스 추가 또는 변경( 예: region별 NAT )
 2. 실패시 재실행  기존 데이터와 잔존 리소스 충돌
 3. 라우팅 :  디폴트 선언형 라우팅 자동,  작업자가 추가시 충돌
              GPT 라우팅 템플릿이 최근 버전과 안맞고, 누락.  피드백이 길어짐
+             *** 최신 버전, 문법 변경여부 공식문서 확인 체크 명령하세요.
 4. 보안그룹 : 서비스 미 오픈, SSM 
-5. 오류 트러블 슈팅 후 잔존 리소스 제거 시간 소요.
+5. 오류 트러블 슈팅 후 테라폼, 테라그런트 잔존 물 삭제, 재 init 시간 소요
+6. 아마존 잔존 리소스 제거 시간 소요.
 
 
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod
@@ -25,7 +27,7 @@ locals {
   env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
   aws_region = local.env_vars.locals.aws_region
 }
-```
+
 # Provider (클라우드 공급자) 자동 생성 설정
 generate "provider" {
   path      = "provider.tf"
@@ -48,6 +50,8 @@ remote_state {
     path = "${get_terragrunt_dir()}/terraform.tfstate"
   }
 }
+```
+
 
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra
 $
@@ -60,12 +64,15 @@ $ ls
 
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod
 $ cat env.hcl
+```
 # 환경별(운영, 개발 등) 공통 변수를 정의합니다.
 locals {
   environment = "prod"
   aws_region  = "ap-northeast-2" # 아시아 태평양 (서울) 리전
+  ## "us-east-1" 으로 바꿀시 에러 - VPC 서브넷 AZ도 함께 바꾸세요. 
+  ## 미국이 20~30% 저렴하오니, 연습시에는 미국에서 하세요.
 }
-
+```
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod
 $ cd 01-hub-vpc/
 
@@ -75,19 +82,21 @@ main.tf  terraform.tfstate  terraform.tfstate.backup  terragrunt.hcl
 
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/01-hub-vpc
 $ cat terragrunt.hcl
-include "root" {
-  path = find_in_parent_folders()
+```
+include "root" {                         ##  최상위 terragrunt.hcl을 스스로 찾습니다.
+  path = find_in_parent_folders()        ##  최상위 hcl은 프로바이더와 backend 만 선언하세요. 
+                                         ##  다른 프로젝트환경을 넣으면 전혀 다른 결과가 나옵니다. 
 }
 
 terraform {
-  source = "." # 현재 디렉터리의 .tf 파일들을 실행
+  source = "."                           ## 현재 디렉터리의 .tf 파일들을 실행   ( main.tf 등)
 }
 
 inputs = {
   vpc_name = "hub-vpc"
-  vpc_cidr = "10.0.0.0/16"
+  vpc_cidr = "10.0.0.0/16"               ## 연습시에도 vpc와 서브넷 4곳에 대한 규칙을 가지고 실습하세요.
 }
-
+```
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/01-hub-vpc
 $
 
@@ -102,23 +111,32 @@ $
 
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/01-hub-vpc
 $ cat main.tf
+```
+# 아래 본문에서 쓸 변수명과 타입 선언
 variable "vpc_name" { type = string }
 variable "vpc_cidr" { type = string }
 
+# 각 프로그램 모듈 선언(생성의 의미)
 module "hub_vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.0.0"
+  version = "5.0.0"                            ## 버전 때문에 트러블이 있었습니다. 최신버전과 이슈를 질문하세요.
 
   name = var.vpc_name
   cidr = var.vpc_cidr
 
-  azs             = ["ap-northeast-2a", "ap-northeast-2c"]
-  public_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]
+  azs             = ["ap-northeast-2a", "ap-northeast-2c"]         ## AZ에 따르는 서브넷 주소 규칙 세워서 연습하세요.
+  public_subnets  = ["10.0.1.0/24", "10.0.2.0/24"]                 ## 면접질문 Cudr 값에 따른 서브넷 개수와 시작번호를 
+                                                                   ## 말할수 있어야 합니다. 
   private_subnets = ["10.0.11.0/24", "10.0.12.0/24"]
 
-  enable_nat_gateway = true
-  single_nat_gateway = true # 실습용 단일 NAT
+  enable_nat_gateway = true                                        ## 선언형 자동 라우터 기능이 있습니다. 
+  single_nat_gateway = true # 실습용 단일 NAT                      ## 라우팅 테이블 형식과 달라서 눈에 안띔. 
+                                                                   ## 따로 라우팅테이블을 잡으면 에러가 납니다. 
 }
+
+##  로그 확인용 목적도 있지만, 이후에 구축될 리소스들이 아이디를 보고 자리잡게 되는 디펜던시가 있는 중요한 데이터입니다. 
+##  본인이 추가하는 경우 누락하기 매우 쉬우며,   .  .  . 명칭에서 오타가 나기 쉽거나. 명칭 이름을 모를수가 있습니다. 
+##   '.'   점은 모듈프로그램의 경로와 같은 역할을 합니다. 오타주의. 검색해서 최신명칭 찾아야 합니다. 
 
 output "vpc_id" { value = module.hub_vpc.vpc_id }
 output "public_subnets" { value = module.hub_vpc.public_subnets }
@@ -126,6 +144,7 @@ output "private_subnets" { value = module.hub_vpc.private_subnets }
 output "private_route_table_ids" { value = module.hub_vpc.private_route_table_ids }
 output "public_route_table_ids" { value = module.hub_vpc.public_route_table_ids }
 output "nat_gateway_ids" { value = module.hub_vpc.natgw_ids }
+```
 
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/01-hub-vpc
 $
@@ -148,13 +167,14 @@ main.tf  terraform.tfstate  terraform.tfstate.backup  terragrunt.hcl
 
 B1-MAIN@DESKTOP-2F0TLNC MINGW64 ~/lab_terra/prod/02-service-vpc
 $ cat terragrunt.hcl
+```
 include "root" {
   path = find_in_parent_folders()
 }
 
-terraform { source = "." }
+terraform { source = "." }        ## 테라폼 파일  .tf  위치. 발견하면 자동 실행됨
 
-inputs = {
+inputs = {                                          ## 테라폼에 주입하려는 데이터, 변수값                          
   vpc_name = "service-vpc"
   vpc_cidr = "10.1.0.0/16"
 }
