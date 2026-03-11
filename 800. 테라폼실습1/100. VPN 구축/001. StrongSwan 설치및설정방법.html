@@ -80,25 +80,26 @@
             </div>
         </article>
 
-        <!-- Section: strongSwan Dedicated Client Setup (New Addition) -->
-        <article class="glass-panel rounded-2xl p-8 mb-10 border-t-4 border-blue-500">
-            <h2 class="text-3xl font-bold mb-6 border-b pb-4">strongSwan Windows 전용 클라이언트 앱 다운로드 및 설정 가이드</h2>
+        <!-- Section: Windows Native VPN Setup -->
+        <article class="glass-panel rounded-2xl p-8 mb-10">
+            <h2 class="text-3xl font-bold mb-6 border-b pb-4">strongSwan Windows 공식 접속 가이드 (내장 Agile VPN 활용)</h2>
             
-            <p class="mb-4">윈도우 내장 VPN 기능 외에도, 복잡한 레지스트리 설정이나 어댑터 수정 없이 직관적으로 연결을 관리할 수 있는 <strong>strongSwan 공식 전용 클라이언트 앱(UWP, 범용 윈도우 플랫폼 애플리케이션)</strong>을 사용하는 것이 실무에서 널리 권장됩니다. 이 앱은 인증서 관리 및 IKEv2 터널링 구성을 GUI(Graphical User Interface, 그래픽 사용자 인터페이스) 환경에서 한 번에 해결해 줍니다.</p>
+            <p class="mb-4">최신 <a href="https://docs.strongswan.org/docs/latest/interop/windowsClients.html" target="_blank" class="text-blue-600 underline font-medium hover:text-blue-800">strongSwan 공식 문서(Official Documentation)</a>에 따르면, Windows(윈도우) 환경에서는 별도의 외부 클라이언트 소프트웨어를 다운로드하거나 설치할 필요가 없습니다. 과거 실험적으로 제공되던 UWP(Universal Windows Platform, 범용 윈도우 플랫폼) 앱이나 MSI 패키지는 현재 공식 지원이 중단되었거나 제한적이므로, 운영체제에 기본 내장된 <strong>Agile VPN(애자일 VPN, 마이크로소프트의 내장 네트워크 모듈)</strong>을 활용하여 IKEv2(Internet Key Exchange version 2, 인터넷 키 교환 버전 2) 터널을 구성하는 것이 가장 무결성 높고 공식적인 글로벌 표준(Global Standard)입니다.</p>
 
             <div class="space-y-8">
-                <!-- Step 1: Download & Install -->
+                <!-- Step 1: Certificate -->
                 <div class="flex items-start">
                     <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold mr-4">1</div>
                     <div class="w-full">
-                        <h4 class="text-lg font-bold text-slate-800 mb-2">공식 다운로드 사이트 및 설치 방법</h4>
-                        <p class="text-sm text-slate-600 mb-3">strongSwan 앱은 윈도우 스토어를 통해 가장 안전하고 무결성 있게 설치할 수 있습니다.</p>
+                        <h4 class="text-lg font-bold text-slate-800 mb-2">루트 인증서(Root CA) 수동 설치 (필수 보안 검증)</h4>
+                        <p class="text-sm text-slate-600 mb-3">클라이언트 PC가 게이트웨이를 신뢰할 수 있도록 인프라 관리자가 제공한 인증서를 OS(Operating System, 운영체제) 깊숙이 등록해야 합니다.</p>
                         <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 text-sm shadow-sm">
-                            <ul class="list-disc pl-5 space-y-3 text-slate-700">
-                                <li><strong>접속 방법 A (가장 권장):</strong> Windows 작업 표시줄에서 <strong>'Microsoft Store'</strong>를 실행하고 검색창에 <code>strongSwan VPN Client</code>를 검색하여 <strong>'다운로드(Get)'</strong> 버튼을 클릭합니다.</li>
-                                <li><strong>접속 방법 B (웹 URL 연결):</strong> 웹 브라우저에서 공식 앱스토어 링크인 <a href="https://apps.microsoft.com/store/detail/strongswan/9WZDNCRDFBBG" target="_blank" class="text-blue-600 underline font-medium hover:text-blue-800">https://apps.microsoft.com/store/detail/strongswan/9WZDNCRDFBBG</a> 에 접속하여 스토어 앱을 호출합니다.</li>
-                                <li><strong>접속 방법 C (MSI 패키지 수동 다운로드):</strong> 폐쇄망 등 스토어 접속이 불가능한 경우, 공식 릴리즈 사이트인 <a href="https://download.strongswan.org/Windows/" target="_blank" class="text-blue-600 underline font-medium hover:text-blue-800">https://download.strongswan.org/Windows/</a> 에 접속하여 최신 버전의 <code>.msi</code> (Microsoft Windows Installer, 마이크로소프트 윈도우 설치 패키지) 파일을 직접 다운로드 후 더블 클릭하여 설치합니다.</li>
-                            </ul>
+                            <ol class="list-decimal pl-5 space-y-3 text-slate-700">
+                                <li>제공받은 <code>ca-cert.pem</code> 또는 <code>ca-cert.crt</code> 파일을 더블 클릭하여 <strong>'인증서 설치(Install Certificate)'</strong> 마법사를 실행합니다.</li>
+                                <li>저장소 위치를 <span class="font-bold text-red-600 underline">반드시 '로컬 컴퓨터(Local Machine)'</span>로 선택하고 <code>다음(Next)</code>을 클릭합니다. (관리자 권한 승인 필요)</li>
+                                <li><strong>'모든 인증서를 다음 저장소에 저장'</strong>을 선택하고 <code>찾아보기(Browse)</code>를 누릅니다.</li>
+                                <li><strong>'신뢰할 수 있는 루트 인증 기관(Trusted Root Certification Authorities)'</strong> 폴더를 정확히 지정한 후 완료합니다.</li>
+                            </ol>
                         </div>
                     </div>
                 </div>
@@ -107,72 +108,92 @@
                 <div class="flex items-start">
                     <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold mr-4">2</div>
                     <div class="w-full">
-                        <h4 class="text-lg font-bold text-slate-800 mb-2">프로필 설정 및 메뉴 선택 절차</h4>
-                        <p class="text-sm text-slate-600 mb-3">설치된 strongSwan 앱을 실행하고, 인프라 관리자가 제공한 접속 정보와 인증서를 바탕으로 연결 프로필(Connection Profile)을 생성합니다.</p>
+                        <h4 class="text-lg font-bold text-slate-800 mb-2">Windows 내장 VPN 프로필 생성 절차</h4>
+                        <p class="text-sm text-slate-600 mb-3">별도 프로그램 없이 윈도우 네트워크 설정 메뉴를 통해 직접 접속 프로필을 생성합니다.</p>
                         
                         <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden">
                             <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                             <ol class="list-decimal pl-5 space-y-4 text-sm text-slate-700">
-                                <li><strong>앱 실행 및 프로필 추가:</strong> 바탕화면이나 시작 메뉴에서 <strong>strongSwan</strong> 앱을 실행한 후, 메인 화면 우측 상단의 <strong><span class="bg-slate-100 px-2 py-1 rounded border">Add connection (연결 추가)</span></strong> 버튼을 클릭합니다.</li>
+                                <li><strong>설정 메뉴 진입:</strong> 윈도우 작업 표시줄 우측 하단의 네트워크 아이콘 우클릭 ➔ <strong>'네트워크 및 인터넷 설정(Network & Internet settings)'</strong> ➔ <strong>'VPN'</strong> 메뉴 선택 ➔ <strong>'VPN 연결 추가(Add a VPN connection)'</strong> 클릭.</li>
                                 <li>
-                                    <strong>서버 정보 입력 (Server):</strong> 연결 대상 VPN 게이트웨이의 주소를 입력합니다.
-                                    <ul class="list-none pl-4 mt-2 space-y-1 text-slate-600">
-                                        <li>▶ <span class="font-semibold text-slate-800">Server (서버):</span> <code>vpn.domain.com</code> 또는 관리자가 할당한 공인 IP 주소 입력</li>
+                                    <strong>세부 정보 입력:</strong>
+                                    <ul class="list-none pl-4 mt-2 space-y-2 text-slate-600">
+                                        <li>▶ <span class="font-semibold text-slate-800">VPN 공급자(VPN provider):</span> <code>Windows(기본 제공) (Windows (built-in))</code> 선택</li>
+                                        <li>▶ <span class="font-semibold text-slate-800">연결 이름(Connection name):</span> <code>AWS EKS VPN</code> 등 식별하기 쉬운 명칭 기입</li>
+                                        <li>▶ <span class="font-semibold text-slate-800">서버 이름 또는 주소(Server name or address):</span> <code>vpn.domain.com</code> (또는 인프라 팀에서 부여한 공인 IP)</li>
+                                        <li>▶ <span class="font-semibold text-slate-800">VPN 종류(VPN type):</span> 반드시 <code>IKEv2</code> 선택</li>
+                                        <li>▶ <span class="font-semibold text-slate-800">로그인 정보 유형(Type of sign-in info):</span> 서버 정책에 따라 <code>인증서(Certificate)</code> 또는 <code>사용자 이름 및 암호(User name and password)</code> 선택</li>
                                     </ul>
                                 </li>
-                                <li>
-                                    <strong>인증 방식 선택 (VPN Type):</strong> 서버에 구축된 보안 정책에 맞춰 VPN 유형을 드롭다운 메뉴에서 선택합니다.
-                                    <ul class="list-none pl-4 mt-2 space-y-1 text-slate-600">
-                                        <li>▶ <span class="font-semibold text-slate-800">VPN Type (VPN 유형):</span> 아이디/패스워드 방식일 경우 <code>IKEv2 EAP (Username/Password)</code> 선택. 인증서 전용 접속일 경우 <code>IKEv2 Certificate</code> 선택.</li>
-                                    </ul>
-                                </li>
-                                <li>
-                                    <strong>로그인 자격 증명 (Credentials):</strong> 앞서 선택한 EAP 방식에 따라 계정 정보를 기입합니다.
-                                    <ul class="list-none pl-4 mt-2 space-y-1 text-slate-600">
-                                        <li>▶ <span class="font-semibold text-slate-800">Username (사용자 이름):</span> 부여받은 접속 ID 입력</li>
-                                        <li>▶ <span class="font-semibold text-slate-800">Password (비밀번호):</span> 부여받은 접속 비밀번호 입력</li>
-                                    </ul>
-                                </li>
-                                <li>
-                                    <strong>서버 인증서 지정 (CA Certificate) [매우 중요]:</strong> 서버의 신뢰성을 검증하기 위한 단계입니다.
-                                    <ul class="list-none pl-4 mt-2 space-y-1 text-slate-600">
-                                        <li>▶ <span class="font-semibold text-slate-800">CA certificate (인증 기관 인증서):</span> 기본값은 'Select automatically (자동 선택)'이지만, 사설 인증서를 사용하는 실무 환경에서는 <strong><span class="bg-slate-100 px-2 py-1 rounded border">Select (선택)</span></strong> 버튼을 클릭하여 로컬 PC에 저장해둔 <code>ca-cert.pem</code> 파일을 직접 찾아 지정해주어야 합니다. (이 과정을 거치면 윈도우 OS 인증서 저장소에 수동으로 설치하는 복잡한 과정이 생략됩니다.)</li>
-                                    </ul>
-                                </li>
-                                <li>
-                                    <strong>프로필 저장 및 연결:</strong>
-                                    <ul class="list-none pl-4 mt-2 text-slate-600">
-                                        <li>▶ <span class="font-semibold text-slate-800">Profile name (프로필 이름):</span> <code>AWS EKS 실습망</code> 등 식별하기 쉬운 이름을 기입합니다.</li>
-                                        <li>▶ 우측 상단의 <strong><span class="bg-slate-100 px-2 py-1 rounded border">Save (저장)</span></strong> 버튼을 눌러 설정을 완료하고, 생성된 프로필을 클릭하여 접속을 개시합니다.</li>
-                                    </ul>
-                                </li>
+                                <li>모든 정보를 입력한 후 하단의 <strong>'저장(Save)'</strong> 버튼을 클릭합니다.</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Security Upgrade -->
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold mr-4">3</div>
+                    <div class="w-full">
+                        <h4 class="text-lg font-bold text-slate-800 mb-2">고급 어댑터 암호화 설정 (필수 튜닝 및 트러블슈팅)</h4>
+                        <p class="text-sm text-slate-600 mb-3">윈도우 기본 설정은 하위 호환성을 위해 취약한 암호화를 허용하므로, 이를 차단하고 최고 수준의 ESP(Encapsulating Security Payload, 캡슐화 보안 페이로드)를 강제해야 서버 접속 거절(Policy Match Error)을 막을 수 있습니다.</p>
+                        <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 text-sm shadow-sm">
+                            <ol class="list-decimal pl-5 space-y-3 text-slate-700">
+                                <li>제어판의 <strong>'네트워크 연결(Network Connections)'</strong> (또는 어댑터 옵션 변경) 창을 엽니다.</li>
+                                <li>앞서 생성한 VPN 가상 어댑터(예: AWS EKS VPN)를 우클릭하고 <strong>'속성(Properties)'</strong>을 선택합니다.</li>
+                                <li><strong>보안(Security)</strong> 탭으로 이동합니다.</li>
+                                <li><span class="font-semibold">데이터 암호화(Data encryption):</span> 드롭다운에서 <code>최대 강도 암호화(서버에서 거절하면 연결 끊기) (Maximum strength encryption (disconnect if server declines))</code>로 변경합니다.</li>
+                                <li><span class="font-semibold">인증(Authentication):</span> <code>EAP(확장명 인증 프로토콜) 사용(Use Extensible Authentication Protocol (EAP))</code> 라디오 버튼을 체크하고, 하위 메뉴에서 <code>Microsoft: 보안 암호(EAP-MSCHAP v2)</code>를 명시적으로 선택한 후 <code>확인(OK)</code>을 눌러 최종 저장합니다.</li>
                             </ol>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <p class="text-sm text-slate-500 italic mt-6">* 주석: strongSwan 전용 클라이언트 앱은 윈도우 내장 어댑터에서는 설정하기 까다로운 강력한 ESP(Encapsulating Security Payload, 캡슐화 보안 페이로드) 알고리즘(예: AES-GCM)을 자동으로 매칭하여 협상하므로, 엔터프라이즈 환경에서 압도적인 보안성과 편의성을 자랑합니다.</p>
+            <p class="text-sm text-slate-500 italic mt-6">* 주석: 서드파티 앱을 별도로 다운로드하여 설치하지 않고 OS 커널 레벨의 내장 IKEv2 스택을 활용하면, 네트워크 오버헤드가 최소화되고 엔터프라이즈 환경의 MDM(Mobile Device Management, 모바일 기기 관리) 정책과 완벽하게 호환되는 아키텍처적 장점이 있습니다.</p>
         </article>
 
-        <!-- Section: Windows Native VPN Setup (Alternative) -->
-        <article class="glass-panel rounded-2xl p-8 mb-10">
-            <h2 class="text-2xl font-bold mb-6 border-b pb-4 text-slate-700">참고: Windows 내장 기능(Agile VPN)을 활용한 수동 구성 방법</h2>
-            <p class="mb-4 text-sm text-slate-600">만약 사내 보안 정책 등의 이유로 Microsoft Store 앱 및 외부 프로그램 설치가 전면 차단되어 있다면, Windows OS에 내장된 Agile VPN(애자일 VPN, 마이크로소프트 내장 네트워크 모듈)을 통해 IKEv2 터널을 수동으로 구성할 수 있습니다.</p>
+        <!-- Section: strongSwan Dedicated Client Setup (Added Alternative Method) -->
+        <article class="glass-panel rounded-2xl p-8 mb-10 border-t-4 border-indigo-500">
+            <h2 class="text-3xl font-bold mb-6 border-b pb-4">strongSwan 전용 클라이언트 앱 설치 및 설정 (선택/대안 방식)</h2>
+            <p class="mb-4">OS(Operating System, 운영체제) 내장 기능을 사용하지 않거나 로컬 인증서 관리가 번거로울 경우, 연결 프로필과 인증서를 앱 내부에서 직관적으로 관리할 수 있는 <strong>strongSwan 공식 UWP(Universal Windows Platform, 범용 윈도우 플랫폼) 앱</strong>을 대안으로 사용할 수 있습니다.</p>
 
-            <div class="space-y-4 opacity-80">
+            <div class="space-y-8">
+                <!-- Download -->
                 <div class="flex items-start">
-                    <div class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-slate-400 text-white font-bold mr-3 text-xs">1</div>
-                    <div>
-                        <h4 class="text-md font-bold text-slate-700 mb-1">보안 인증서 수동 등록</h4>
-                        <p class="text-xs text-slate-500"><code>ca-cert.pem</code> 실행 ➔ '인증서 설치' ➔ 저장소 위치를 <span class="font-bold text-red-500">반드시 '로컬 컴퓨터'</span>로 지정 ➔ '신뢰할 수 있는 루트 인증 기관' 폴더에 저장.</p>
+                    <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold mr-4">1</div>
+                    <div class="w-full">
+                        <h4 class="text-lg font-bold text-slate-800 mb-2">공식 앱 다운로드 및 설치 (URL 우회)</h4>
+                        <p class="text-sm text-slate-600 mb-3">웹 브라우저의 다운로드 링크가 차단되거나 연결되지 않는 문제를 완벽히 우회하기 위해, 윈도우 기본 스토어 앱을 통해 직접 설치합니다.</p>
+                        <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 text-sm shadow-sm">
+                            <ul class="list-disc pl-5 space-y-2 text-slate-700">
+                                <li>Windows 작업 표시줄의 돋보기 아이콘(검색창)에서 <strong>'Microsoft Store(마이크로소프트 스토어)'</strong>를 타이핑하여 실행합니다.</li>
+                                <li>스토어 최상단 검색창에 <code>strongSwan VPN Client</code>를 정확히 입력하여 검색합니다.</li>
+                                <li>'strongSwan Project'에서 배포한 공식 앱 아이콘(백조 모양)을 확인한 후 <strong>'다운로드(Get)'</strong> 또는 <strong>'설치(Install)'</strong> 버튼을 클릭하여 PC에 자동 설치를 진행합니다.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Configuration -->
                 <div class="flex items-start">
-                    <div class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-slate-400 text-white font-bold mr-3 text-xs">2</div>
-                    <div>
-                        <h4 class="text-md font-bold text-slate-700 mb-1">어댑터 보안 격상 설정</h4>
-                        <p class="text-xs text-slate-500">네트워크 어댑터 속성 ➔ 보안 탭 ➔ 데이터 암호화를 <code>최대 강도 암호화</code>로 변경 ➔ EAP-MSCHAP v2 지정 필수.</p>
+                    <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold mr-4">2</div>
+                    <div class="w-full">
+                        <h4 class="text-lg font-bold text-slate-800 mb-2">연결 프로필 메뉴 설정 및 인증서 매핑</h4>
+                        <p class="text-sm text-slate-600 mb-3">설치된 앱을 실행하고, GUI(Graphical User Interface, 그래픽 사용자 인터페이스) 환경에서 다음 절차대로 접속 정보를 기입합니다.</p>
+                        <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                            <ol class="list-decimal pl-5 space-y-4 text-sm text-slate-700">
+                                <li>앱 실행 후 메인 화면 우측 상단의 <strong>'Add connection(연결 추가)'</strong> 버튼을 클릭합니다.</li>
+                                <li><span class="font-semibold text-slate-800">Server(서버):</span> 인프라 관리자가 제공한 VPN 게이트웨이의 공인 IP 또는 도메인(예: <code>vpn.domain.com</code>)을 입력합니다.</li>
+                                <li><span class="font-semibold text-slate-800">VPN Type(VPN 종류):</span> 인증 정책에 따라 <code>IKEv2 EAP (Username/Password)</code> 또는 <code>IKEv2 Certificate</code>를 선택합니다.</li>
+                                <li><span class="font-semibold text-slate-800">Username / Password(사용자 이름 및 암호):</span> EAP 방식을 선택한 경우, 부여받은 접속 계정 정보를 기입합니다.</li>
+                                <li><span class="font-semibold text-slate-800">CA certificate(인증 기관 인증서) 지정:</span> 기본값인 'Select automatically(자동 선택)'를 해제하고, <strong>'Select(선택)'</strong> 버튼을 눌러 로컬 PC에 저장해둔 <code>ca-cert.pem</code> 파일을 직접 선택하여 등록합니다.</li>
+                                <li><span class="font-semibold text-slate-800">Profile name(프로필 이름):</span> <code>AWS EKS 실습망</code> 등 식별용 이름을 기입하고 우측 상단의 <strong>'Save(저장)'</strong>를 클릭합니다.</li>
+                                <li>메인 화면에 생성된 프로필 목록을 클릭하여 암호화 터널 접속을 개시합니다.</li>
+                            </ol>
+                        </div>
+                        <p class="text-xs text-slate-500 italic mt-3">* 주석: 전용 앱을 사용할 경우 윈도우 OS의 복잡한 로컬 컴퓨터 인증서 저장소(Certificate Store)를 직접 건드릴 필요 없이, 앱 내부에서 인증서를 직접 매핑(Mapping, 연결)하여 보안 협상을 수행하므로 설정 오류 및 권한 문제가 대폭 줄어드는 장점이 있습니다.</p>
                     </div>
                 </div>
             </div>
