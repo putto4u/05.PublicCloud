@@ -75,6 +75,7 @@
             font-size: 0.75rem;
             font-weight: 700;
             color: #1e293b;
+            margin-bottom: 1rem;
         }
         pre {
             background: #1e293b;
@@ -83,6 +84,8 @@
             border-radius: 0.5rem;
             font-size: 0.875rem;
             position: relative;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
         .copy-btn {
             position: absolute;
@@ -96,22 +99,32 @@
             cursor: pointer;
         }
         .copy-btn:hover { background: #6366f1; }
+        .note-box {
+            background-color: #f1f5f9;
+            border-left: 4px solid #94a3b8;
+            padding: 1rem;
+            font-size: 0.875rem;
+            color: #475569;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 leading-relaxed">
 
     <!-- Progress & Navigation -->
     <nav class="sticky-nav border-b border-slate-200">
-        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 bg-slate-900 rounded flex items-center justify-center text-white font-black">A</div>
                 <span class="font-black text-lg tracking-tight">EKS Hub & Spoke Master Guide</span>
             </div>
-            <div class="hidden lg:flex gap-6 text-xs font-bold uppercase tracking-wider text-slate-400">
-                <a href="#arch" class="hover:text-indigo-600">Architecture</a>
+            <div class="hidden lg:flex gap-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <a href="#arch" class="hover:text-indigo-600">Arch</a>
+                <a href="#prep" class="hover:text-indigo-600">On-Prem Prep</a>
                 <a href="#hub" class="hover:text-indigo-600">Hub Setup</a>
                 <a href="#vpn" class="hover:text-indigo-600">S2S VPN</a>
-                <a href="#spoke" class="hover:text-indigo-600">Spoke Connect</a>
+                <a href="#spoke" class="hover:text-indigo-600">Spoke</a>
+                <a href="#k8s" class="hover:text-indigo-600">Local K8s</a>
                 <a href="#eks" class="hover:text-indigo-600">EKS Access</a>
             </div>
         </div>
@@ -129,7 +142,7 @@
                 <span class="text-indigo-600">TGW & S2S VPN 통합 마스터</span>
             </h1>
             <p class="text-lg text-slate-500 max-w-2xl">
-                AWS Transit Gateway (전송 게이트웨이)와 Site-to-Site VPN (사이트 간 가상 사설망)을 결합하여 대규모 다중 VPC 환경을 구축하고, 10.251.0.0/16 대역의 스포크를 연동하는 전 과정에 대한 기술 명세서입니다.
+                AWS TGW(Transit Gateway, 전송 게이트웨이)와 S2S VPN(Site-to-Site VPN, 사이트 간 가상 사설망)을 결합하여 대규모 다중 VPC(Virtual Private Cloud, 가상 사설 클라우드) 환경을 구축하고, 10.251.0.0/16 대역의 스포크를 연동하는 전 과정에 대한 기술 명세서입니다.
             </p>
         </header>
 
@@ -145,7 +158,7 @@
                     <p class="font-black text-sm">On-Premises (온프레미스)</p>
                     <p class="text-[10px] text-slate-400 mt-1 uppercase">192.168.1.0/24</p>
                     <div class="explanation-box text-xs text-slate-500 mt-4 text-left">
-                        사내 전산망 환경입니다. strongSwan(스트롱스완) 등의 소프트웨어 VPN 장비가 설치되어 있습니다.
+                        사내 전산망 환경입니다. strongSwan(스트롱스완) 등의 소프트웨어 VPN 장비가 설치되어 허브 역할을 수행합니다.
                     </div>
                 </div>
                 <div class="bg-indigo-600 p-6 rounded-2xl shadow-xl text-center text-white relative">
@@ -154,7 +167,7 @@
                     <p class="font-black text-sm">Transit Gateway (전송 게이트웨이)</p>
                     <p class="text-[10px] text-indigo-200 mt-1 uppercase">Hub Central ASN: 64512</p>
                     <div class="text-xs text-indigo-100 mt-4 text-left">
-                        모든 통신의 허브 역할을 수행하는 중앙 라우터입니다.
+                        모든 통신의 허브 역할을 수행하는 중앙 라우터입니다. 온프레미스와 AWS 네트워크를 하나로 묶어줍니다.
                     </div>
                 </div>
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
@@ -162,7 +175,95 @@
                     <p class="font-black text-sm text-emerald-600">Spoke EKS (스포크)</p>
                     <p class="text-[10px] text-slate-400 mt-1 uppercase">10.251.0.0/16</p>
                     <div class="text-xs text-slate-500 mt-4 text-left">
-                        실습생이 사용하는 개별 업무 환경입니다. TGW에 연결되어 온프레미스와 통신합니다.
+                        실습에 사용하는 개별 업무 환경입니다. TGW에 연결되어 온프레미스와 프라이빗하게 통신합니다.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- section 0: On-Premise Preparation -->
+        <section id="prep" class="space-y-8">
+            <div class="flex items-center gap-4">
+                <h2 class="text-2xl font-black text-slate-900">Phase 0. 온프레미스 환경 준비: VPN 라우터 및 클라이언트 설정</h2>
+                <div class="h-px flex-1 bg-slate-200"></div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">0-1</span>
+                    중앙 PC (VPN 라우터) strongSwan 다운로드 및 설치
+                </h3>
+                <p class="text-sm text-slate-600">사내망 트래픽을 모아서 AWS로 보내줄 중앙 리눅스 서버(Ubuntu 기준)에 오픈소스 IPsec VPN 솔루션인 strongSwan을 설치합니다.</p>
+                
+                <div class="aws-console-card">
+                    <div class="console-header">
+                        <span class="font-bold text-xs text-slate-500">VPN 라우터 기본 패키지 구성</span>
+                        <span class="billing-tag bg-emerald-100 text-emerald-800">Free OpenSource</span>
+                    </div>
+                    <div class="console-body space-y-4">
+                        <p class="text-sm font-bold text-slate-800">1. 패키지 업데이트 및 strongSwan 설치</p>
+                        <div class="relative">
+                            <span class="copy-btn" onclick="copyCode(this)">COPY</span>
+                            <pre>sudo apt-get update -y
+sudo apt-get install strongswan strongswan-pki libcharon-extra-plugins libcharon-extauth-plugins libstrongswan-extra-plugins -y</pre>
+                        </div>
+                        <div class="note-box">
+                            <strong>설명:</strong> strongSwan 본체와 함께 AWS와의 원활한 IKEv2 인증 및 라우팅 교환을 위해 필요한 추가 플러그인(plugins)들을 일괄 설치합니다.
+                        </div>
+
+                        <p class="text-sm font-bold text-slate-800 mt-6">2. IP 포워딩(IP Forwarding, 패킷 전달) 활성화</p>
+                        <p class="text-xs text-slate-500 mb-2">중앙 PC가 일반 클라이언트가 아닌 라우터 역할을 하려면, 들어온 네트워크 패킷을 다른 곳(AWS)으로 넘겨주는 포워딩 기능이 켜져 있어야 합니다.</p>
+                        <div class="relative">
+                            <span class="copy-btn" onclick="copyCode(this)">COPY</span>
+                            <pre># sysctl.conf 파일 수정
+sudo sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+
+# 설정 즉시 적용
+sudo sysctl -p</pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="pro-tip">
+                    <p class="text-xs"><strong>💡 Pro Tip:</strong> 지금은 기본 뼈대만 설치한 상태입니다. 실제 AWS와 연결하기 위한 <code>ipsec.conf</code> (터널 설정 파일) 및 <code>ipsec.secrets</code> (사전 공유 키) 구성은 <strong>Phase 2에서 AWS VPN 생성 후 제공받는 구성 파일</strong>을 바탕으로 입력하게 됩니다.</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 pt-8">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">0-2</span>
+                    내 PC (사내망 클라이언트) 라우팅 설정 및 통신 확인
+                </h3>
+                <p class="text-sm text-slate-600">여러분의 실습용 PC(Windows 기준)에서 AWS 대역(예: 10.0.0.0/8)으로 향하는 트래픽이 사내 중앙 VPN 라우터를 거쳐가도록 정적 라우팅을 추가해야 합니다.</p>
+                
+                <div class="aws-console-card">
+                    <div class="console-header">
+                        <span class="font-bold text-xs text-slate-500">Windows 정적 라우팅 추가 (Static Route Add)</span>
+                    </div>
+                    <div class="console-body space-y-4">
+                        <p class="text-xs text-rose-600 font-bold mb-2">※ 반드시 '관리자 권한'으로 명령 프롬프트(CMD)를 실행해야 합니다.</p>
+                        <div class="relative">
+                            <span class="copy-btn" onclick="copyCode(this)">COPY</span>
+                            <pre># 구문: route add [대상 네트워크] mask [서브넷 마스크] [게이트웨이 IP] -p
+# 가정: 사내망 중앙 VPN 라우터 IP가 192.168.1.254 이고, AWS 스포크 대역이 10.251.0.0/16 인 경우
+
+route add 10.251.0.0 mask 255.255.0.0 192.168.1.254 -p</pre>
+                        </div>
+                        <div class="note-box">
+                            <strong>명령어 해석:</strong> 내 PC에서 <code>10.251.x.x</code> 대역으로 가는 모든 패킷은, 인터넷 공유기가 아니라 사내망 중앙 VPN 라우터(<code>192.168.1.254</code>)로 던지라는 의미입니다. <code>-p</code> 옵션은 재부팅 후에도 설정이 영구적으로(persistent) 유지되게 합니다.
+                        </div>
+
+                        <p class="text-sm font-bold text-slate-800 mt-6">접속 확인 방법 (Phase 3 완료 후 테스트)</p>
+                        <div class="relative">
+                            <span class="copy-btn" onclick="copyCode(this)">COPY</span>
+                            <pre># 1. 라우팅 테이블이 정상적으로 등록되었는지 확인
+route print | findstr "10.251"
+
+# 2. AWS 스포크 VPC 내부 자원에 대한 도달성 테스트 (ICMP Ping)
+ping 10.251.10.100
+
+# 3. 경로 추적을 통해 패킷이 사내 VPN 라우터를 거쳐가는지 확인
+tracert 10.251.10.100</pre>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -178,10 +279,10 @@
             <div class="space-y-4">
                 <h3 class="text-lg font-bold flex items-center gap-2">
                     <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">1</span>
-                    고객 게이트웨이 (Customer Gateway) 생성
+                    고객 게이트웨이 (CGW, Customer Gateway) 생성
                 </h3>
-                <p class="text-sm text-slate-600">온프레미스 장비의 메타데이터를 AWS에 등록하여 보안 협상을 준비합니다.</p>
-                <div class="path-step">VPC 콘솔 ➔ 가상 프라이빗 네트워크 ➔ 고객 게이트웨이 ➔ 생성</div>
+                <p class="text-sm text-slate-600">온프레미스 VPN 장비(앞서 설치한 strongSwan 라우터)의 메타데이터를 AWS에 등록하여 보안 협상을 준비합니다.</p>
+                <div class="path-step">VPC 콘솔 ➔ 가상 프라이빗 네트워크(VPN) ➔ 고객 게이트웨이 ➔ 고객 게이트웨이 생성</div>
                 
                 <div class="aws-console-card">
                     <div class="console-header">
@@ -196,12 +297,12 @@
                         <div class="field-row">
                             <div class="field-label">BGP ASN</div>
                             <div class="field-value">65000</div>
-                            <div class="col-start-2 field-desc">사내망 라우터의 자율 시스템 번호(Autonomous System Number)입니다. AWS 기본값(64512)과 겹치지 않게 설정합니다.</div>
+                            <div class="col-start-2 field-desc">사내망 라우터의 BGP(Border Gateway Protocol, 경계 관문 프로토콜) 자율 시스템 번호(ASN, Autonomous System Number)입니다. AWS 기본값(64512)과 겹치지 않게 설정합니다.</div>
                         </div>
                         <div class="field-row">
                             <div class="field-label">IP 주소</div>
                             <div class="field-value font-mono font-bold text-indigo-600">203.0.113.10</div>
-                            <div class="col-start-2 field-desc">온프레미스 VPN 장비의 공인 IP 주소입니다.</div>
+                            <div class="col-start-2 field-desc">온프레미스 중앙 VPN 라우터 장비의 <strong>공인 IP 주소(Public IP)</strong>입니다. 사설 IP(192.168.x.x)를 입력하면 절대 안 됩니다.</div>
                         </div>
                         <div class="field-row border-none">
                             <div class="field-label">인증서 ARN</div>
@@ -210,7 +311,7 @@
                     </div>
                 </div>
                 <div class="pro-tip">
-                    <p class="text-xs"><strong>💡 Pro Tip:</strong> 온프레미스 공인 IP는 사내 PC에서 <code>curl checkip.amazonaws.com</code> 명령어를 통해 즉시 확인할 수 있습니다. 사설 IP가 아닌 외부 통신용 고정 IP여야 함을 명심하세요.</p>
+                    <p class="text-xs"><strong>💡 Pro Tip:</strong> 온프레미스 VPN 라우터의 공인 IP는 해당 서버 터미널에서 <code>curl checkip.amazonaws.com</code> 명령어를 입력하면 즉시 확인할 수 있습니다.</p>
                 </div>
             </div>
 
@@ -218,7 +319,7 @@
             <div class="space-y-4 pt-8">
                 <h3 class="text-lg font-bold flex items-center gap-2">
                     <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">2</span>
-                    Transit Gateway (전송 게이트웨이) 생성
+                    Transit Gateway (TGW, 전송 게이트웨이) 생성
                 </h3>
                 <p class="text-sm text-slate-600">수천 개의 네트워크를 허브 앤 스포크 형태로 연결할 중앙 라우터를 생성합니다.</p>
                 <div class="path-step">VPC 콘솔 ➔ Transit Gateways ➔ 전송 게이트웨이 생성</div>
@@ -226,7 +327,7 @@
                 <div class="aws-console-card">
                     <div class="console-header">
                         <span class="font-bold text-xs text-slate-500">전송 게이트웨이 생성 (Create Transit Gateway)</span>
-                        <span class="billing-tag">Paid Service</span>
+                        <span class="billing-tag">Paid Service ($0.05/hr)</span>
                     </div>
                     <div class="console-body">
                         <div class="field-row">
@@ -236,22 +337,22 @@
                         <div class="field-row">
                             <div class="field-label">Amazon 측 ASN</div>
                             <div class="field-value">64512</div>
-                            <div class="col-start-2 field-desc">AWS 측의 프라이빗 ASN(Autonomous System Number, 자율 시스템 번호)입니다.</div>
+                            <div class="col-start-2 field-desc">AWS 측의 프라이빗 ASN(자율 시스템 번호)입니다.</div>
                         </div>
                         <div class="field-row">
                             <div class="field-label">DNS 지원</div>
-                            <div class="field-value">활성화 (Enabled)</div>
-                            <div class="col-start-2 field-desc">VPC 간 사설 DNS 호스트 이름 확인을 허용합니다.</div>
+                            <div class="field-value font-bold text-emerald-600">활성화 (Enabled)</div>
+                            <div class="col-start-2 field-desc">VPC 간 사설 DNS(Domain Name System) 호스트 이름 확인을 허용합니다.</div>
                         </div>
                         <div class="field-row">
                             <div class="field-label">기본 라우트 테이블 연결</div>
-                            <div class="field-value">활성화 (Enabled)</div>
+                            <div class="field-value font-bold text-emerald-600">활성화 (Enabled)</div>
                             <div class="col-start-2 field-desc">연결(Attachment) 시 자동으로 기본 라우팅 테이블에 연결됩니다.</div>
                         </div>
                         <div class="field-row border-none">
                             <div class="field-label">기본 라우트 테이블 전파</div>
-                            <div class="field-value">활성화 (Enabled)</div>
-                            <div class="col-start-2 field-desc">연결된 네트워크의 CIDR 정보를 자동으로 학습합니다.</div>
+                            <div class="field-value font-bold text-emerald-600">활성화 (Enabled)</div>
+                            <div class="col-start-2 field-desc">연결된 네트워크의 CIDR(Classless Inter-Domain Routing, 네트워크 IP 대역) 정보를 TGW가 자동으로 학습하도록 합니다.</div>
                         </div>
                     </div>
                 </div>
@@ -270,18 +371,18 @@
                     <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">3</span>
                     VPN 연결 생성 (Create VPN Connection)
                 </h3>
-                <p class="text-sm text-slate-600 italic">모든 옵션을 요약 없이 상세하게 설정합니다.</p>
-                <div class="path-step">VPC ➔ 가상 프라이빗 네트워크 ➔ 사이트 간 VPN 연결 ➔ VPN 연결 생성</div>
+                <p class="text-sm text-slate-600 italic">모든 옵션을 요약 없이 상세하게 설정합니다. 여기서 만들어진 정보를 바탕으로 Phase 0의 strongSwan 설정을 최종 완료하게 됩니다.</p>
+                <div class="path-step">VPC 콘솔 ➔ 가상 프라이빗 네트워크(VPN) ➔ 사이트 간 VPN 연결 ➔ VPN 연결 생성</div>
 
                 <div class="aws-console-card">
                     <div class="console-header">
                         <span class="font-bold text-xs text-slate-500">VPN 연결 생성 시뮬레이션</span>
                         <div class="flex gap-2">
-                            <span class="billing-tag">0.05 USD / hr</span>
+                            <span class="billing-tag">Paid Service ($0.05/hr)</span>
                         </div>
                     </div>
                     <div class="console-body">
-                        <div class="bg-slate-50 p-4 rounded-xl mb-6 font-bold text-xs text-slate-500">
+                        <div class="bg-slate-50 p-4 rounded-xl mb-6 font-bold text-xs text-slate-500 border border-slate-200">
                             [ 세부 정보 (Details) ]
                         </div>
                         <div class="field-row">
@@ -293,8 +394,8 @@
                             <div class="field-value font-bold text-indigo-600">Transit Gateway (전송 게이트웨이)</div>
                         </div>
                         <div class="field-row">
-                            <div class="field-label">Transit Gateway</div>
-                            <div class="field-value font-mono">tgw-0ba1b73172c127e5e</div>
+                            <div class="field-label">Transit Gateway ID</div>
+                            <div class="field-value font-mono">tgw-0ba1b73172c127e5e (앞서 생성한 main-tgw-hub 선택)</div>
                         </div>
                         <div class="field-row">
                             <div class="field-label">고객 게이트웨이</div>
@@ -302,8 +403,8 @@
                         </div>
                         <div class="field-row">
                             <div class="field-label">라우팅 옵션</div>
-                            <div class="field-value">동적 (BGP 필요)</div>
-                            <div class="col-start-2 field-desc">BGP(Border Gateway Protocol, 경계 관문 프로토콜)를 이용해 경로를 실시간으로 자동 갱신합니다.</div>
+                            <div class="field-value font-bold text-emerald-600">동적 (Dynamic - BGP 필요)</div>
+                            <div class="col-start-2 field-desc">BGP 프로토콜을 이용해 AWS와 온프레미스 간의 네트워크 경로를 실시간으로 자동 갱신합니다. 정적(Static)보다 권장되는 방식입니다.</div>
                         </div>
                         <div class="field-row">
                             <div class="field-label">사전 공유 키 스토리지</div>
@@ -312,12 +413,12 @@
                         <div class="field-row">
                             <div class="field-label">가속화 활성화</div>
                             <div class="field-value text-rose-600 font-bold">비활성화 (Disabled)</div>
-                            <div class="col-start-2 field-desc">Global Accelerator를 통해 터널 속도를 높이지만 추가 유료 요금이 발생하므로 실습 시 해제합니다.</div>
+                            <div class="col-start-2 field-desc">AWS Global Accelerator를 통해 터널 속도를 높이지만 <span class="text-rose-600 font-bold">막대한 추가 유료 요금</span>이 발생하므로 실습 시 절대 체크하지 않도록 주의합니다.</div>
                         </div>
                         <div class="field-row">
                             <div class="field-label">로컬 IPv4 네트워크 CIDR</div>
                             <div class="field-value font-mono">0.0.0.0/0 (기본값)</div>
-                            <div class="col-start-2 field-desc">온프레미스(사내)에서 터널을 통해 통신할 범위를 지정합니다.</div>
+                            <div class="col-start-2 field-desc">온프레미스(사내)에서 터널을 통해 통신할 범위를 지정합니다. 기본값으로 두어 모든 트래픽을 허용합니다.</div>
                         </div>
                         <div class="field-row">
                             <div class="field-label">원격 IPv4 네트워크 CIDR</div>
@@ -339,7 +440,7 @@
                                 <div class="space-y-2 text-[11px]">
                                     <p><strong>내부 터널 IPv4:</strong> 169.254.10.0/30</p>
                                     <p><strong>사전 공유 키(PSK):</strong> aws-eks-lab-key-01</p>
-                                    <p class="text-slate-400 mt-2">BGP 피어링을 위한 내부 전용 주소와 암호입니다.</p>
+                                    <p class="text-slate-400 mt-2">BGP 피어링을 위한 내부 전용 주소와 암호화 통신을 위한 비밀번호(Pre-Shared Key)입니다.</p>
                                 </div>
                             </div>
                             <div class="p-4 bg-slate-50 rounded-xl border">
@@ -347,9 +448,12 @@
                                 <div class="space-y-2 text-[11px]">
                                     <p><strong>내부 터널 IPv4:</strong> 169.254.11.0/30</p>
                                     <p><strong>사전 공유 키(PSK):</strong> aws-eks-lab-key-02</p>
-                                    <p class="text-slate-400 mt-2">고가용성을 위해 AWS는 항상 2개의 터널을 제공합니다.</p>
+                                    <p class="text-slate-400 mt-2">고가용성(High Availability)을 보장하기 위해 AWS는 항상 물리적으로 분리된 2개의 터널을 제공합니다.</p>
                                 </div>
                             </div>
+                        </div>
+                        <div class="note-box text-xs mt-4 border-l-aws-orange">
+                            <strong>VPN 구성 다운로드:</strong> 설정 완료 후, 콘솔 상단에서 '구성 다운로드(Download Configuration)' 버튼을 클릭하여 공급업체(Vendor)를 <strong>strongSwan</strong>으로 선택하여 텍스트 파일을 다운받습니다. 이 파일의 내용을 복사하여 Phase 0의 중앙 PC <code>/etc/ipsec.conf</code> 및 <code>/etc/ipsec.secrets</code> 파일에 붙여넣고 strongSwan 데몬을 재시작하면 마침내 터널이 연결됩니다(Status: UP).
                         </div>
                     </div>
                 </div>
@@ -368,7 +472,7 @@
                     <span class="w-6 h-6 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs">4</span>
                     스포크 VPC (10.251.0.0/16) 생성 및 연결
                 </h3>
-                <p class="text-sm text-slate-600">개별 실습생 대역인 10.251.0.0/16 VPC를 생성하고 TGW 허브에 연결합니다.</p>
+                <p class="text-sm text-slate-600">실습생들이 사용할 개별 업무 대역인 10.251.0.0/16 VPC를 생성하고 중앙 TGW 허브에 연결합니다.</p>
                 
                 <div class="aws-console-card">
                     <div class="console-header">
@@ -380,21 +484,23 @@
                             <div class="field-value font-mono font-black text-emerald-600">10.251.0.0/16</div>
                         </div>
                         <div class="field-row border-none">
-                            <div class="field-label">이름</div>
+                            <div class="field-label">이름 태그</div>
                             <div class="field-value">spoke-eks-vpc</div>
                         </div>
                     </div>
                 </div>
 
+                <div class="path-step mt-6">VPC 콘솔 ➔ Transit Gateways ➔ 전송 게이트웨이 연결(Attachments) ➔ 연결 생성</div>
+
                 <div class="aws-console-card">
                     <div class="console-header">
                         <span class="font-bold text-xs text-slate-500">TGW VPC Attachment (전송 게이트웨이 연결)</span>
-                        <span class="billing-tag">0.05 USD / hr</span>
+                        <span class="billing-tag">Paid Service ($0.05/hr)</span>
                     </div>
                     <div class="console-body">
                         <div class="field-row">
                             <div class="field-label">연결 유형 (Attachment Type)</div>
-                            <div class="field-value">VPC</div>
+                            <div class="field-value font-bold text-indigo-600">VPC</div>
                         </div>
                         <div class="field-row">
                             <div class="field-label">Transit Gateway ID</div>
@@ -405,27 +511,133 @@
                             <div class="field-value">spoke-eks-vpc 선택</div>
                         </div>
                         <div class="field-row border-none">
-                            <div class="field-label">서브넷</div>
-                            <div class="field-value">각 가용 영역(AZ)당 1개 서브넷 선택</div>
+                            <div class="field-label">서브넷(Subnets)</div>
+                            <div class="field-value">각 가용 영역(AZ, Availability Zone)당 1개 서브넷 선택</div>
+                            <div class="col-start-2 field-desc text-rose-600 font-bold">주의: 고가용성을 위해 최소 2개 이상의 AZ를 선택해야 합니다. TGW ENI(Elastic Network Interface, 탄력적 네트워크 인터페이스)가 해당 서브넷에 생성됩니다.</div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- section 4: Routing & EKS Access -->
+        <!-- section 4: Local K8s to AWS Access (NEW) -->
+        <section id="k8s" class="space-y-8">
+            <div class="flex items-center gap-4">
+                <h2 class="text-2xl font-black text-slate-900">Phase 4. 온프레미스 Kubernetes(K8s)의 AWS 리소스 접근 및 통신 검증</h2>
+                <div class="h-px flex-1 bg-slate-200"></div>
+            </div>
+
+            <div class="space-y-4">
+                <p class="text-sm text-slate-600">학원 내 여러분의 개인 PC에 설치된 K8s 클러스터(예: Minikube, kubeadm 기반)에서 생성된 파드(Pod)가, VPN 터널을 타고 AWS 스포크 VPC 내부 자원에 접근할 수 있도록 보안을 열어주고 통신을 검증하는 매우 중요한 단계입니다.</p>
+
+                <h3 class="text-lg font-bold flex items-center gap-2 pt-4">
+                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">4-1</span>
+                    작업 1: 온프레미스 K8s CNI 대역 확인
+                </h3>
+                <p class="text-xs text-slate-500 mb-2">내부 파드들이 사용하는 가상 네트워크 IP 대역(CNI, Container Network Interface)을 알아야 AWS 방화벽에서 허용해 줄 수 있습니다.</p>
+                <div class="aws-console-card">
+                    <div class="console-body">
+                        <div class="relative">
+                            <span class="copy-btn" onclick="copyCode(this)">COPY</span>
+                            <pre># 캘리코(Calico) 플러그인을 사용하는 경우 기본 대역 확인 명령어
+kubectl get ippools -o wide
+
+# 또는 플란넬(Flannel) 등을 포함한 일반적인 클러스터 정보 확인
+kubectl cluster-info dump | grep -i cidr</pre>
+                        </div>
+                        <div class="note-box text-xs mt-2">
+                            결과 예시: IP 대역이 <code>192.168.0.0/16</code> 또는 <code>10.244.0.0/16</code> 등으로 출력됩니다. 이 값을 잘 메모해 둡니다.
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold flex items-center gap-2 pt-6">
+                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">4-2</span>
+                    작업 2: AWS 보안 그룹(Security Group) 클릭 및 작업 단위 허용 설정
+                </h3>
+                <p class="text-xs text-slate-500 mb-2">AWS 콘솔에 접속하여 스포크 VPC 내에 있는 리소스(예: 프라이빗 EC2, RDS 등)의 가상 방화벽을 열어줍니다.</p>
+                <div class="path-step">EC2 콘솔 ➔ 네트워크 및 보안 ➔ 보안 그룹(Security Groups)</div>
+                
+                <div class="aws-console-card">
+                    <div class="console-header">
+                        <span class="font-bold text-xs text-slate-500">인바운드 규칙 편집 (Edit Inbound Rules) 단계별 가이드</span>
+                    </div>
+                    <div class="console-body space-y-4">
+                        <ol class="list-decimal pl-5 text-sm space-y-3 font-medium text-slate-700">
+                            <li>EC2 보안 그룹 목록에서 스포크 VPC에 속한 타겟 리소스의 <strong>[보안 그룹 ID]</strong>를 클릭합니다.</li>
+                            <li>화면 하단의 탭 메뉴 중 <strong>[인바운드 규칙(Inbound rules)]</strong>을 선택합니다.</li>
+                            <li>우측 상단의 <strong>[인바운드 규칙 편집(Edit inbound rules)]</strong> 버튼을 클릭합니다.</li>
+                            <li>좌측 하단의 <strong>[규칙 추가(Add rule)]</strong> 버튼을 클릭합니다.</li>
+                        </ol>
+                        
+                        <div class="bg-slate-50 p-4 border rounded-xl mt-4">
+                            <div class="field-row">
+                                <div class="field-label">유형 (Type)</div>
+                                <div class="field-value font-bold text-indigo-600">모든 ICMP - IPv4 (또는 테스트할 특정 포트 예: HTTP)</div>
+                            </div>
+                            <div class="field-row">
+                                <div class="field-label">소스 (Source)</div>
+                                <div class="field-value">사용자 지정 (Custom)</div>
+                            </div>
+                            <div class="field-row border-none">
+                                <div class="field-label text-rose-600">소스 IP 값 (CIDR)</div>
+                                <div class="field-value font-mono font-bold text-rose-600">192.168.0.0/16 (작업 1에서 확인한 K8s CNI 대역 입력)</div>
+                            </div>
+                        </div>
+                        <p class="text-sm mt-3 ml-5">5. 설정을 마친 후 우측 하단의 <strong>[규칙 저장(Save rules)]</strong>을 클릭하여 반영합니다.</p>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold flex items-center gap-2 pt-6">
+                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">4-3</span>
+                    작업 3: 로컬 K8s 접속 확인 및 통신 테스트 (CLI 명령어)
+                </h3>
+                <p class="text-xs text-slate-500 mb-2">실제 학원 PC의 K8s 클러스터 내부에 테스트용 컨테이너를 띄우고, 그 안에서 AWS 내부로 Ping을 날려 VPN 통과 여부를 검증합니다.</p>
+                
+                <div class="aws-console-card">
+                    <div class="console-body space-y-4">
+                        <p class="text-sm font-bold text-slate-800">테스트용 파드 생성 및 Ping 테스트</p>
+                        <div class="relative">
+                            <span class="copy-btn" onclick="copyCode(this)">COPY</span>
+                            <pre># 1. ping 및 네트워킹 유틸리티가 포함된 busybox 컨테이너를 백그라운드로 실행
+kubectl run vpn-test-pod --image=busybox --restart=Never -- sleep 3600
+
+# 2. 파드가 Running 상태가 될 때까지 확인
+kubectl get pods
+
+# 3. 파드 내부로 진입하여 AWS 스포크 VPC의 사설 IP(예: 프라이빗 EC2의 IP 10.251.10.100)로 ping 테스트
+kubectl exec -it vpn-test-pod -- ping 10.251.10.100
+
+# 통신 성공 시 출력 예시:
+# 64 bytes from 10.251.10.100: seq=0 ttl=254 time=5.42 ms
+# 64 bytes from 10.251.10.100: seq=1 ttl=254 time=4.89 ms
+
+# 4. 테스트 완료 후 파드 삭제
+kubectl delete pod vpn-test-pod</pre>
+                        </div>
+                        <div class="note-box text-xs mt-2 border-l-emerald-500">
+                            <strong>검증 완료:</strong> 응답(time=X ms)이 정상적으로 돌아온다면, 내 PC의 K8s 클러스터 네트워크가 사내망 VPN 라우터를 거쳐 AWS TGW를 통과하여 스포크 VPC까지 완벽하게 도달했음을 증명하는 것입니다.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- section 5: Routing & EKS Access -->
         <section id="eks" class="space-y-8">
             <div class="flex items-center gap-4">
-                <h2 class="text-2xl font-black text-slate-900">Phase 4. 라우팅 및 EKS 접속 검증</h2>
+                <h2 class="text-2xl font-black text-slate-900">Phase 5. 라우팅 테이블 업데이트 및 AWS EKS 접속 검증</h2>
                 <div class="h-px flex-1 bg-slate-200"></div>
             </div>
 
             <div class="space-y-6">
                 <h3 class="text-lg font-bold flex items-center gap-2">
-                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">5</span>
+                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">5-1</span>
                     네트워크 라우팅 테이블 업데이트
                 </h3>
-                <p class="text-sm text-slate-600">물리적 연결이 끝났다면, 이제 트래픽이 TGW 허브로 흐르도록 길을 안내해야 합니다.</p>
+                <p class="text-sm text-slate-600">물리적 연결이 끝났다면, 이제 트래픽이 TGW 허브로 흐르도록 길을 안내해야 합니다. 스포크 VPC의 라우팅 테이블을 수정합니다.</p>
+                <div class="path-step">VPC 콘솔 ➔ 라우팅 테이블(Route Tables) ➔ 스포크 VPC 라우팅 테이블 선택 ➔ 라우팅 편집</div>
                 
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
                     <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest">Spoke VPC Route Table</h4>
@@ -444,58 +656,63 @@
                                 <td class="p-3 text-emerald-600 font-bold">Active</td>
                             </tr>
                             <tr class="bg-indigo-50/50">
-                                <td class="p-3 font-mono font-bold">192.168.1.0/24</td>
+                                <td class="p-3 font-mono font-bold text-rose-600">192.168.1.0/24 (사내망 대역)</td>
                                 <td class="p-3 font-bold text-indigo-600">tgw-xxxxx (Transit Gateway)</td>
                                 <td class="p-3 text-emerald-600 font-bold">Active</td>
                             </tr>
                         </tbody>
                     </table>
-                    <p class="text-[10px] text-slate-400">* 해석: "사내망(192.168.1.0)으로 가는 패킷은 무조건 중앙 허브(TGW)로 던져라"라는 의미입니다.</p>
+                    <p class="text-[10px] text-slate-400">* 해석: "AWS 내부에서 사내망(192.168.1.0)으로 향하는 응답 패킷은 무조건 중앙 허브(TGW)로 던져라"라는 의미입니다. (비대칭 라우팅 방지)</p>
                 </div>
 
                 <h3 class="text-lg font-bold flex items-center gap-2 pt-8">
-                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">6</span>
-                    EKS 클러스터 접속 제어 및 확인
+                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">5-2</span>
+                    EKS 클러스터 접속 제어 설정
                 </h3>
+                <p class="text-sm text-slate-600">이제 AWS 클라우드 내부에 띄워진 EKS 클러스터를 인터넷(Public)이 아닌 오직 VPN을 통해서만(Private) 접근하도록 보안을 강화합니다.</p>
+                <div class="path-step">EKS 콘솔 ➔ 클러스터 선택 ➔ 네트워킹(Networking) 탭 ➔ 클러스터 엔드포인트 액세스 관리</div>
+
                 <div class="aws-console-card">
                     <div class="console-header">
-                        <span class="font-bold text-xs text-slate-500">EKS 네트워킹 업데이트</span>
+                        <span class="font-bold text-xs text-slate-500">EKS 네트워킹 업데이트 (Endpoint Access)</span>
                     </div>
                     <div class="console-body">
                         <div class="field-row">
                             <div class="field-label">프라이빗 액세스 (Private Access)</div>
                             <div class="field-value font-bold text-emerald-600">활성화됨 (Enabled)</div>
+                            <div class="col-start-2 field-desc">VPN 터널을 통과해 온 사내망 IP(192.168.1.x)에서만 EKS API(제어 평면)를 호출할 수 있도록 허용합니다.</div>
                         </div>
                         <div class="field-row border-none">
                             <div class="field-label">퍼블릭 액세스 (Public Access)</div>
-                            <div class="field-value">비활성화 (Disabled) - 보안 권장</div>
+                            <div class="field-value font-bold text-rose-600">비활성화 (Disabled)</div>
+                            <div class="col-start-2 field-desc text-rose-600">기업용 엔터프라이즈 보안 권장 사항입니다. 외부 인터넷 망에서의 해킹 시도를 원천 차단합니다.</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-4">
-                    <p class="text-sm font-bold text-slate-800">최종 접속 확인 (CLI)</p>
+                <div class="space-y-4 pt-4">
+                    <p class="text-sm font-bold text-slate-800">최종 EKS 접속 확인 (내 PC 터미널)</p>
                     <div class="relative">
-                        <span class="copy-btn">COPY</span>
-                        <pre># 1. Kubeconfig 업데이트
+                        <span class="copy-btn" onclick="copyCode(this)">COPY</span>
+                        <pre># 1. Kubeconfig(쿠버네티스 인증 파일) 업데이트
 aws eks update-kubeconfig --region ap-northeast-2 --name spoke-cluster-251
 
-# 2. 노드 목록 및 사설 IP 확인
+# 2. 노드 목록 및 사설 IP 확인 (퍼블릭 엔드포인트를 껐으므로, 이 명령어가 먹힌다는 것 자체가 VPN이 완벽히 작동함을 의미함)
 kubectl get nodes -o wide
 
-# 3. 온프레미스 PC ➔ EKS 노드 Ping 확인 (보안그룹 ICMP 허용 시)
-ping 10.251.x.x</pre>
+# 3. AWS EKS 워커 노드(Worker Node)로 Ping 테스트
+ping [출력된 EKS 노드의 Internal-IP 주소]</pre>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- section 5: Final Summary & Billing -->
+        <!-- section 6: Final Summary & Billing -->
         <section class="space-y-10 pt-16 border-t border-slate-200">
             <div class="grid md:grid-cols-2 gap-10">
                 <div class="space-y-6">
                     <h3 class="text-2xl font-black text-slate-900">운영 및 과금 분석</h3>
-                    <p class="text-sm text-slate-500">TGW와 S2S VPN의 복합 구성은 고정비가 높으므로 실습 종료 후 반드시 자원을 정리해야 합니다.</p>
+                    <p class="text-sm text-slate-500">TGW와 S2S VPN의 복합 구성은 <span class="text-rose-600 font-bold">인프라 유지 고정비</span>가 시간당 지속 발생하므로 실습 종료 후 반드시 자원을 정리해야 요금 폭탄을 피할 수 있습니다.</p>
                     
                     <div class="space-y-3">
                         <div class="p-4 bg-white border border-rose-100 rounded-xl shadow-sm border-l-4 border-l-rose-500">
@@ -506,6 +723,7 @@ ping 10.251.x.x</pre>
                             <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                                 <div class="bg-rose-500 h-full" style="width: 25%"></div>
                             </div>
+                            <p class="text-[10px] text-slate-400 mt-2">VPN 연결 1개당 시간당 과금. 통신량이 없어도 유지비 발생.</p>
                         </div>
                         <div class="p-4 bg-white border border-indigo-100 rounded-xl shadow-sm border-l-4 border-l-indigo-500">
                             <div class="flex justify-between text-xs font-bold mb-1">
@@ -515,44 +733,45 @@ ping 10.251.x.x</pre>
                             <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                                 <div class="bg-indigo-500 h-full" style="width: 50%"></div>
                             </div>
+                            <p class="text-[10px] text-slate-400 mt-2">VPC나 VPN을 TGW에 연결할 때마다 1개당 부과되는 시간당 요금.</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex flex-col items-center justify-center bg-white p-8 rounded-[3rem] border shadow-sm">
                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Total Cost Architecture</h4>
-                    <div class="chart-container w-full">
+                    <div class="chart-container w-full h-48 relative">
                         <canvas id="costChart"></canvas>
                     </div>
                 </div>
             </div>
 
             <div class="bg-slate-900 rounded-3xl p-8 text-white space-y-4">
-                <h4 class="text-lg font-bold text-rose-400">🚨 실습 자원 회수 (Clean-up) 순서</h4>
-                <ol class="list-decimal pl-5 text-sm space-y-2 text-slate-300">
-                    <li><strong>EKS 클러스터 삭제:</strong> 연결된 노드 그룹 및 로드밸런서가 먼저 제거되어야 합니다.</li>
-                    <li><strong>VPN 연결 삭제:</strong> 사이트 간 VPN 연결을 먼저 해제해야 고객 게이트웨이 삭제가 가능합니다.</li>
-                    <li><strong>TGW 연결(Attachment) 삭제:</strong> 모든 스포크 VPC와 VPN 연결을 끊어야 합니다.</li>
-                    <li><strong>Transit Gateway 삭제:</strong> 모든 연결이 해제된 후 허브를 제거합니다.</li>
-                    <li><strong>NAT Gateway & VPC 삭제:</strong> 마지막으로 네트워크 환경을 정리합니다.</li>
+                <h4 class="text-lg font-bold text-rose-400">🚨 실습 자원 회수 (Clean-up) 순서 철저 준수</h4>
+                <ol class="list-decimal pl-5 text-sm space-y-3 text-slate-300 font-medium">
+                    <li><strong>EKS 클러스터 삭제:</strong> 클러스터 본체 삭제 전, 반드시 연결된 노드 그룹(Node Group) 및 로드밸런서(ELB)가 먼저 제거되어야 합니다.</li>
+                    <li><strong>VPN 연결 삭제:</strong> 사이트 간 VPN 연결을 먼저 해제(Delete)해야 고객 게이트웨이(CGW) 삭제가 가능해집니다.</li>
+                    <li><strong>TGW 연결(Attachment) 삭제:</strong> 모든 스포크 VPC와 VPN Attachment를 완전히 끊어야 TGW 본체 삭제가 진행됩니다.</li>
+                    <li><strong>Transit Gateway 본체 삭제:</strong> 모든 연결(Attachment)이 해제된 것을 확인 후 허브 본체를 제거합니다.</li>
+                    <li><strong>VPC 환경 삭제:</strong> NAT Gateway, Elastic IP(탄력적 IP), 서브넷 등을 순차적으로 정리합니다.</li>
                 </ol>
             </div>
         </section>
 
     </main>
 
-    <footer class="bg-slate-900 text-white py-16 px-6">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-            <div class="space-y-4">
-                <div class="flex items-center gap-3">
+    <footer class="bg-slate-900 text-white py-16 px-6 mt-16">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="space-y-4 text-center md:text-left">
+                <div class="flex items-center justify-center md:justify-start gap-3">
                     <div class="w-8 h-8 bg-indigo-500 rounded flex items-center justify-center font-black">H</div>
                     <span class="font-black text-xl tracking-tight">EKS Hub & Spoke Lab</span>
                 </div>
                 <p class="text-slate-500 text-xs leading-relaxed max-w-sm">
-                    본 문서는 IP 직업훈련 전문가 과정의 일환으로 제작된 엔터프라이즈 인프라 구축 실무 지침서입니다. TGW 및 S2S VPN의 모든 AWS 메뉴 설정을 준수합니다.
+                    본 문서는 IP 직업훈련 전문가 과정의 일환으로 제작된 엔터프라이즈 인프라 구축 실무 지침서입니다. TGW 및 S2S VPN의 모든 AWS 메뉴 설정을 완벽하게 준수합니다.
                 </p>
             </div>
-            <div class="text-right">
+            <div class="text-center md:text-right">
                 <p class="text-[10px] text-slate-700 font-black uppercase tracking-widest mb-2">Technical Reference</p>
                 <p class="text-slate-400 text-xs mt-1">Advanced Cloud Architecture Team</p>
                 <p class="text-slate-500 text-[10px] mt-8 uppercase">© 2026 Hub & Spoke Labs. All Rights Reserved.</p>
@@ -561,6 +780,20 @@ ping 10.251.x.x</pre>
     </footer>
 
     <script>
+        function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            const text = pre.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btn.innerText;
+                btn.innerText = 'COPIED!';
+                btn.style.backgroundColor = '#10b981';
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.backgroundColor = '#475569';
+                }, 2000);
+            });
+        }
+
         window.onload = function() {
             const ctx = document.getElementById('costChart').getContext('2d');
             new Chart(ctx, {
