@@ -34,15 +34,15 @@
         .console-body { padding: 1.5rem; }
         .field-row { 
             display: grid; 
-            grid-template-columns: 260px 1fr; 
+            grid-template-columns: 280px 1fr; 
             gap: 1.5rem; 
-            padding: 0.75rem 0; 
+            padding: 1rem 0; 
             border-bottom: 1px solid #f1f5f9;
         }
         .field-row:last-child { border-bottom: none; }
-        .field-label { font-size: 0.875rem; font-weight: 700; color: #475569; }
+        .field-label { font-size: 0.875rem; font-weight: 700; color: #334155; }
         .field-value { font-size: 0.875rem; color: #1e293b; }
-        .field-desc { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; line-height: 1.5; }
+        .field-desc { font-size: 0.75rem; color: #64748b; margin-top: 0.4rem; line-height: 1.6; }
         .billing-tag { 
             background: #fee2e2; 
             color: #991b1b; 
@@ -55,344 +55,352 @@
         .path-step {
             display: inline-flex;
             align-items: center;
-            background: #e2e8f0;
-            padding: 4px 10px;
-            border-radius: 4px;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 1rem;
+            color: #475569;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
         }
         pre {
-            background: #1e293b;
-            color: #f8fafc;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
+            background: #0f172a;
+            color: #cbd5e1;
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.825rem;
             position: relative;
             white-space: pre-wrap;
             word-break: break-all;
-        }
-        .copy-btn {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background: #475569;
-            color: white;
-            font-size: 0.7rem;
-            padding: 2px 8px;
-            border-radius: 4px;
-            cursor: pointer;
+            line-height: 1.6;
         }
         .explanation-box {
-            background-color: #e0f2fe;
-            border-left: 4px solid #0ea5e9;
-            padding: 0.75rem;
-            font-size: 0.8rem;
-            color: #0c4a6e;
-            margin-top: 0.5rem;
-            border-radius: 0 0.25rem 0.25rem 0;
+            background-color: #f0f9ff;
+            border-left: 5px solid #0ea5e9;
+            padding: 1.25rem;
+            font-size: 0.85rem;
+            color: #075985;
+            margin: 1.5rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
         }
-        .highlight-red { color: #e11d48; font-weight: 700; }
+        .menu-title { font-weight: 900; color: #1e293b; font-size: 1.1rem; margin-bottom: 1rem; display: block;}
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 leading-relaxed">
 
-    <nav class="sticky top-0 z-100 bg-white/90 backdrop-blur-md border-b border-slate-200">
+    <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 bg-slate-900 rounded flex items-center justify-center text-white font-black">V3</div>
-                <span class="font-black text-lg tracking-tight">Hub & Spoke Master (Client VPN Edition)</span>
+                <span class="font-black text-lg tracking-tight">EKS Hub & Spoke Master (Full Spec)</span>
             </div>
-            <div class="hidden lg:flex gap-4 text-xs font-bold uppercase text-slate-400">
-                <a href="#prep" class="hover:text-indigo-600">Phase 0: PKI</a>
-                <a href="#hub" class="hover:text-indigo-600">Phase 1: Hub</a>
-                <a href="#vpn" class="hover:text-indigo-600">Phase 2: Client VPN</a>
-                <a href="#spoke" class="hover:text-indigo-600">Phase 3: Routing</a>
-                <a href="#connect" class="hover:text-indigo-600">Phase 4: Client</a>
+            <div class="hidden lg:flex gap-6 text-[11px] font-black uppercase text-slate-500">
+                <a href="#prep" class="hover:text-indigo-600 transition-colors">Phase 0: PKI</a>
+                <a href="#hub" class="hover:text-indigo-600 transition-colors">Phase 1: Network</a>
+                <a href="#vpn" class="hover:text-indigo-600 transition-colors">Phase 2: Endpoint</a>
+                <a href="#post" class="hover:text-indigo-600 transition-colors">Phase 3: Association</a>
+                <a href="#client" class="hover:text-indigo-600 transition-colors">Phase 4: Client</a>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto px-6 py-16 space-y-24">
+    <main class="max-w-4xl mx-auto px-6 py-16 space-y-28">
         
         <header class="space-y-6">
             <div class="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-[10px] font-black px-3 py-1 rounded-full border border-indigo-100 uppercase tracking-widest">
-                Professional Infrastructure Guide
+                Professional Infrastructure Technical Reference
             </div>
             <h1 class="text-4xl lg:text-5xl font-black text-slate-900 leading-tight">
                 Hub & Spoke 기반 <br>
-                <span class="text-indigo-600">AWS Client VPN 실무 기술 명세</span>
+                <span class="text-indigo-600">AWS Client VPN 엔터프라이즈 실무 명세</span>
             </h1>
-            <p class="text-lg text-slate-500">
-                개별 사용자가 TLS(Transport Layer Security, 전송 계층 보안) 인증을 통해 AWS 내부망에 안전하게 접속할 수 있도록 지원하는 <strong>AWS Client VPN(클라이언트 가상 사설망)</strong> 환경을 구축합니다.
+            <p class="text-lg text-slate-500 font-medium">
+                본 문서는 AWS 관리 콘솔의 최신 업데이트 항목을 반영하여, 개별 사용자가 <strong>Mutual TLS (상호 전송 계층 보안)</strong> 인증을 통해 프라이빗 네트워크에 접속하는 전 과정을 상세히 기술합니다.
             </p>
-            <div class="explanation-box">
-                <strong>주의:</strong> 본 문서에서 다루는 Client VPN은 <strong>Customer Gateway(고객 게이트웨이)</strong>나 <strong>Virtual Private Gateway(VGW, 가상 프라이빗 게이트웨이)</strong>를 사용하는 Site-to-Site(사이트 간) VPN과 명확히 구분됩니다. 개별 원격 접속자를 위한 전용 서비스입니다.
-            </div>
         </header>
 
         <!-- Phase 0 -->
         <section id="prep" class="space-y-8">
             <div class="flex items-center gap-4">
-                <h2 class="text-2xl font-black text-slate-900">Phase 0. 인증 인프라 및 ACM(AWS Certificate Manager) 등록</h2>
+                <h2 class="text-2xl font-black text-slate-900">Phase 0. 인증 인프라 및 ACM(AWS Certificate Manager) 준비</h2>
                 <div class="h-px flex-1 bg-slate-200"></div>
             </div>
 
-            <div class="space-y-4">
-                <h3 class="text-lg font-bold flex items-center gap-2">
-                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">0-1</span>
-                    Mutual TLS(상호 TLS) 인증을 위한 사설 인증서 생성
+            <div class="space-y-6">
+                <h3 class="text-lg font-bold flex items-center gap-3">
+                    <span class="w-7 h-7 bg-slate-900 text-white rounded-full flex items-center justify-center text-sm">0-1</span>
+                    Easy-RSA를 이용한 인증서(Certificate) 및 키(Key) 생성
                 </h3>
                 <p class="text-sm text-slate-600">
-                    AWS Client VPN 서비스가 서버와 클라이언트를 식별할 수 있도록 <strong>Easy-RSA</strong>를 사용하여 사설 CA(Certificate Authority, 인증 기관)와 인증서를 로컬 환경에서 생성합니다.
+                    Client VPN은 <strong>Server(서버)</strong>와 <strong>Client(클라이언트)</strong>가 서로를 검증하는 상호 인증 방식을 사용합니다. 이를 위해 사설 CA(인증 기관)를 구축합니다.
                 </p>
                 <div class="aws-console-card">
                     <div class="console-body">
-                        <pre># Easy-RSA 도구 복제 및 초기화
+                        <pre># 1. 환경 초기화
 git clone https://github.com/OpenVPN/easy-rsa.git
 cd easy-rsa/easyrsa3
 ./easyrsa init-pki
 
-# 1. 사설 인증 기관(CA) 생성
+# 2. CA(Certificate Authority, 인증 기관) 구축
 ./easyrsa build-ca nopass
 
-# 2. 서버 인증서 및 키 생성 (AWS 엔드포인트용)
+# 3. 서버 인증서 및 개인키 생성 (AWS 콘솔 등록용)
 ./easyrsa build-server-full server nopass
 
-# 3. 클라이언트 인증서 및 키 생성 (사용자 PC용)
-./easyrsa build-client-full client1.domain.tld nopass</pre>
+# 4. 클라이언트 인증서 및 개인키 생성 (사용자 PC 배포용)
+./easyrsa build-client-full user01.domain.tld nopass</pre>
                     </div>
                 </div>
 
-                <h3 class="text-lg font-bold flex items-center gap-2 pt-6">
-                    <span class="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">0-2</span>
-                    ACM(AWS Certificate Manager)에 인증서 가져오기
+                <h3 class="text-lg font-bold flex items-center gap-3 pt-4">
+                    <span class="w-7 h-7 bg-slate-900 text-white rounded-full flex items-center justify-center text-sm">0-2</span>
+                    ACM(AWS Certificate Manager, 인증서 관리자) 업로드
                 </h3>
-                <p class="text-sm text-slate-600">생성된 파일들을 AWS 콘솔의 인증서 관리자 서비스에 등록합니다. <strong>Public(공인)</strong> 인증서가 아닌 <strong>Imported(가져온)</strong> 사설 인증서로 분류됩니다.</p>
-                
-                <div class="path-step">Console ➔ AWS Certificate Manager ➔ <span class="text-indigo-600">Import a certificate (인증서 가져오기)</span></div>
+                <div class="path-step">Console ➔ AWS Certificate Manager ➔ <span class="text-indigo-600 mx-1">Import a certificate (인증서 가져오기)</span></div>
 
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div class="bg-white p-5 border rounded-xl shadow-sm">
-                        <h4 class="font-bold text-sm mb-3">Server Certificate (서버 인증서)</h4>
-                        <ul class="text-xs space-y-2 text-slate-600 font-mono">
-                            <li>Certificate body: server.crt</li>
-                            <li>Certificate private key: server.key</li>
-                            <li>Certificate chain: ca.crt</li>
+                <div class="grid md:grid-cols-2 gap-6 font-mono text-xs">
+                    <div class="p-5 border rounded-2xl bg-white shadow-sm border-indigo-100">
+                        <h4 class="font-black text-indigo-700 mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 bg-indigo-500 rounded-full"></span> SERVER CERT
+                        </h4>
+                        <ul class="space-y-3">
+                            <li><span class="text-slate-400">Body:</span> server.crt</li>
+                            <li><span class="text-slate-400">Key:</span> server.key</li>
+                            <li><span class="text-slate-400">Chain:</span> ca.crt</li>
                         </ul>
                     </div>
-                    <div class="bg-white p-5 border rounded-xl shadow-sm">
-                        <h4 class="font-bold text-sm mb-3">Client Certificate (클라이언트 인증서)</h4>
-                        <ul class="text-xs space-y-2 text-slate-600 font-mono">
-                            <li>Certificate body: client1.domain.tld.crt</li>
-                            <li>Certificate private key: client1.domain.tld.key</li>
-                            <li>Certificate chain: ca.crt</li>
+                    <div class="p-5 border rounded-2xl bg-white shadow-sm border-emerald-100">
+                        <h4 class="font-black text-emerald-700 mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full"></span> CLIENT CERT
+                        </h4>
+                        <ul class="space-y-3">
+                            <li><span class="text-slate-400">Body:</span> user01.domain.tld.crt</li>
+                            <li><span class="text-slate-400">Key:</span> user01.domain.tld.key</li>
+                            <li><span class="text-slate-400">Chain:</span> ca.crt</li>
                         </ul>
                     </div>
-                </div>
-                <div class="explanation-box">
-                    <strong>설명:</strong> <code>ACM(AWS Certificate Manager, AWS 인증서 관리자)</code>은 웹사이트나 VPN에 필요한 SSL/TLS 인증서를 통합 관리하는 도구입니다. 사설 인증서를 사용할 때는 반드시 <strong>Chain(체인)</strong> 부분에 CA 인증서를 포함해야 상호 검증이 가능합니다.
                 </div>
             </div>
         </section>
 
-        <!-- Phase 1 -->
+        <!-- Phase 1: Network Infrastructure -->
         <section id="hub" class="space-y-8">
             <div class="flex items-center gap-4">
-                <h2 class="text-2xl font-black text-slate-900">Phase 1. Hub 네트워크 및 Transit Gateway 구축</h2>
-                <div class="h-px flex-1 bg-slate-200"></div>
-            </div>
-
-            <div class="space-y-6">
-                <div class="aws-console-card">
-                    <div class="console-header">
-                        <span class="font-bold text-xs">VPC(Virtual Private Cloud) & TGW 구성</span>
-                        <span class="billing-tag">VPC: Free / TGW: Paid</span>
-                    </div>
-                    <div class="console-body space-y-6">
-                        <div>
-                            <div class="path-step">VPC ➔ Transit gateways ➔ <span class="text-indigo-600">Create transit gateway (전송 게이트웨이 생성)</span></div>
-                            <p class="text-sm text-slate-600 mt-2">
-                                <strong>TGW(Transit Gateway, 전송 게이트웨이)</strong>는 여러 VPC와 VPN을 중앙에서 연결하는 고성능 라우터입니다. ASN(자율 시스템 번호)은 기본값 64512를 사용합니다.
-                            </p>
-                        </div>
-                        <div class="p-4 bg-slate-50 border rounded-xl">
-                            <h4 class="font-bold text-sm text-slate-800 border-b pb-2 mb-3">TGW Attachments (연결)</h4>
-                            <div class="grid grid-cols-2 gap-4 text-xs">
-                                <div>
-                                    <p class="font-bold text-indigo-700">Hub Attachment</p>
-                                    <p>VPC: Hub-VPC (10.0.0.0/16)</p>
-                                    <p>Subnets: Private A, C</p>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-emerald-700">Spoke Attachment</p>
-                                    <p>VPC: Spoke-EKS (10.251.0.0/16)</p>
-                                    <p>Subnets: Private A, C</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="explanation-box">
-                    <strong>설명:</strong> <code>TGW(Transit Gateway, 전송 게이트웨이)</code>는 네트워크 허브 역할을 수행합니다. 각 VPC를 TGW에 <strong>Attachment(연결)</strong> 함으로써 상호 통신이 가능한 물리적 통로를 개설합니다.
-                </div>
-            </div>
-        </section>
-
-        <!-- Phase 2 -->
-        <section id="vpn" class="space-y-8">
-            <div class="flex items-center gap-4">
-                <h2 class="text-2xl font-black text-slate-900">Phase 2. AWS Client VPN Endpoint 생성</h2>
+                <h2 class="text-2xl font-black text-slate-900">Phase 1. Transit Gateway(TGW) 기반 허브 네트워킹</h2>
                 <div class="h-px flex-1 bg-slate-200"></div>
             </div>
 
             <div class="aws-console-card">
+                <div class="console-header"><span class="font-black text-sm">TGW Attachment (전송 게이트웨이 연결) 구성</span></div>
+                <div class="console-body space-y-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="p-5 bg-slate-50 border rounded-xl">
+                            <p class="text-xs font-black text-slate-500 uppercase mb-2">Hub Attachment</p>
+                            <p class="text-sm font-bold">VPC: Hub-VPC (10.0.0.0/16)</p>
+                            <p class="text-xs text-slate-500 mt-1">VPN 엔드포인트가 배치될 게이트웨이 VPC입니다.</p>
+                        </div>
+                        <div class="p-5 bg-slate-50 border rounded-xl">
+                            <p class="text-xs font-black text-slate-500 uppercase mb-2">Spoke Attachment</p>
+                            <p class="text-sm font-bold">VPC: Spoke-EKS (10.251.0.0/16)</p>
+                            <p class="text-xs text-slate-500 mt-1">실제 워크로드가 실행되는 목적지 VPC입니다.</p>
+                        </div>
+                    </div>
+                    <div class="explanation-box">
+                        <strong>참고:</strong> Transit Gateway(TGW, 전송 게이트웨이)는 리전 내의 여러 VPC를 중앙 집중식으로 연결하는 서비스로, 시간당 $0.05 및 데이터 처리당 비용이 발생합니다.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Phase 2: Client VPN Endpoint -->
+        <section id="vpn" class="space-y-8">
+            <div class="flex items-center gap-4">
+                <h2 class="text-2xl font-black text-slate-900">Phase 2. Create Client VPN Endpoint (엔드포인트 생성) 상세 설정</h2>
+                <div class="h-px flex-1 bg-slate-200"></div>
+            </div>
+
+            <div class="path-step">VPC ➔ Virtual private network (VPN) ➔ <span class="text-indigo-600 mx-1">Client VPN endpoints (클라이언트 VPN 엔드포인트)</span> ➔ Create client VPN endpoint</div>
+
+            <div class="aws-console-card">
                 <div class="console-header">
-                    <span class="font-bold text-xs">VPN Endpoint Configuration (종단점 설정)</span>
-                    <span class="billing-tag">Paid ($0.05/hr/assoc)</span>
+                    <span class="font-black text-sm">Step-by-Step Configuration (단계별 구성)</span>
+                    <span class="billing-tag">VPC ENI Association 요금 발생 ($0.05/hr)</span>
                 </div>
                 <div class="console-body">
-                    <div class="path-step">VPC ➔ Client VPN Endpoints ➔ <span class="text-indigo-600">Create client VPN endpoint</span></div>
                     
+                    <!-- 1. 설정 방법 -->
+                    <span class="menu-title">1. 설정 방법 선택 (Setting method)</span>
                     <div class="field-row">
-                        <div class="field-label">Client IPv4 CIDR</div>
-                        <div class="field-value font-mono font-bold text-indigo-600">172.16.0.0/22</div>
-                        <div class="col-start-2 field-desc">클라이언트가 접속 시 할당받을 가상 IP 대역입니다.</div>
+                        <div class="field-label">설정 방법 (Setting method)</div>
+                        <div class="field-value font-bold text-indigo-700">표준 (Standard)</div>
+                        <div class="col-start-2 field-desc">수동 사용자 지정입니다. 모든 네트워킹, 인증 및 고급 설정을 직접 구성하기 위해 이 옵션을 선택합니다.</div>
                     </div>
-                    <div class="field-row">
-                        <div class="field-label">Server certificate ARN</div>
-                        <div class="field-value">ACM에 업로드한 <strong>server</strong> 인증서 선택</div>
-                    </div>
-                    <div class="field-row">
-                        <div class="field-label">Authentication options</div>
-                        <div class="field-value font-bold text-indigo-600">Use mutual authentication (상호 인증 사용)</div>
-                        <div class="col-start-2 field-desc">Client certificate ARN에서 <strong>client1</strong> 인증서를 지정합니다.</div>
-                    </div>
-                    <div class="field-row">
-                        <div class="field-label">Split-tunnel (스플릿 터널)</div>
-                        <div class="field-value font-bold text-emerald-600">Enable (활성화) ★ 필수</div>
-                        <div class="col-start-2 field-desc">체크하지 않으면 사용자의 모든 인터넷 트래픽이 AWS를 거치게 되어 속도가 저하되고 NAT Gateway 과금이 발생합니다.</div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="space-y-6 pt-6">
-                <h3 class="text-lg font-bold">네트워크 및 권한 최종 활성화 (중요 단계)</h3>
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div class="p-5 border rounded-xl bg-white shadow-sm">
-                        <h4 class="font-bold text-xs text-slate-500 uppercase mb-3">1. Target network associations</h4>
-                        <p class="text-[11px] text-slate-600 mb-2">엔드포인트를 실제 VPC 서브넷에 결합합니다.</p>
-                        <div class="text-xs font-bold text-indigo-700">VPC: Hub-VPC / Subnet: Private Subnet</div>
+                    <!-- 2. 세부 정보 -->
+                    <span class="menu-title pt-6">2. 세부 정보 (Details)</span>
+                    <div class="field-row">
+                        <div class="field-label">이름 (Name) - 선택 사항</div>
+                        <div class="field-value font-mono">eks-master-vpn-endpoint</div>
+                        <div class="col-start-2 field-desc">태그의 Name 키에 할당될 문자열입니다.</div>
                     </div>
-                    <div class="p-5 border rounded-xl bg-white shadow-sm">
-                        <h4 class="font-bold text-xs text-slate-500 uppercase mb-3">2. Authorization rules</h4>
-                        <p class="text-[11px] text-slate-600 mb-2">어떤 네트워크 대역으로의 접근을 허용할지 정의합니다.</p>
-                        <div class="text-xs font-bold text-emerald-700">Destination network: 10.251.0.0/16 (Spoke)</div>
+                    <div class="field-row">
+                        <div class="field-label">설명 (Description) - 선택 사항</div>
+                        <div class="field-value">Enterprise Hub & Spoke Access VPN</div>
+                    </div>
+
+                    <!-- 3. 네트워크 인프라 -->
+                    <span class="menu-title pt-6">3. 네트워크 인프라 (Network infrastructure)</span>
+                    <div class="field-row">
+                        <div class="field-label">연결 유형 (Connection type)</div>
+                        <div class="field-value font-bold text-indigo-700">가상 프라이빗 클라우드(VPC)</div>
+                        <div class="col-start-2 field-desc">특정 VPC와 직접 연결하여 보안 그룹 제어를 사용합니다.</div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label">VPC ID</div>
+                        <div class="field-value">Hub-VPC (10.0.0.0/16) 선택</div>
+                        <div class="col-start-2 field-desc">엔드포인트가 위치할 물리적 VPC를 지정합니다.</div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label">보안 그룹 ID (Security group ID)</div>
+                        <div class="field-value">미리 생성한 VPN 전용 Security Group 선택</div>
+                        <div class="col-start-2 field-desc">엔드포인트 인터페이스(ENI)에 적용될 방화벽입니다.</div>
+                    </div>
+
+                    <!-- 4. 클라이언트 IP 주소 풀 -->
+                    <span class="menu-title pt-6">4. 클라이언트 IP 주소 풀 (Client IP address pool)</span>
+                    <div class="field-row">
+                        <div class="field-label">클라이언트 IPv4 CIDR</div>
+                        <div class="field-value font-mono font-bold text-emerald-600 text-lg">172.16.0.0/22</div>
+                        <div class="col-start-2 field-desc">
+                            접속자들에게 할당될 가상 IP 대역입니다. <strong>VPC CIDR(10.x.x.x)과 절대로 겹치면 안 됩니다.</strong> 최소 /22 비트 이상을 권장합니다.
+                        </div>
+                    </div>
+
+                    <!-- 5. 인증 -->
+                    <span class="menu-title pt-6">5. 인증 (Authentication)</span>
+                    <div class="field-row">
+                        <div class="field-label">서버 인증서 ARN (Server certificate ARN)</div>
+                        <div class="field-value">ACM에서 가져온 <strong>server</strong> 인증서 선택</div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label">인증 옵션 (Authentication options)</div>
+                        <div class="field-value font-bold text-indigo-700">상호 인증 사용 (Use mutual authentication)</div>
+                        <div class="col-start-2 field-desc">클라이언트 인증서를 사용하여 사용자를 식별합니다.</div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label">클라이언트 인증서 ARN</div>
+                        <div class="field-value">ACM에서 가져온 <strong>client1</strong> 인증서 선택</div>
+                    </div>
+
+                    <!-- 6. 연결 로깅 -->
+                    <span class="menu-title pt-6">6. 연결 로깅 (Connection logging)</span>
+                    <div class="field-row">
+                        <div class="field-label">로깅 구성 (Logging configuration)</div>
+                        <div class="field-value">아니요 (No)</div>
+                        <div class="col-start-2 field-desc">실무에서는 CloudWatch Logs를 통해 접속 이력을 남겨야 하지만, 실습 과금 방지를 위해 '아니요'를 선택합니다.</div>
+                    </div>
+
+                    <!-- 7. 클라이언트 연결 핸들러 -->
+                    <span class="menu-title pt-6">7. 클라이언트 연결 핸들러 (Client connect handler)</span>
+                    <div class="field-row">
+                        <div class="field-label">연결 핸들러 활성화</div>
+                        <div class="field-value">아니요 (No)</div>
+                        <div class="col-start-2 field-desc">Lambda 함수를 사용하여 추가적인 인증 로직(MFA 등)을 구현할 때 사용합니다.</div>
+                    </div>
+
+                    <!-- 8. 기타 설정 -->
+                    <span class="menu-title pt-6">8. 기타 설정 (Other settings)</span>
+                    <div class="field-row">
+                        <div class="field-label">전송 프로토콜 (Transport protocol)</div>
+                        <div class="field-value font-bold">UDP</div>
+                        <div class="col-start-2 field-desc">VPN 트래픽의 오버헤드를 줄이기 위해 기본값인 UDP를 권장합니다.</div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label">포트 (Port)</div>
+                        <div class="field-value font-bold">443</div>
+                        <div class="col-start-2 field-desc">대부분의 네트워크 환경에서 허용되어 있는 443(HTTPS 공용 포트)을 사용합니다.</div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label">스플릿 터널 (Split-tunnel)</div>
+                        <div class="field-value font-black text-rose-600">활성화 (Enable) ★★★</div>
+                        <div class="col-start-2 field-desc highlight-red">
+                            이 항목을 활성화해야 사용자의 일반 인터넷 트래픽은 로컬 망으로, AWS 내부(10.x.x.x) 트래픽만 VPN으로 분산됩니다. 비활성화 시 사용자의 모든 인터넷 트래픽이 AWS를 거치게 되어 막대한 데이터 요금이 발생합니다.
+                        </div>
                     </div>
                 </div>
-                <div class="p-5 border rounded-xl bg-white shadow-sm">
-                    <h4 class="font-bold text-xs text-slate-500 uppercase mb-3">3. Route table (Client VPN 전용)</h4>
-                    <p class="text-[11px] text-slate-600 mb-2">엔드포인트 내부 라우팅을 설정합니다.</p>
-                    <div class="text-xs font-bold text-rose-700">Route: 10.251.0.0/16 ➔ Target: Association된 Subnet ID</div>
-                </div>
-            </div>
-            <div class="explanation-box">
-                <strong>설명:</strong> <code>Target network associations(대상 네트워크 연결)</code>은 VPN 장비를 VPC의 스위치 포트에 꽂는 행위와 같습니다. 이 연결이 활성화(Available)되어야 실제 통신 경로가 생성됩니다.
             </div>
         </section>
 
-        <!-- Phase 3 -->
-        <section id="spoke" class="space-y-8">
+        <!-- Phase 3: Post-Configuration -->
+        <section id="post" class="space-y-8">
             <div class="flex items-center gap-4">
-                <h2 class="text-2xl font-black text-slate-900">Phase 3. VPC Route Table(라우팅 테이블) 구성</h2>
+                <h2 class="text-2xl font-black text-slate-900">Phase 3. 활성화 및 정책 적용 (Post-Setup)</h2>
                 <div class="h-px flex-1 bg-slate-200"></div>
             </div>
 
-            <div class="space-y-6">
-                <p class="text-sm text-slate-600">AWS 콘솔의 <strong>VPC ➔ Route tables(라우팅 테이블)</strong> 메뉴에서 패킷이 TGW를 타고 목적지로 갈 수 있도록 이정표를 설정합니다.</p>
-                
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div class="aws-console-card">
-                        <div class="console-header"><span class="font-bold text-xs">Hub VPC Route Table</span></div>
-                        <div class="console-body">
-                            <table class="w-full text-[11px] text-left">
-                                <tr class="bg-slate-50 border-b"><th class="p-2">Destination</th><th class="p-2">Target</th></tr>
-                                <tr><td class="p-2">10.0.0.0/16</td><td class="p-2">local</td></tr>
-                                <tr class="text-indigo-600 font-bold"><td class="p-2">10.251.0.0/16</td><td class="p-2">tgw-xxxx (TGW)</td></tr>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="aws-console-card">
-                        <div class="console-header"><span class="font-bold text-xs">Spoke VPC Route Table</span></div>
-                        <div class="console-body">
-                            <table class="w-full text-[11px] text-left">
-                                <tr class="bg-slate-50 border-b"><th class="p-2">Destination</th><th class="p-2">Target</th></tr>
-                                <tr><td class="p-2">10.251.0.0/16</td><td class="p-2">local</td></tr>
-                                <tr class="text-emerald-600 font-bold"><td class="p-2">172.16.0.0/22</td><td class="p-2">tgw-xxxx (TGW)</td></tr>
-                            </table>
-                        </div>
-                    </div>
+            <div class="grid md:grid-cols-3 gap-4">
+                <div class="bg-white p-6 border rounded-2xl shadow-sm space-y-3">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Step 1</p>
+                    <h4 class="font-black text-sm text-slate-800">Target network associations</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        생성된 엔드포인트를 Hub-VPC의 <strong>Private Subnet</strong>에 연결합니다. 이 과정이 완료(Available)되어야 ENI가 생성됩니다.
+                    </p>
                 </div>
-                <div class="explanation-box">
-                    <strong>설명:</strong> <code>Route Table(라우팅 테이블)</code>은 네트워크 패킷의 목적지 주소를 보고 어느 방향(Gateway)으로 보낼지 결정하는 지도입니다. 스포크 VPC에서 클라이언트 VPN 대역(172.16.x.x)을 타겟으로 하는 경로는 반드시 <strong>TGW</strong>로 지정해야 응답 패킷이 사용자에게 돌아갈 수 있습니다.
+                <div class="bg-white p-6 border rounded-2xl shadow-sm space-y-3">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Step 2</p>
+                    <h4 class="font-black text-sm text-slate-800">Authorization rules</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Destination network를 <code>10.251.0.0/16</code> (Spoke 대역)으로 설정하여 사용자의 접근 권한을 부여합니다.
+                    </p>
+                </div>
+                <div class="bg-white p-6 border rounded-2xl shadow-sm space-y-3">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Step 3</p>
+                    <h4 class="font-black text-sm text-slate-800">Route table (Endpoint)</h4>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        목적지 <code>10.251.0.0/16</code>으로 가기 위한 타겟 서브넷 인터페이스를 경로 정보에 등록합니다.
+                    </p>
                 </div>
             </div>
         </section>
 
-        <!-- Phase 4 -->
-        <section id="connect" class="space-y-8">
-            <div class="flex items-center gap-4">
-                <h2 class="text-2xl font-black text-slate-900">Phase 4. 클라이언트 접속 설정 (.ovpn 수정)</h2>
-                <div class="h-px flex-1 bg-slate-200"></div>
-            </div>
-
-            <div class="space-y-6">
-                <div class="path-step">Client VPN Endpoints ➔ <span class="text-indigo-600">Download client configuration (클라이언트 구성 다운로드)</span></div>
-                
-                <p class="text-sm text-slate-600">다운로드한 <code>.ovpn</code> 파일에는 서버 주소만 들어있습니다. 우리가 생성한 클라이언트 인증서와 키를 직접 파일 안에 삽입해야 합니다.</p>
-                
-                <div class="aws-console-card">
-                    <div class="console-body">
-                        <pre># .ovpn 파일 하단에 <cert> 및 <key> 섹션 추가
-&lt;cert&gt;
------BEGIN CERTIFICATE-----
-(client1.domain.tld.crt 내용 전체 붙여넣기)
------END CERTIFICATE-----
-&lt;/cert&gt;
-
-&lt;key&gt;
------BEGIN PRIVATE KEY-----
-(client1.domain.tld.key 내용 전체 붙여넣기)
------END PRIVATE KEY-----
-&lt;/key&gt;</pre>
+        <!-- Final Summary -->
+        <section class="space-y-8 border-t border-slate-200 pt-16">
+            <h3 class="text-2xl font-black text-slate-900">운영 및 비용 관리 대시보드</h3>
+            <div class="grid md:grid-cols-2 gap-10">
+                <div class="flex flex-col justify-center space-y-6">
+                    <div class="p-5 bg-white border rounded-2xl shadow-sm border-l-8 border-l-rose-500">
+                        <p class="text-xs font-bold text-slate-500 mb-1">엔드포인트 연결 유지비 (Association)</p>
+                        <p class="text-2xl font-black text-slate-900">$0.05 <span class="text-sm font-medium text-slate-400">/ Hour</span></p>
+                    </div>
+                    <div class="p-5 bg-white border rounded-2xl shadow-sm border-l-8 border-l-indigo-500">
+                        <p class="text-xs font-bold text-slate-500 mb-1">사용자 활성 접속비 (Connection)</p>
+                        <p class="text-2xl font-black text-slate-900">$0.05 <span class="text-sm font-medium text-slate-400">/ Hour</span></p>
                     </div>
                 </div>
-                <div class="explanation-box">
-                    <strong>설명:</strong> <code>.ovpn(OpenVPN configuration file)</code>은 OpenVPN 클라이언트가 접속에 필요한 모든 정보를 담고 있는 설정 파일입니다. 상호 인증 방식에서는 클라이언트 고유의 <strong>Certificate(인증서)</strong>와 <strong>Private Key(개인키)</strong>가 파일 내에 포함되어야 보안 통신이 성립됩니다.
+                <div class="bg-white p-8 border rounded-[3rem] shadow-sm flex flex-col items-center">
+                    <p class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Client VPN Cost Distribution</p>
+                    <div class="w-full h-40">
+                        <canvas id="costChart"></canvas>
+                    </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Final Checklist -->
-        <section class="space-y-10 pt-16 border-t border-slate-200">
-            <div class="bg-slate-900 rounded-3xl p-8 text-white space-y-4">
-                <h4 class="text-lg font-bold text-aws-orange">🚨 자원 관리 및 삭제 순서 (Cleanup)</h4>
-                <p class="text-xs text-slate-400">과금을 방지하기 위해 사용 종료 후 다음 순서대로 삭제하십시오.</p>
-                <ol class="list-decimal pl-5 text-sm space-y-3 text-slate-300">
-                    <li><strong>Disassociate Target Network:</strong> Client VPN 엔드포인트에서 대상 네트워크 연결을 먼저 해제합니다. (완료까지 약 5분 소요)</li>
-                    <li><strong>Delete Client VPN Endpoint:</strong> 엔드포인트를 삭제합니다.</li>
-                    <li><strong>Delete TGW Attachments:</strong> Hub 및 Spoke VPC와의 연결을 끊습니다.</li>
-                    <li><strong>Delete Transit Gateway:</strong> 모든 연결이 사라지면 TGW 본체를 삭제합니다.</li>
-                    <li><strong>ACM Certificates:</strong> 필요 시 업로드한 인증서를 삭제합니다.</li>
-                </ol>
+            <div class="bg-slate-900 rounded-3xl p-8 text-white">
+                <h4 class="text-lg font-bold text-aws-orange mb-4">🚨 구축 핵심 요약 (Cheat Sheet)</h4>
+                <ul class="text-sm space-y-3 text-slate-300">
+                    <li class="flex gap-3"><span class="text-aws-orange font-black">1.</span> <strong>인증서 교차 검증:</strong> ACM 업로드 시 Chain(ca.crt)을 빠뜨리면 접속 오류가 발생합니다.</li>
+                    <li class="flex gap-3"><span class="text-aws-orange font-black">2.</span> <strong>스플릿 터널:</strong> 사용자 로컬 인터넷 속도 보장과 AWS 과금 방지를 위한 필수 설정입니다.</li>
+                    <li class="flex gap-3"><span class="text-aws-orange font-black">3.</span> <strong>TGW 라우팅:</strong> Spoke VPC의 Route Table에서도 172.16.x.x 대역을 TGW로 돌려주는 반환 경로가 반드시 필요합니다.</li>
+                </ul>
             </div>
         </section>
 
     </main>
 
     <footer class="bg-slate-900 text-white py-12 px-6 mt-16 text-center">
-        <p class="text-slate-500 text-[10px] uppercase tracking-widest">© 2026 IP Specialist Cloud Lab. Advanced Networking Guide.</p>
+        <p class="text-slate-500 text-[10px] uppercase tracking-widest mb-2">Technical Reference by Advanced Cloud Architect</p>
+        <p class="text-slate-400 text-xs tracking-tighter font-medium">© 2026 IP Vocational Training. Enterprise Infrastructure Master Class.</p>
     </footer>
 
     <script>
@@ -402,17 +410,19 @@ cd easy-rsa/easyrsa3
                 new Chart(ctx, {
                     type: 'doughnut',
                     data: {
-                        labels: ['VPN Endpoint', 'TGW', 'Data Transfer'],
+                        labels: ['Endpoint Assoc', 'User Connections', 'TGW Fees', 'NAT/Data'],
                         datasets: [{
-                            data: [50, 30, 20],
-                            backgroundColor: ['#f43f5e', '#6366f1', '#1e293b'],
-                            borderWidth: 0
+                            data: [45, 25, 20, 10],
+                            backgroundColor: ['#f43f5e', '#6366f1', '#10b981', '#f97316'],
+                            borderWidth: 0,
+                            hoverOffset: 15
                         }]
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
                         cutout: '80%',
-                        plugins: { legend: { position: 'bottom' } }
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 10, weight: 'bold' } } } }
                     }
                 });
             }
