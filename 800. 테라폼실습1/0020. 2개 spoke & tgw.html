@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테라그런트 기반 멀티 환경(Prod/Dev) Transit Gateway 라우팅 아키텍처 구축</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+        .code-container { position: relative; }
+        .code-header { background-color: #2d3748; color: #e2e8f0; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem; padding: 0.5rem 1rem; font-family: monospace; font-size: 0.875rem; display: flex; align-items: center; justify-content: space-between; }
+        .code-body { background-color: #1a202c; border-bottom-left-radius: 0.5rem; border-bottom-right-radius: 0.5rem; margin-top: 0; padding: 1rem; overflow-x: auto; position: relative; }
+        pre[class*="language-"] { margin: 0; padding: 0; background: transparent; }
+        .warning-box { border-left: 4px solid #ef4444; background-color: #fef2f2; }
+        
+        /* 복사 버튼 스타일 */
+        .copy-button {
+            background-color: #4a5568;
+            color: #e2e8f0;
+            border: none;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .copy-button:hover {
+            background-color: #718096;
+        }
+        .copy-button.copied {
+            background-color: #48bb78;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-lg rounded-2xl overflow-hidden">
+        
+        <!-- Header Section -->
+        <header class="bg-indigo-900 text-white p-8">
+            <h1 class="text-3xl font-bold mb-2">테라그런트 기반 멀티 환경(Prod/Dev) Transit Gateway 라우팅 아키텍처 구축</h1>
+            <p class="text-indigo-200">IP 직업훈련 전문가과정 - 고급 클라우드 인프라 자동화 실습</p>
+        </header>
+
+        <!-- Content Section -->
+        <main class="p-8 space-y-12">
+
+            <!-- Architecture Overview -->
+            <section>
+                <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-indigo-100 pb-2 mb-4">아키텍처 개요 및 목표</h2>
+                <p class="mb-4 leading-relaxed text-gray-700">
+                    본 실습에서는 독립적인 두 개의 <strong>Spoke VPC (Virtual Private Cloud, 가상 사설 클라우드)</strong> 환경인 <strong>운영(Prod: 10.251.x.x)</strong> 환경과 <strong>개발(Dev: 10.252.x.x)</strong> 환경을 구성합니다. 각 VPC는 고가용성을 위해 Public Subnet(공용 서브넷)과 Private Subnet(사설 서브넷)을 모두 포함하며, 두 환경 간의 안전한 내부 네트워크 통신을 위해 <strong>TGW (Transit Gateway, 전송 게이트웨이)</strong>를 중앙 라우터로 배치하여 연결하는 엔터프라이즈급 네트워크 토폴로지를 구현합니다.
+                </p>
+                <div class="warning-box p-4 rounded-r-lg mb-6 shadow-sm">
+                    <h3 class="font-bold text-red-700 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                        [필독] AWS (Amazon Web Services, 아마존 웹 서비스) 유료 과금 주의
+                    </h3>
+                    <p class="text-red-600 mt-2 text-sm leading-relaxed">
+                        본 실습에 포함된 각 VPC 내의 <strong>NAT Gateway (Network Address Translation Gateway, 네트워크 주소 변환 게이트웨이)</strong> 2개와 중앙의 <strong>Transit Gateway</strong>는 배포 즉시 시간당 높은 비용이 발생하는 <span class="font-bold underline">유료 서비스</span>입니다. 실습 완료 후 반드시 <code>terragrunt run-all destroy</code> 명령어를 실행하여 리소스를 모두 삭제하시기 바랍니다.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Directory Structure -->
+            <section>
+                <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-indigo-100 pb-2 mb-4">프로젝트 디렉터리 구조</h2>
+                <div class="bg-gray-100 p-6 rounded-lg font-mono text-sm leading-loose border border-gray-200">
+                    <ul class="list-none">
+                        <li><span class="font-bold text-indigo-700">labterra2/</span></li>
+                        <li>├── <span class="text-gray-600">terragrunt.hcl</span> <span class="text-gray-400 italic"># 최상위 루트 설정 (Provider 및 Backend 정의)</span></li>
+                        <li>└── <span class="font-bold text-indigo-700">multi-env/</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="text-gray-600">env.hcl</span> <span class="text-gray-400 italic"># 전체 통합 네트워크 대역 및 공통 변수</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="font-bold text-indigo-700">01-prod-vpc/</span> <span class="text-gray-400 italic"># 운영 환경 네트워크 (Spoke 1)</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── main.tf</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── terragrunt.hcl</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="font-bold text-indigo-700">02-dev-vpc/</span> <span class="text-gray-400 italic"># 개발 환경 네트워크 (Spoke 2)</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── main.tf</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── terragrunt.hcl</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="font-bold text-indigo-700">03-tgw/</span> <span class="text-gray-400 italic"># Transit Gateway 및 양방향 라우팅 정책</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── main.tf</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── terragrunt.hcl</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- File Implementations -->
+            <section class="space-y-10">
+                <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-indigo-100 pb-2 mb-6">핵심 구성 파일 상세 분석</h2>
+
+                <!-- 1. env.hcl -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">1</span> 
+                        중앙 환경 변수 설정 (env.hcl)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">Prod와 Dev 두 환경의 <strong>CIDR (Classless Inter-Domain Routing, 클래스 없는 도메인 간 라우팅)</strong> 대역을 명확히 분리하여 겹치지 않게(Non-overlapping) 설계합니다.</p>
+                    <div class="code-container shadow-md rounded-lg">
+                        <div class="code-header">
+                            <div>
+                                <span>labterra2/multi-env/env.hcl</span>
+                                <span class="text-gray-400 ml-2">HCL</span>
+                            </div>
+                            <button class="copy-button" onclick="copyCode(this)">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                복사
+                            </button>
+                        </div>
+                        <div class="code-body">
+<pre><code class="language-hcl">locals {
+  aws_region = "ap-northeast-2" # 서울 리전
+  azs        = ["ap-northeast-2a", "ap-northeast-2c"]
+  
+  # 운영(Prod) Spoke VPC 변수
+  prod_vpc_cidr     = "10.251.0.0/16"
+  prod_public_subs  = ["10.251.10.0/24", "10.251.20.0/24"]
+  prod_private_subs = ["10.251.110.0/24", "10.251.120.0/24"]
+  
+  # 개발(Dev) Spoke VPC 변수
+  dev_vpc_cidr      = "10.252.0.0/16"
+  dev_public_subs   = ["10.252.10.0/24", "10.252.20.0/24"]
+  dev_private_subs  = ["10.252.110.0/24", "10.252.120.0/24"]
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Prod VPC -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">2</span> 
+                        운영 환경 VPC 구성 (01-prod-vpc)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">운영 환경을 위한 VPC입니다. 자체적인 외부 인터넷 통신을 위해 NAT Gateway를 구성합니다.</p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <div>
+                                    <span>main.tf</span>
+                                    <span class="text-gray-400 ml-2">Terraform</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">variable "vpc_name" { type = string }
+variable "vpc_cidr" { type = string }
+variable "azs" { type = list(string) }
+variable "public_subnets" { type = list(string) }
+variable "private_subnets" { type = list(string) }
+
+module "prod_vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.0.0"
+
+  name = var.vpc_name
+  cidr = var.vpc_cidr
+  azs  = var.azs
+  
+  public_subnets  = var.public_subnets
+  private_subnets = var.private_subnets
+
+  # [AWS 과금 주의] 프라이빗 서브넷의 통신을 위한 NAT Gateway 생성
+  enable_nat_gateway = true
+  single_nat_gateway = true
+}
+
+# TGW 연동을 위한 식별자(ID) 출력
+output "vpc_id" { value = module.prod_vpc.vpc_id }
+output "private_subnets" { value = module.prod_vpc.private_subnets }
+output "public_route_table_ids" { value = module.prod_vpc.public_route_table_ids }
+output "private_route_table_ids" { value = module.prod_vpc.private_route_table_ids }</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <div>
+                                    <span>terragrunt.hcl</span>
+                                    <span class="text-gray-400 ml-2">HCL</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
+include "root" { path = find_in_parent_folders() }
+
+terraform { source = "." }
+
+inputs = {
+  vpc_name        = "PROD-VPC"
+  vpc_cidr        = local.env_vars.locals.prod_vpc_cidr
+  azs             = local.env_vars.locals.azs
+  public_subnets  = local.env_vars.locals.prod_public_subs
+  private_subnets = local.env_vars.locals.prod_private_subs
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Dev VPC -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">3</span> 
+                        개발 환경 VPC 구성 (02-dev-vpc)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">Prod 환경과 동일한 모듈 구조를 재사용하여, 주입되는 <strong>변수(Variables)</strong>만 변경하여 Dev 환경을 배포합니다.</p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <div>
+                                    <span>main.tf</span>
+                                    <span class="text-gray-400 ml-2">Terraform</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">variable "vpc_name" { type = string }
+variable "vpc_cidr" { type = string }
+variable "azs" { type = list(string) }
+variable "public_subnets" { type = list(string) }
+variable "private_subnets" { type = list(string) }
+
+module "dev_vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.0.0"
+
+  name = var.vpc_name
+  cidr = var.vpc_cidr
+  azs  = var.azs
+  
+  public_subnets  = var.public_subnets
+  private_subnets = var.private_subnets
+
+  # [AWS 과금 주의] Dev 환경용 개별 NAT Gateway 생성
+  enable_nat_gateway = true
+  single_nat_gateway = true
+}
+
+output "vpc_id" { value = module.dev_vpc.vpc_id }
+output "private_subnets" { value = module.dev_vpc.private_subnets }
+output "public_route_table_ids" { value = module.dev_vpc.public_route_table_ids }
+output "private_route_table_ids" { value = module.dev_vpc.private_route_table_ids }</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <div>
+                                    <span>terragrunt.hcl</span>
+                                    <span class="text-gray-400 ml-2">HCL</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
+include "root" { path = find_in_parent_folders() }
+
+terraform { source = "." }
+
+inputs = {
+  vpc_name        = "DEV-VPC"
+  vpc_cidr        = local.env_vars.locals.dev_vpc_cidr
+  azs             = local.env_vars.locals.azs
+  public_subnets  = local.env_vars.locals.dev_public_subs
+  private_subnets = local.env_vars.locals.dev_private_subs
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. TGW & Routing -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">4</span> 
+                        Transit Gateway 다중 Spoke 라우팅 구성 (03-tgw)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">생성된 Prod와 Dev VPC를 <strong>TGW (유료 과금)</strong>에 연결(Attachment)하고, 서로 간의 트래픽이 TGW를 통과하도록 각 VPC의 <strong>라우팅 테이블(Route Table)</strong>을 동적으로 업데이트합니다.</p>
+
+                    <div class="space-y-4">
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <div>
+                                    <span>terragrunt.hcl (의존성 및 값 주입)</span>
+                                    <span class="text-gray-400 ml-2">HCL</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
+include "root" { path = find_in_parent_folders() }
+
+# Prod 인프라 종속성 (완료 후 실행)
+dependency "prod" { 
+  config_path = "../01-prod-vpc" 
+  mock_outputs = {
+    vpc_id                  = "vpc-mock-prod"
+    private_subnets         = ["subnet-prod-1", "subnet-prod-2"]
+    private_route_table_ids = ["rtb-prod-priv1", "rtb-prod-priv2"]
+    public_route_table_ids  = ["rtb-prod-pub1", "rtb-prod-pub2"]
+  }
+  mock_outputs_allowed_terraform_commands = ["init","plan","validate"]
+}
+
+# Dev 인프라 종속성 (완료 후 실행)
+dependency "dev" { 
+  config_path = "../02-dev-vpc" 
+  mock_outputs = {
+    vpc_id                  = "vpc-mock-dev"
+    private_subnets         = ["subnet-dev-1", "subnet-dev-2"]
+    private_route_table_ids = ["rtb-dev-priv1", "rtb-dev-priv2"]
+    public_route_table_ids  = ["rtb-dev-pub1", "rtb-dev-pub2"]
+  }
+  mock_outputs_allowed_terraform_commands = ["init","plan","validate"]
+}
+
+terraform { source = "." }
+
+inputs = {
+  # Prod 자원 매핑
+  prod_vpc_id           = dependency.prod.outputs.vpc_id
+  prod_subnet_ids       = dependency.prod.outputs.private_subnets
+  prod_route_table_ids  = concat(dependency.prod.outputs.private_route_table_ids, dependency.prod.outputs.public_route_table_ids)
+  prod_cidr             = local.env_vars.locals.prod_vpc_cidr
+
+  # Dev 자원 매핑
+  dev_vpc_id            = dependency.dev.outputs.vpc_id
+  dev_subnet_ids        = dependency.dev.outputs.private_subnets
+  dev_route_table_ids   = concat(dependency.dev.outputs.private_route_table_ids, dependency.dev.outputs.public_route_table_ids)
+  dev_cidr              = local.env_vars.locals.dev_vpc_cidr
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <div>
+                                    <span>main.tf (TGW 생성 및 상호 라우팅)</span>
+                                    <span class="text-gray-400 ml-2">Terraform</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">variable "prod_vpc_id" { type = string }
+variable "prod_subnet_ids" { type = list(string) }
+variable "prod_route_table_ids" { type = list(string) }
+variable "prod_cidr" { type = string }
+
+variable "dev_vpc_id" { type = string }
+variable "dev_subnet_ids" { type = list(string) }
+variable "dev_route_table_ids" { type = list(string) }
+variable "dev_cidr" { type = string }
+
+# 1. 중앙 Transit Gateway 생성
+resource "aws_ec2_transit_gateway" "multi_env_tgw" {
+  description = "Prod and Dev Communication Router"
+  tags = { Name = "multi-env-tgw" }
+}
+
+# 2. Prod VPC를 TGW에 연결(Attachment)
+resource "aws_ec2_transit_gateway_vpc_attachment" "prod_attach" {
+  subnet_ids         = var.prod_subnet_ids
+  transit_gateway_id = aws_ec2_transit_gateway.multi_env_tgw.id
+  vpc_id             = var.prod_vpc_id
+  tags = { Name = "prod-tgw-attachment" }
+}
+
+# 3. Dev VPC를 TGW에 연결(Attachment)
+resource "aws_ec2_transit_gateway_vpc_attachment" "dev_attach" {
+  subnet_ids         = var.dev_subnet_ids
+  transit_gateway_id = aws_ec2_transit_gateway.multi_env_tgw.id
+  vpc_id             = var.dev_vpc_id
+  tags = { Name = "dev-tgw-attachment" }
+}
+
+# 4. 라우팅: Prod VPC 내부에서 Dev 대역(10.252.0.0/16)으로 가는 트래픽을 TGW로 보냄
+resource "aws_route" "prod_to_dev" {
+  count                  = length(var.prod_route_table_ids)
+  route_table_id         = var.prod_route_table_ids[count.index]
+  destination_cidr_block = var.dev_cidr
+  transit_gateway_id     = aws_ec2_transit_gateway.multi_env_tgw.id
+  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.prod_attach]
+}
+
+# 5. 라우팅: Dev VPC 내부에서 Prod 대역(10.251.0.0/16)으로 가는 트래픽을 TGW로 보냄
+resource "aws_route" "dev_to_prod" {
+  count                  = length(var.dev_route_table_ids)
+  route_table_id         = var.dev_route_table_ids[count.index]
+  destination_cidr_block = var.prod_cidr
+  transit_gateway_id     = aws_ec2_transit_gateway.multi_env_tgw.id
+  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.dev_attach]
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Syntax Highlighting Script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-hcl.min.js"></script>
+    
+    <!-- Copy Button Script -->
+    <script>
+        function copyCode(buttonElement) {
+            // 버튼이 속한 code-container를 찾고, 그 안의 code 블록 텍스트를 가져옴
+            const container = buttonElement.closest('.code-container');
+            const codeText = container.querySelector('.code-body code').innerText;
+            
+            // iFrame 환경 등의 제약을 피하기 위해 textarea를 활용한 복사 로직 (document.execCommand)
+            const textArea = document.createElement("textarea");
+            textArea.value = codeText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                // 복사 성공 시 버튼 UI 변경
+                const originalText = buttonElement.innerHTML;
+                buttonElement.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 완료';
+                buttonElement.classList.add('copied');
+                
+                // 2초 후 원래 상태로 복귀
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalText;
+                    buttonElement.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('복사에 실패했습니다.', err);
+                alert('복사에 실패했습니다.');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+    </script>
+</body>
+</html>
