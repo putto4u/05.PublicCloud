@@ -85,6 +85,7 @@
             border-radius: 0 0.5rem 0.5rem 0;
         }
         .menu-title { font-weight: 900; color: #1e293b; font-size: 1.1rem; margin-bottom: 1rem; display: block;}
+        .warning-highlight { background-color: #fff1f2; border: 1px dashed #fb7185; padding: 10px; border-radius: 8px; margin-top: 10px; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 leading-relaxed">
@@ -271,9 +272,15 @@ cd easy-rsa/easyrsa3
                     <span class="menu-title pt-6">4. 클라이언트 IP 주소 풀 (Client IP address pool)</span>
                     <div class="field-row">
                         <div class="field-label">클라이언트 IPv4 CIDR</div>
-                        <div class="field-value font-mono font-bold text-emerald-600 text-lg">172.16.0.0/22</div>
+                        <div class="field-value font-mono font-bold text-indigo-600 text-lg">172.16.0.0/22</div>
                         <div class="col-start-2 field-desc">
-                            접속자들에게 할당될 가상 IP 대역입니다. <strong>VPC CIDR(10.x.x.x)과 절대로 겹치면 안 됩니다.</strong> 최소 /22 비트 이상을 권장합니다.
+                            <div class="text-rose-600 font-black mb-1">※ 매우 중요: VPN 접속 후 사용자의 가상 랜카드에 할당될 가상 IP 대역입니다.</div>
+                            <ul class="list-disc pl-5 space-y-1 text-slate-600">
+                                <li><strong>현재 내 PC의 로컬 IP</strong>가 아닙니다.</li>
+                                <li><strong>VPC의 CIDR 대역(10.0.x.x)</strong>과 절대 겹치면 안 됩니다.</li>
+                                <li><strong>EKS 포드(Pod) IP 대역</strong>과도 겹치면 안 됩니다.</li>
+                                <li>기존에 사용하지 않는 <strong>제3의 대역</strong>을 새로 생성하여 입력합니다. (최소 /22 권장)</li>
+                            </ul>
                         </div>
                     </div>
 
