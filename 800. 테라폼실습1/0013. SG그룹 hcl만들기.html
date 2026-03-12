@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테라그런트 기반 Hub and Spoke 네트워크 아키텍처 구축 v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+        .code-header { background-color: #2d3748; color: #e2e8f0; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem; padding: 0.5rem 1rem; font-family: monospace; font-size: 0.875rem; display: flex; align-items: center; justify-content: space-between; }
+        .code-body { background-color: #1a202c; border-bottom-left-radius: 0.5rem; border-bottom-right-radius: 0.5rem; margin-top: 0; padding: 1rem; overflow-x: auto; }
+        pre[class*="language-"] { margin: 0; padding: 0; background: transparent; }
+        .warning-box { border-left: 4px solid #ef4444; background-color: #fef2f2; }
+        .info-box { border-left: 4px solid #3b82f6; background-color: #eff6ff; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-lg rounded-2xl overflow-hidden">
+        
+        <!-- Header Section -->
+        <header class="bg-indigo-900 text-white p-8">
+            <h1 class="text-3xl font-bold mb-2">테라그런트 기반 Hub and Spoke 네트워크 아키텍처 구축 v2</h1>
+            <p class="text-indigo-200">IP 직업훈련 전문가과정 - 고급 클라우드 인프라 자동화 실습</p>
+        </header>
+
+        <!-- Content Section -->
+        <main class="p-8 space-y-12">
+
+            <!-- Architecture Overview -->
+            <section>
+                <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-indigo-100 pb-2 mb-4">아키텍처 개요 및 목표</h2>
+                <p class="mb-4 leading-relaxed text-gray-700">
+                    본 실습 예제는 대규모 엔터프라이즈 클라우드 환경에서 표준으로 채택되는 <strong>Hub and Spoke (중앙 허브 및 분기) 네트워크 아키텍처</strong>를 테라그런트(Terragrunt)를 통해 모듈화하여 구축합니다. 중앙의 Hub VPC (Virtual Private Cloud, 가상 사설 클라우드)가 인터넷 연결점 역할을 수행하며, Service VPC는 인터넷과 직접 연결되지 않고 TGW (Transit Gateway, 전송 게이트웨이)를 통해 Hub VPC를 거쳐 안전하게 외부와 통신하게 됩니다.
+                </p>
+                <div class="warning-box p-4 rounded-r-lg mb-6 shadow-sm">
+                    <h3 class="font-bold text-red-700 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                        [필독] AWS (Amazon Web Services, 아마존 웹 서비스) 유료 과금 주의
+                    </h3>
+                    <p class="text-red-600 mt-2 text-sm leading-relaxed">
+                        본 실습에 포함된 <strong>NAT Gateway (Network Address Translation Gateway, 네트워크 주소 변환 게이트웨이)</strong>와 <strong>Transit Gateway</strong>는 생성되는 순간부터 시간당 높은 비용이 발생하는 <span class="font-bold underline">유료 서비스</span>입니다. 실습이 종료된 후에는 반드시 <code>terragrunt run-all destroy</code> 명령어를 통해 리소스를 삭제하여 불필요한 과금을 방지해야 합니다.
+                    </p>
+                </div>
+                <div class="info-box p-4 rounded-r-lg mb-6 shadow-sm mt-4">
+                    <h3 class="font-bold text-blue-700 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                        [v2 업데이트] SG (Security Group, 보안 그룹) 중앙 분리 아키텍처 적용
+                    </h3>
+                    <p class="text-blue-600 mt-2 text-sm leading-relaxed">
+                        기존에 각 애플리케이션 리소스(ALB, EC2 등)에 종속되어 있던 보안 그룹을 <strong>04-sgrp</strong> 디렉터리로 완전히 분리하였습니다. 이는 IaC (Infrastructure as Code, 코드형 인프라) 환경에서 발생하기 쉬운 <strong>순환 참조 (Circular Dependency)</strong> 문제를 원천 차단하고, 전사적인 보안 정책을 중앙에서 통제하기 위한 엔터프라이즈 모범 사례(Best Practice)입니다.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Directory Structure -->
+            <section>
+                <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-indigo-100 pb-2 mb-4">프로젝트 디렉터리 구조</h2>
+                <div class="bg-gray-100 p-6 rounded-lg font-mono text-sm leading-loose border border-gray-200">
+                    <ul class="list-none">
+                        <li><span class="font-bold text-indigo-700">labterra1/</span></li>
+                        <li>├── <span class="text-gray-600">terragrunt.hcl</span> <span class="text-gray-400 italic"># 최상위 루트 설정 (Provider 및 Backend 정의)</span></li>
+                        <li>└── <span class="font-bold text-indigo-700">prod/</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="text-gray-600">env.hcl</span> <span class="text-gray-400 italic"># 운영(Prod) 환경 공통 변수</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="font-bold text-indigo-700">01-hub-vpc/</span> <span class="text-gray-400 italic"># 중앙 네트워크 허브 인프라</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── main.tf</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── terragrunt.hcl</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="font-bold text-indigo-700">02-service-vpc/</span> <span class="text-gray-400 italic"># 서비스 구동용 내부 네트워크 인프라</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── main.tf</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── terragrunt.hcl</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="font-bold text-indigo-700">03-tgw/</span> <span class="text-gray-400 italic"># 전송 게이트웨이 및 통합 라우팅 구성</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── main.tf</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── terragrunt.hcl</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="font-bold text-blue-600">04-sgrp/</span> <span class="text-blue-400 italic"># [NEW] 통합 보안 그룹(Security Group) 관리</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── main.tf</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── terragrunt.hcl</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="font-bold text-indigo-700">05-alb/</span> <span class="text-gray-400 italic"># 애플리케이션 로드 밸런서 (Hub 배포)</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── main.tf</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── terragrunt.hcl</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="font-bold text-indigo-700">06-ec2-nginx/</span> <span class="text-gray-400 italic"># 서비스 구동용 웹 서버 (Service 배포)</span></li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── main.tf</li>
+                        <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── terragrunt.hcl</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- File Implementations -->
+            <section class="space-y-10">
+                <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-indigo-100 pb-2 mb-6">핵심 구성 파일 상세 분석</h2>
+
+                <!-- 1. Root terragrunt.hcl -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">1</span> 
+                        루트 설정 파일
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">전체 프로젝트에 적용되는 AWS Provider (클라우드 공급자) 설정과 Terraform State (인프라 상태) 파일의 로컬 저장 방식을 동적으로 생성합니다.</p>
+                    <div class="code-container shadow-md rounded-lg">
+                        <div class="code-header">
+                            <span>labterra1/terragrunt.hcl</span>
+                            <span class="text-gray-400">HCL</span>
+                        </div>
+                        <div class="code-body">
+<pre><code class="language-hcl"># 로컬 변수(Local Variables)를 통해 하위 디렉터리의 환경 설정 파일(env.hcl)을 읽어옵니다.
+locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+  aws_region = local.env_vars.locals.aws_region
+}
+
+# Provider (클라우드 공급자) 자동 생성 설정
+# 이 블록은 각 하위 디렉터리에 'provider.tf' 파일을 동적으로 생성해 줍니다.
+generate "provider" {
+  path      = "provider.tf"
+  if_exists = "overwrite_terragrunt"
+  contents  = &lt;&lt;EOF
+provider "aws" {
+  region = "${local.aws_region}"
+}
+EOF
+}
+
+# PC (Personal Computer, 개인용 컴퓨터)의 현재 디렉터리를 활용한 로컬 상태 저장소(Local State Backend) 설정
+# 실무에서는 S3와 DynamoDB를 조합하여 사용하지만, 본 실습에서는 로컬 환경에 저장합니다.
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. env.hcl -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">2</span> 
+                        환경 변수 설정 파일
+                    </h3>
+                    <div class="code-container shadow-md rounded-lg">
+                        <div class="code-header">
+                            <span>labterra1/prod/env.hcl</span>
+                            <span class="text-gray-400">HCL</span>
+                        </div>
+                        <div class="code-body">
+<pre><code class="language-hcl"># 환경별(운영, 개발 등) 공통 변수를 정의합니다.
+# [v2 아키텍처 개선] 하드코딩되어 있던 CIDR (Classless Inter-Domain Routing, 클래스 없는 도메인 간 라우팅), AZ (Availability Zone, 가용 영역), 라우팅 대역을 모두 중앙 집중화합니다.
+# 이를 통해 인프라 코드의 재사용성을 높이고 Human Error (작업자 실수)를 방지합니다.
+locals {
+  environment              = "prod"        # 프로덕션(운영) 환경 지정
+  aws_region               = "us-east-1"   # 리소스가 배포될 AWS 리전 (미국 동부 - 버지니아 북부)
+  
+  # 공통 사용 네트워크 및 가용 영역
+  azs                      = ["us-east-1a", "us-east-1b"]
+  all_ips                  = "0.0.0.0/0"   # 외부 인터넷 전체 대역
+  
+  # Hub VPC (Virtual Private Cloud, 가상 사설 클라우드) 네트워크 변수
+  hub_vpc_cidr             = "10.250.0.0/16"
+  hub_public_subnets       = ["10.250.21.0/24", "10.250.22.0/24"]
+  hub_private_subnets      = ["10.250.101.0/24", "10.250.102.0/24"]
+  
+  # Service VPC 네트워크 변수
+  service_vpc_cidr         = "10.251.0.0/16"
+  service_private_subnets  = ["10.251.101.0/24", "10.251.102.0/24"]
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Hub VPC -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">3</span> 
+                        Hub VPC 구성 (01-hub-vpc)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">외부 인터넷과의 통신을 전담하는 중앙 허브 네트워크입니다. Public/Private Subnet(서브넷, 부분망)을 모두 포함하며 <strong>NAT Gateway (유료 과금 주의)</strong>가 위치합니다.</p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>main.tf</span>
+                                <span class="text-gray-400">Terraform</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">variable "vpc_name" { type = string }
+variable "vpc_cidr" { type = string }
+
+# [v2 아키텍처 개선] 동적 할당을 위해 리스트 타입의 변수를 추가 선언합니다.
+variable "azs" { type = list(string) }
+variable "public_subnets" { type = list(string) }
+variable "private_subnets" { type = list(string) }
+
+module "hub_vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.0.0"
+
+  name = var.vpc_name
+  cidr = var.vpc_cidr
+
+  # [v2 아키텍처 개선] 하드코딩된 배열을 제거하고 변수로 매핑합니다.
+  azs             = var.azs
+  public_subnets  = var.public_subnets
+  private_subnets = var.private_subnets
+
+  # NAT Gateway 활성화 (프라이빗 서브넷의 아웃바운드 인터넷 통신용)
+  enable_nat_gateway = true
+  single_nat_gateway = true # 실습 비용 절감을 위한 단일 NAT 구성
+}
+
+# TGW 연동을 위해 필요한 정보들을 출력값(Output)으로 내보냅니다.
+output "vpc_id" { value = module.hub_vpc.vpc_id }
+output "public_subnets" { value = module.hub_vpc.public_subnets }
+output "private_subnets" { value = module.hub_vpc.private_subnets }
+output "private_route_table_ids" { value = module.hub_vpc.private_route_table_ids }
+output "public_route_table_ids" { value = module.hub_vpc.public_route_table_ids }  
+output "nat_gateway_ids" { value = module.hub_vpc.natgw_ids }</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>terragrunt.hcl</span>
+                                <span class="text-gray-400">HCL</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl"># [v2 아키텍처 개선] 상위 폴더의 env.hcl을 읽어와서 local 변수로 캐싱(저장)합니다.
+locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "." # 현재 디렉터리의 .tf 파일들을 실행
+}
+
+# [v2 아키텍처 개선] main.tf에 선언된 변수들에 env.hcl의 중앙값을 동적으로 주입합니다.
+inputs = {
+  vpc_name        = "HUB"
+  vpc_cidr        = local.env_vars.locals.hub_vpc_cidr
+  azs             = local.env_vars.locals.azs
+  public_subnets  = local.env_vars.locals.hub_public_subnets
+  private_subnets = local.env_vars.locals.hub_private_subnets
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Service VPC -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">4</span> 
+                        Service VPC 구성 (02-service-vpc)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">실제 애플리케이션 서비스가 배포되는 내부망입니다. 보안 강화를 위해 Public Subnet과 NAT Gateway를 생성하지 않고 폐쇄적으로 구성됩니다.</p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>main.tf</span>
+                                <span class="text-gray-400">Terraform</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">variable "vpc_name" { type = string }
+variable "vpc_cidr" { type = string }
+
+# [v2 아키텍처 개선] Service VPC용 동적 변수 선언
+variable "azs" { type = list(string) }
+variable "private_subnets" { type = list(string) }
+
+module "service_vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.0.0"
+
+  name = var.vpc_name
+  cidr = var.vpc_cidr
+
+  # [v2 아키텍처 개선] 하드코딩 제거 및 변수화
+  azs             = var.azs
+  private_subnets = var.private_subnets
+
+  enable_nat_gateway = false # NAT 없음 (Hub VPC 에 의존하여 인터넷 통신)
+}
+
+output "vpc_id" { value = module.service_vpc.vpc_id }
+output "private_subnets" { value = module.service_vpc.private_subnets }
+output "private_route_table_ids" { value = module.service_vpc.private_route_table_ids }</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>terragrunt.hcl</span>
+                                <span class="text-gray-400">HCL</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl"># [v2 아키텍처 개선] env.hcl 로드
+locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform { source = "." }
+
+# [v2 아키텍처 개선] env.hcl에서 Service VPC 대역폭 및 AZ 주입
+inputs = {
+  vpc_name        = "service-vpc"
+  vpc_cidr        = local.env_vars.locals.service_vpc_cidr
+  azs             = local.env_vars.locals.azs
+  private_subnets = local.env_vars.locals.service_private_subnets
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. TGW -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">5</span> 
+                        Transit Gateway (TGW) 구성 (03-tgw)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">분리된 여러 VPC를 중앙에서 연결하고 라우팅을 통제하는 <strong>TGW (유료 과금 주의)</strong> 구성 파일입니다. Terragrunt의 강력한 기능인 `dependency` 블록을 사용하여 앞서 생성한 VPC들의 출력값을 안전하게 가져옵니다.</p>
+
+                    <div class="space-y-4">
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>terragrunt.hcl (의존성 및 값 주입)</span>
+                                <span class="text-gray-400">HCL</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl"># [v2 아키텍처 개선] 라우팅을 위한 env.hcl 로드
+locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
+include "root" { path = find_in_parent_folders() }
+
+# 의존성 설정: Hub VPC 모듈이 먼저 실행되어야 합니다.
+# mock_outputs는 'terragrunt plan' 시 실제 인프라가 배포되기 전 가짜 데이터를 제공하여 에러를 방지합니다.
+dependency "hub" { 
+  config_path = "../01-hub-vpc" 
+  mock_outputs = {
+    vpc_id                  = "vpc-mock-12345"
+    private_subnets         = ["subnet-mock-1", "subnet-mock-2"]
+    public_subnets          = ["subnet-mock-pub1", "subnet-mock-pub2"]
+    private_route_table_ids = ["rtb-mock-1", "rtb-mock-2"]
+    public_route_table_ids  = ["rtb-mock-pub1", "rtb-mock-pub2"]
+    nat_gateway_ids         = ["nat-12345"]
+  }
+  mock_outputs_allowed_terraform_commands = ["init","plan", "validate"]
+}
+
+dependency "service" { 
+  config_path = "../02-service-vpc" 
+  mock_outputs = {
+    vpc_id                  = "vpc-mock-67890"
+    private_subnets         = ["subnet-mock-3", "subnet-mock-4"]
+    private_route_table_ids = ["rtb-mock-3", "rtb-mock-4"]
+  }
+  mock_outputs_allowed_terraform_commands = ["init","plan", "validate"]
+}
+
+terraform { source = "." }
+
+# 종속성 모듈에서 추출한 Output 값 및 env.hcl의 중앙값을 현재 모듈의 Input으로 매핑합니다.
+inputs = {
+  hub_vpc_id                 = dependency.hub.outputs.vpc_id
+  hub_subnet_ids             = dependency.hub.outputs.private_subnets
+  service_vpc_id             = dependency.service.outputs.vpc_id
+  service_subnet_ids         = dependency.service.outputs.private_subnets
+  hub_route_table_ids        = dependency.hub.outputs.private_route_table_ids
+  hub_public_route_table_ids = dependency.hub.outputs.public_route_table_ids
+  service_route_table_ids    = dependency.service.outputs.private_route_table_ids
+  nat_gateway_ids            = dependency.hub.outputs.nat_gateway_ids
+  
+  # [v2 아키텍처 개선] 라우팅 대역폭 변수 주입
+  all_ips                    = local.env_vars.locals.all_ips
+  service_vpc_cidr           = local.env_vars.locals.service_vpc_cidr
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>main.tf (라우팅 핵심 논리)</span>
+                                <span class="text-gray-400">Terraform</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">variable "hub_vpc_id" { type = string }
+variable "hub_public_route_table_ids" { type = list(string) }
+variable "hub_subnet_ids" { type = list(string) }
+variable "service_vpc_id" { type = string }
+variable "service_subnet_ids" { type = list(string) }
+variable "hub_route_table_ids" { type = list(string) }
+variable "service_route_table_ids" { type = list(string) }
+variable "nat_gateway_ids" { type = list(string) }
+
+# [v2 아키텍처 개선] 라우팅 타겟 CIDR 변수
+variable "all_ips" { type = string }
+variable "service_vpc_cidr" { type = string }
+
+# TGW 생성 (유료 인프라)
+resource "aws_ec2_transit_gateway" "main" {
+  description = "Hub and Spoke TGW"
+  tags = { Name = "main-tgw" }
+}
+
+# TGW에 Hub VPC 네트워크 어태치먼트(Attachment, 연결점) 생성
+resource "aws_ec2_transit_gateway_vpc_attachment" "hub" {
+  subnet_ids         = var.hub_subnet_ids
+  transit_gateway_id = aws_ec2_transit_gateway.main.id
+  vpc_id             = var.hub_vpc_id
+  tags = { Name = "hub-attachment" }
+}
+
+# TGW에 Service VPC 네트워크 어태치먼트 생성
+resource "aws_ec2_transit_gateway_vpc_attachment" "service" {
+  subnet_ids         = var.service_subnet_ids
+  transit_gateway_id = aws_ec2_transit_gateway.main.id
+  vpc_id             = var.service_vpc_id
+  tags = { Name = "service-attachment" }
+}
+
+# [핵심 라우팅 1] Service VPC에서 외부로 가는 모든 트래픽을 TGW로 강제 전송
+resource "aws_route" "service_to_tgw" {
+  count                  = length(var.service_route_table_ids)
+  route_table_id         = var.service_route_table_ids[count.index]
+  destination_cidr_block = var.all_ips # [v2 아키텍처 개선] 0.0.0.0/0 변수화
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.service]
+}
+
+# [핵심 라우팅 2] Hub VPC의 Private Subnet에서 Service VPC 대역으로 가는 트래픽을 TGW로 전송
+resource "aws_route" "hub_private_to_service" {
+  count                  = length(var.hub_route_table_ids)
+  route_table_id         = var.hub_route_table_ids[count.index]
+  destination_cidr_block = var.service_vpc_cidr # [v2 아키텍처 개선] 10.251.0.0/16 변수화
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.hub]
+}
+
+# [핵심 라우팅 3] Hub VPC의 Public Subnet에서 Service VPC 대역으로 가는 트래픽을 TGW로 전송
+resource "aws_route" "hub_pub_to_service" {
+  count                  = length(var.hub_public_route_table_ids)
+  route_table_id         = var.hub_public_route_table_ids[count.index]
+  destination_cidr_block = var.service_vpc_cidr # [v2 아키텍처 개선] 10.251.0.0/16 변수화
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+  depends_on             = [aws_ec2_transit_gateway_vpc_attachment.hub]
+}
+
+# [핵심 라우팅 4] TGW 내부 라우팅 테이블 설정 - TGW가 수신한 외부 인터넷 향 트래픽을 Hub VPC 연결점으로 보냄
+resource "aws_ec2_transit_gateway_route" "tgw_default_route" {
+  destination_cidr_block         = var.all_ips # [v2 아키텍처 개선] 0.0.0.0/0 변수화
+  transit_gateway_route_table_id = aws_ec2_transit_gateway.main.association_default_route_table_id
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.hub.id
+  depends_on                     = [aws_ec2_transit_gateway_vpc_attachment.hub]
+}
+
+# 검증을 위한 식별자 출력
+output "tgw_final_info" {
+  value = {
+    tgw_id            = aws_ec2_transit_gateway.main.id
+    tgw_route_table   = aws_ec2_transit_gateway.main.association_default_route_table_id
+    hub_attachment_id = aws_ec2_transit_gateway_vpc_attachment.hub.id
+  }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Security Groups [NEW] -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-blue-100 text-blue-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">6</span> 
+                        SG (Security Group, 보안 그룹) 전용 모듈 구성 (04-sgrp)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">시스템 전체의 네트워크 방화벽 역할을 하는 SG (Security Group, 보안 그룹)를 한곳에서 관리합니다. Hub VPC와 Service VPC 각각에 필요한 정책을 일괄 배포하여 인프라의 복잡성을 낮추고 관리를 용이하게 합니다.</p>
+
+                    <div class="space-y-4">
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>main.tf (통합 보안 정책)</span>
+                                <span class="text-gray-400">Terraform</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">variable "hub_vpc_id" { type = string }
+variable "service_vpc_id" { type = string }
+variable "all_ips" { type = string }
+variable "service_vpc_cidr" { type = string }
+variable "hub_vpc_cidr" { type = string }
+
+# ALB 전용 보안 그룹 (인바운드: 외부 허용, 아웃바운드: Service VPC 대역 허용)
+resource "aws_security_group" "alb_sg" {
+  name        = "hub-alb-sg"
+  description = "ALB Security Group"
+  vpc_id      = var.hub_vpc_id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [var.all_ips]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.service_vpc_cidr]
+  }
+}
+
+# Nginx 전용 보안 그룹 (인바운드: Hub VPC 대역만 허용)
+resource "aws_security_group" "nginx_sg" {
+  name        = "nginx-service-sg"
+  description = "Nginx Service Security Group"
+  vpc_id      = var.service_vpc_id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [var.hub_vpc_cidr] 
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.all_ips] # OS 업데이트 및 SSM 통신용
+  }
+}
+
+# 생성된 보안 그룹 ID들을 Output으로 내보내어 타 모듈(ALB, EC2)에서 참조하게 합니다.
+output "alb_sg_id" { value = aws_security_group.alb_sg.id }
+output "nginx_sg_id" { value = aws_security_group.nginx_sg.id }</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>terragrunt.hcl (보안 그룹 의존성 및 변수 주입)</span>
+                                <span class="text-gray-400">HCL</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
+include "root" { path = find_in_parent_folders() }
+
+# 보안 그룹은 생성될 VPC가 먼저 존재해야 하므로 두 VPC에 종속성을 가집니다.
+dependency "hub" {
+  config_path = "../01-hub-vpc"
+  mock_outputs = { vpc_id = "vpc-mock-12345" }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+dependency "service" {
+  config_path = "../02-service-vpc"
+  mock_outputs = { vpc_id = "vpc-mock-67890" }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+terraform { source = "." }
+
+inputs = {
+  hub_vpc_id       = dependency.hub.outputs.vpc_id
+  service_vpc_id   = dependency.service.outputs.vpc_id
+  all_ips          = local.env_vars.locals.all_ips
+  hub_vpc_cidr     = local.env_vars.locals.hub_vpc_cidr
+  service_vpc_cidr = local.env_vars.locals.service_vpc_cidr
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. ALB -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">7</span> 
+                        ALB (Application Load Balancer, 애플리케이션 로드 밸런서) 구성 (05-alb)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">외부 클라이언트의 HTTP 트래픽을 안전하게 받아 내부 서비스로 전달하는 핵심 모듈입니다. 앞서 <code>04-sgrp</code>에서 중앙 생성한 보안 그룹 ID를 참조하여 연결합니다. <br><span class="text-red-600 font-bold">[AWS 과금 주의] ALB는 프로비저닝된 시간과 처리된 트래픽 양에 따라 지속적인 유료 요금이 발생합니다.</span></p>
+
+                    <div class="space-y-4">
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>main.tf (ALB 배포)</span>
+                                <span class="text-gray-400">Terraform</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">variable "vpc_id" { type = string }
+variable "public_subnets" { type = list(string) }
+
+# [v2 아키텍처 개선] 분리된 보안 그룹 모듈로부터 ID 리스트를 전달받습니다.
+variable "security_group_ids" { type = list(string) }
+
+module "alb" {
+  source  = "terraform-aws-modules/alb/aws"
+  version = "~> 9.0"
+
+  name               = "hub-alb"
+  load_balancer_type = "application"
+  vpc_id             = var.vpc_id
+  subnets            = var.public_subnets
+  
+  # 보안 그룹 직접 생성 코드가 제거되고, 전달받은 변수를 활용합니다.
+  security_groups    = var.security_group_ids
+
+  listeners = {
+    http = {
+      port     = 80
+      protocol = "HTTP"
+      forward = {
+        target_group_key = "nginx_tg" 
+      }
+    }
+  }
+  
+  target_groups = {
+    nginx_tg = {
+      name_prefix      = "ngnx-" 
+      protocol         = "HTTP"
+      port             = 80
+      target_type      = "ip"
+      create_attachment = false
+    }
+  }
+}
+
+output "target_group_arns" { 
+  value = [module.alb.target_groups["nginx_tg"].arn] 
+}
+
+output "alb_dns_name" { 
+  value = module.alb.dns_name 
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>terragrunt.hcl (의존성 설정)</span>
+                                <span class="text-gray-400">HCL</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
+include "root" { path = find_in_parent_folders() }
+
+dependency "hub" {
+  config_path = "../01-hub-vpc"
+  mock_outputs = {
+    vpc_id         = "vpc-mock-12345"
+    public_subnets = ["subnet-mock-pub1", "subnet-mock-pub2"]
+  }
+  mock_outputs_allowed_terraform_commands = ["init","plan", "validate"]
+}
+
+# [v2 아키텍처 개선] 분리된 통합 보안 그룹에 대한 의존성을 추가합니다.
+dependency "sgrp" {
+  config_path = "../04-sgrp"
+  mock_outputs = { alb_sg_id = "sg-mock-alb123" }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+terraform { source = "." }
+
+inputs = {
+  vpc_id             = dependency.hub.outputs.vpc_id
+  public_subnets     = dependency.hub.outputs.public_subnets
+  
+  # 생성된 보안 그룹 ID를 리스트 형태로 ALB 모듈에 주입합니다.
+  security_group_ids = [dependency.sgrp.outputs.alb_sg_id]
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. EC2 Nginx -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-2.5 py-0.5 rounded mr-2">8</span> 
+                        EC2 (Elastic Compute Cloud, 엘라스틱 컴퓨트 클라우드) 웹 서버 구성 (06-ec2-nginx)
+                    </h3>
+                    <p class="text-gray-600 mb-3 text-sm">실제 웹 서비스(Nginx)가 동작하는 가상 서버입니다. <strong>SSM (Systems Manager, 시스템스 매니저)</strong>과 <strong>IAM (Identity and Access Management, 식별 및 접근 관리)</strong> 역할을 통해 쉘 접속을 통제하며, 중앙 보안 그룹 모듈의 정책을 상속받습니다. <br><span class="text-red-600 font-bold">[AWS 과금 주의] EC2 인스턴스는 프리티어 한도 초과 시 유료 과금이 발생합니다.</span></p>
+
+                    <div class="space-y-4">
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>main.tf (EC2 및 IAM 역할)</span>
+                                <span class="text-gray-400">Terraform</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">variable "vpc_id" { type = string }
+variable "subnet_id" { type = string }
+variable "target_group_arn" { type = string }
+
+# [v2 아키텍처 개선] 중앙화된 보안 그룹 ID를 전달받습니다.
+variable "security_group_ids" { type = list(string) }
+
+# --- [핵심 보안] SSM (Systems Manager) 접속을 위한 IAM 설정 ---
+
+resource "aws_iam_role" "ssm_role" {
+  name = "nginx-ssm-role_v2"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_policy" {
+  role       = aws_iam_role.ssm_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ssm_profile" {
+  name = "nginx-ssm-profile_v2"
+  role = aws_iam_role.ssm_role.name
+}
+
+# --------------------------------------------------------
+
+# 실제 Nginx 웹 서버 EC2 생성
+resource "aws_instance" "nginx" {
+  ami           = "ami-0b6c6ebed2801a5cb" # Ubuntu 24.04 LTS (우분투 리눅스)
+  instance_type = "t3.micro"
+  subnet_id     = var.subnet_id
+  
+  # 자체 생성하던 보안 그룹 대신, 중앙(04-sgrp)에서 주입받은 ID를 매핑합니다.
+  vpc_security_group_ids = var.security_group_ids
+  
+  iam_instance_profile = aws_iam_instance_profile.ssm_profile.name
+
+  user_data = &lt;&lt;-EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install -y nginx
+              systemctl start nginx
+              systemctl enable nginx
+              echo "Welcome to Centralized Network Nginx!" &gt; /var/www/html/index.html
+              EOF
+  tags = { Name = "nginx-service-instance" }
+}
+
+resource "aws_lb_target_group_attachment" "nginx_attach" {
+  target_group_arn = var.target_group_arn
+  target_id        = aws_instance.nginx.private_ip
+  port             = 80
+  availability_zone = "all"
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="code-container shadow-md rounded-lg">
+                            <div class="code-header">
+                                <span>terragrunt.hcl (다중 의존성 설정)</span>
+                                <span class="text-gray-400">HCL</span>
+                            </div>
+                            <div class="code-body">
+<pre><code class="language-hcl">locals {
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
+include "root" { path = find_in_parent_folders() }
+
+dependency "service" {
+  config_path = "../02-service-vpc"
+  mock_outputs = {
+    vpc_id          = "vpc-mock-67890"
+    private_subnets = ["subnet-mock-3", "subnet-mock-4"]
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+dependency "alb" {
+  config_path = "../05-alb"
+  mock_outputs = {
+    target_group_arns = ["arn:aws:elasticloadbalancing:ap-northeast-2:123456789012:targetgroup/mock/123"]
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+# [v2 아키텍처 개선] 분리된 통합 보안 그룹 의존성 추가
+dependency "sgrp" {
+  config_path = "../04-sgrp"
+  mock_outputs = { nginx_sg_id = "sg-mock-nginx456" }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+terraform { source = "." }
+
+inputs = {
+  vpc_id             = dependency.service.outputs.vpc_id
+  subnet_id          = dependency.service.outputs.private_subnets[0]
+  target_group_arn   = dependency.alb.outputs.target_group_arns[0]
+  
+  # Nginx용으로 생성된 보안 그룹 ID 주입
+  security_group_ids = [dependency.sgrp.outputs.nginx_sg_id]
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Syntax Highlighting Script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-hcl.min.js"></script>
+</body>
+</html>
