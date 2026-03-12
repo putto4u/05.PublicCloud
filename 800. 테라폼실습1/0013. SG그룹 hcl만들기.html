@@ -8,11 +8,34 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <style>
         body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+        .code-container { position: relative; }
         .code-header { background-color: #2d3748; color: #e2e8f0; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem; padding: 0.5rem 1rem; font-family: monospace; font-size: 0.875rem; display: flex; align-items: center; justify-content: space-between; }
         .code-body { background-color: #1a202c; border-bottom-left-radius: 0.5rem; border-bottom-right-radius: 0.5rem; margin-top: 0; padding: 1rem; overflow-x: auto; }
         pre[class*="language-"] { margin: 0; padding: 0; background: transparent; }
         .warning-box { border-left: 4px solid #ef4444; background-color: #fef2f2; }
         .info-box { border-left: 4px solid #3b82f6; background-color: #eff6ff; }
+        
+        /* 복사 버튼 스타일 */
+        .copy-button {
+            background-color: #4a5568;
+            color: #e2e8f0;
+            border: none;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .copy-button:hover {
+            background-color: #718096;
+        }
+        .copy-button.copied {
+            background-color: #48bb78;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased p-4 md:p-8">
@@ -98,8 +121,11 @@
                     <p class="text-gray-600 mb-3 text-sm">전체 프로젝트에 적용되는 AWS Provider (클라우드 공급자) 설정과 Terraform State (인프라 상태) 파일의 로컬 저장 방식을 동적으로 생성합니다.</p>
                     <div class="code-container shadow-md rounded-lg">
                         <div class="code-header">
-                            <span>labterra1/terragrunt.hcl</span>
-                            <span class="text-gray-400">HCL</span>
+                            <div>
+                                <span>labterra1/terragrunt.hcl</span>
+                                <span class="text-gray-400 ml-2">HCL</span>
+                            </div>
+                            <button class="copy-button" onclick="copyCode(this)">복사</button>
                         </div>
                         <div class="code-body">
 <pre><code class="language-hcl"># 로컬 변수(Local Variables)를 통해 하위 디렉터리의 환경 설정 파일(env.hcl)을 읽어옵니다.
@@ -144,8 +170,11 @@ remote_state {
                     </h3>
                     <div class="code-container shadow-md rounded-lg">
                         <div class="code-header">
-                            <span>labterra1/prod/env.hcl</span>
-                            <span class="text-gray-400">HCL</span>
+                            <div>
+                                <span>labterra1/prod/env.hcl</span>
+                                <span class="text-gray-400 ml-2">HCL</span>
+                            </div>
+                            <button class="copy-button" onclick="copyCode(this)">복사</button>
                         </div>
                         <div class="code-body">
 <pre><code class="language-hcl"># 환경별(운영, 개발 등) 공통 변수를 정의합니다.
@@ -183,8 +212,11 @@ locals {
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>main.tf</span>
-                                <span class="text-gray-400">Terraform</span>
+                                <div>
+                                    <span>main.tf</span>
+                                    <span class="text-gray-400 ml-2">Terraform</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl">variable "vpc_name" { type = string }
@@ -224,8 +256,11 @@ output "nat_gateway_ids" { value = module.hub_vpc.natgw_ids }</code></pre>
                         
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>terragrunt.hcl</span>
-                                <span class="text-gray-400">HCL</span>
+                                <div>
+                                    <span>terragrunt.hcl</span>
+                                    <span class="text-gray-400 ml-2">HCL</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl"># [v2 아키텍처 개선] 상위 폴더의 env.hcl을 읽어와서 local 변수로 캐싱(저장)합니다.
@@ -265,8 +300,11 @@ inputs = {
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>main.tf</span>
-                                <span class="text-gray-400">Terraform</span>
+                                <div>
+                                    <span>main.tf</span>
+                                    <span class="text-gray-400 ml-2">Terraform</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl">variable "vpc_name" { type = string }
@@ -298,8 +336,11 @@ output "private_route_table_ids" { value = module.service_vpc.private_route_tabl
 
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>terragrunt.hcl</span>
-                                <span class="text-gray-400">HCL</span>
+                                <div>
+                                    <span>terragrunt.hcl</span>
+                                    <span class="text-gray-400 ml-2">HCL</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl"># [v2 아키텍처 개선] env.hcl 로드
@@ -336,8 +377,11 @@ inputs = {
                     <div class="space-y-4">
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>terragrunt.hcl (의존성 및 값 주입)</span>
-                                <span class="text-gray-400">HCL</span>
+                                <div>
+                                    <span>terragrunt.hcl (의존성 및 값 주입)</span>
+                                    <span class="text-gray-400 ml-2">HCL</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl"># [v2 아키텍처 개선] 라우팅을 위한 env.hcl 로드
@@ -394,8 +438,11 @@ inputs = {
 
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>main.tf (라우팅 핵심 논리)</span>
-                                <span class="text-gray-400">Terraform</span>
+                                <div>
+                                    <span>main.tf (라우팅 핵심 논리)</span>
+                                    <span class="text-gray-400 ml-2">Terraform</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl">variable "hub_vpc_id" { type = string }
@@ -492,8 +539,11 @@ output "tgw_final_info" {
                     <div class="space-y-4">
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>main.tf (통합 보안 정책)</span>
-                                <span class="text-gray-400">Terraform</span>
+                                <div>
+                                    <span>main.tf (통합 보안 정책)</span>
+                                    <span class="text-gray-400 ml-2">Terraform</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl">variable "hub_vpc_id" { type = string }
@@ -552,8 +602,11 @@ output "nginx_sg_id" { value = aws_security_group.nginx_sg.id }</code></pre>
 
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>terragrunt.hcl (보안 그룹 의존성 및 변수 주입)</span>
-                                <span class="text-gray-400">HCL</span>
+                                <div>
+                                    <span>terragrunt.hcl (보안 그룹 의존성 및 변수 주입)</span>
+                                    <span class="text-gray-400 ml-2">HCL</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl">locals {
@@ -600,8 +653,11 @@ inputs = {
                     <div class="space-y-4">
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>main.tf (ALB 배포)</span>
-                                <span class="text-gray-400">Terraform</span>
+                                <div>
+                                    <span>main.tf (ALB 배포)</span>
+                                    <span class="text-gray-400 ml-2">Terraform</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl">variable "vpc_id" { type = string }
@@ -655,8 +711,11 @@ output "alb_dns_name" {
 
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>terragrunt.hcl (의존성 설정)</span>
-                                <span class="text-gray-400">HCL</span>
+                                <div>
+                                    <span>terragrunt.hcl (의존성 설정)</span>
+                                    <span class="text-gray-400 ml-2">HCL</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl">locals {
@@ -706,8 +765,11 @@ inputs = {
                     <div class="space-y-4">
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>main.tf (EC2 및 IAM 역할)</span>
-                                <span class="text-gray-400">Terraform</span>
+                                <div>
+                                    <span>main.tf (EC2 및 IAM 역할)</span>
+                                    <span class="text-gray-400 ml-2">Terraform</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl">variable "vpc_id" { type = string }
@@ -778,8 +840,11 @@ resource "aws_lb_target_group_attachment" "nginx_attach" {
 
                         <div class="code-container shadow-md rounded-lg">
                             <div class="code-header">
-                                <span>terragrunt.hcl (다중 의존성 설정)</span>
-                                <span class="text-gray-400">HCL</span>
+                                <div>
+                                    <span>terragrunt.hcl (다중 의존성 설정)</span>
+                                    <span class="text-gray-400 ml-2">HCL</span>
+                                </div>
+                                <button class="copy-button" onclick="copyCode(this)">복사</button>
                             </div>
                             <div class="code-body">
 <pre><code class="language-hcl">locals {
@@ -834,5 +899,35 @@ inputs = {
     <!-- Syntax Highlighting Script -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-hcl.min.js"></script>
+    
+    <!-- Copy Button Script -->
+    <script>
+        function copyCode(buttonElement) {
+            const container = buttonElement.closest('.code-container');
+            const codeText = container.querySelector('.code-body code').innerText;
+            
+            const textArea = document.createElement("textarea");
+            textArea.value = codeText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                const originalText = buttonElement.innerHTML;
+                buttonElement.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 완료';
+                buttonElement.classList.add('copied');
+                
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalText;
+                    buttonElement.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('복사에 실패했습니다.', err);
+                alert('복사에 실패했습니다.');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+    </script>
 </body>
 </html>
