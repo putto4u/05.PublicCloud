@@ -93,8 +93,16 @@
             margin: 1.5rem 0;
             border-radius: 0 0.5rem 0.5rem 0;
         }
+        .error-box {
+            background-color: #fff1f2;
+            border-left: 5px solid #e11d48;
+            padding: 1.25rem;
+            font-size: 0.85rem;
+            color: #9f1239;
+            margin: 1.5rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
         .menu-title { font-weight: 900; color: #1e293b; font-size: 1.1rem; margin-bottom: 1rem; display: block;}
-        .warning-highlight { background-color: #fff1f2; border: 1px dashed #fb7185; padding: 10px; border-radius: 8px; margin-top: 10px; }
         .step-tag { background: #1e293b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; margin-right: 8px; }
     </style>
 </head>
@@ -203,16 +211,16 @@ cd easy-rsa/easyrsa3
             </div>
 
             <div class="aws-console-card">
-                <div class="console-header"><span class="font-black text-sm">TGW Attachment (Transit Gateway 연결) 구성</span></div>
+                <div class="console-header"><span class="font-black text-sm">TGW Attachment (전송 게이트웨이 연결) 구성</span></div>
                 <div class="console-body space-y-4">
                     <div class="grid md:grid-cols-2 gap-4">
                         <div class="p-5 bg-slate-50 border rounded-xl">
-                            <p class="text-xs font-black text-slate-500 uppercase mb-2">Hub Attachment</p>
+                            <p class="text-xs font-black text-slate-500 uppercase mb-2">Hub Attachment (허브 연결)</p>
                             <p class="text-sm font-bold">VPC: Hub-VPC (10.0.0.0/16)</p>
                             <p class="text-xs text-slate-500 mt-1">VPN 엔드포인트가 배치될 게이트웨이 VPC입니다.</p>
                         </div>
                         <div class="p-5 bg-slate-50 border rounded-xl">
-                            <p class="text-xs font-black text-slate-500 uppercase mb-2">Spoke Attachment</p>
+                            <p class="text-xs font-black text-slate-500 uppercase mb-2">Spoke Attachment (스포크 연결)</p>
                             <p class="text-sm font-bold">VPC: Spoke-EKS (10.251.0.0/16)</p>
                             <p class="text-xs text-slate-500 mt-1">실제 워크로드가 실행되는 목적지 VPC입니다.</p>
                         </div>
@@ -240,7 +248,6 @@ cd easy-rsa/easyrsa3
                 </div>
                 <div class="console-body">
                     
-                    <!-- 1. 설정 방법 -->
                     <span class="menu-title">1. 설정 방법 선택 (Setting method)</span>
                     <div class="field-row">
                         <div class="field-label">설정 방법 (Setting method)</div>
@@ -248,28 +255,25 @@ cd easy-rsa/easyrsa3
                         <div class="col-start-2 field-desc">수동 사용자 지정입니다. 모든 네트워킹, 인증 및 고급 설정을 직접 구성하기 위해 이 옵션을 선택합니다.</div>
                     </div>
 
-                    <!-- 4. 클라이언트 IP 주소 풀 -->
                     <span class="menu-title pt-6">4. 클라이언트 IP 주소 풀 (Client IP address pool)</span>
                     <div class="field-row">
-                        <div class="field-label">클라이언트 IPv4 CIDR (Client IPv4 CIDR)</div>
+                        <div class="field-label">클라이언트 IPv4 CIDR (클라이언트 IP 대역)</div>
                         <div class="field-value font-mono font-bold text-indigo-600 text-lg">172.16.0.0/22</div>
                         <div class="col-start-2 field-desc">
                             <div class="text-rose-600 font-black mb-1">※ 매우 중요: VPN 접속 후 사용자의 가상 랜카드에 할당될 가상 IP 대역입니다.</div>
                             <ul class="list-disc pl-5 space-y-1 text-slate-600">
                                 <li><strong>현재 내 PC의 로컬 IP(사설 IP)</strong>가 아닙니다.</li>
                                 <li><strong>VPC의 CIDR 대역(10.0.x.x)</strong>과 절대 겹치면 안 됩니다.</li>
-                                <li><strong>EKS 포드(Pod) IP 대역</strong>과도 겹치면 안 됩니다.</li>
                                 <li>기존에 사용하지 않는 <strong>제3의 대역</strong>을 새로 생성하여 입력합니다. (최소 /22 권장)</li>
                             </ul>
                         </div>
                     </div>
 
-                    <!-- 8. 기타 설정 -->
                     <span class="menu-title pt-6">8. 기타 설정 (Other settings)</span>
                     <div class="field-row">
                         <div class="field-label">스플릿 터널 (Split-tunnel)</div>
                         <div class="field-value font-black text-rose-600">활성화 (Enable) ★★★</div>
-                        <div class="col-start-2 field-desc highlight-red">
+                        <div class="col-start-2 field-desc">
                             이 항목을 활성화해야 사용자의 일반 인터넷 트래픽은 로컬 망으로, AWS 내부(10.x.x.x) 트래픽만 VPN으로 분산됩니다.
                         </div>
                     </div>
@@ -277,11 +281,37 @@ cd easy-rsa/easyrsa3
             </div>
         </section>
 
-        <!-- Phase 3: Verification (NEW & DETAILED) -->
+        <!-- Phase 3: Verification & Troubleshooting -->
         <section id="verification" class="space-y-12">
             <div class="flex items-center gap-4">
-                <h2 class="text-2xl font-black text-slate-900">Phase 3. 단계별 연결 확인 및 테스트 가이드</h2>
+                <h2 class="text-2xl font-black text-slate-900">Phase 3. 단계별 연결 확인 및 트러블슈팅</h2>
                 <div class="h-px flex-1 bg-slate-200"></div>
+            </div>
+
+            <!-- Troubleshooting Section for 172 Issue -->
+            <div class="error-box">
+                <h3 class="font-black text-lg mb-4 flex items-center gap-2">
+                    🚨 긴급 점검: 172.x.x.x 가상 IP가 할당되지 않을 때
+                </h3>
+                <p class="text-sm font-medium mb-4"><code>ipconfig</code>나 <code>ifconfig</code> 실행 시 로컬 IP만 보이고 VPN IP가 생기지 않는다면 아래 항목을 순서대로 점검하십시오.</p>
+                <div class="grid md:grid-cols-2 gap-6 text-xs">
+                    <div class="bg-white/50 p-4 rounded-xl border border-rose-200">
+                        <p class="font-black text-rose-700 mb-2">1. .ovpn 설정 파일 인증서 누락</p>
+                        <p class="leading-relaxed">다운로드한 <code>.ovpn</code> 파일 하단에 <code>&lt;cert&gt;</code>와 <code>&lt;key&gt;</code> 태그가 정확히 포함되었는지 재확인하십시오. 태그 내부에 <code>-----BEGIN CERTIFICATE-----</code> 문구부터 끝까지 정확히 복사되어야 합니다.</p>
+                    </div>
+                    <div class="bg-white/50 p-4 rounded-xl border border-rose-200">
+                        <p class="font-black text-rose-700 mb-2">2. Target Network Association 상태</p>
+                        <p class="leading-relaxed">AWS 콘솔 ➔ Client VPN Endpoints ➔ <strong>Target network associations</strong> 탭의 상태가 <strong>'Available'</strong>인지 확인하십시오. 'Pending' 상태라면 아직 네트워크 인터페이스가 생성되지 않아 접속이 불가능합니다.</p>
+                    </div>
+                    <div class="bg-white/50 p-4 rounded-xl border border-rose-200">
+                        <p class="font-black text-rose-700 mb-2">3. 보안 그룹 UDP 443 차단</p>
+                        <p class="leading-relaxed">VPN 엔드포인트에 지정된 <strong>Security Group(보안 그룹)</strong>의 인바운드 규칙에서 <strong>UDP 443</strong> 포트가 <code>0.0.0.0/0</code>에 대해 열려 있는지 확인하십시오. (TLS 통신의 기본 통로입니다)</p>
+                    </div>
+                    <div class="bg-white/50 p-4 rounded-xl border border-rose-200">
+                        <p class="font-black text-rose-700 mb-2">4. 인증서 체인(Chain) 오류</p>
+                        <p class="leading-relaxed">ACM에 인증서 업로드 시 <code>ca.crt</code>(인증 기관 체인)를 누락했다면 서버와 클라이언트가 서로를 신뢰할 수 없어 터널이 형성되지 않습니다.</p>
+                    </div>
+                </div>
             </div>
 
             <div class="space-y-10">
@@ -290,12 +320,12 @@ cd easy-rsa/easyrsa3
                     <h3 class="text-lg font-black flex items-center gap-2">
                         <span class="step-tag">Step 3-1</span> 접속 노드(사용자 PC) ➔ AWS 엔드포인트 연결 확인
                     </h3>
-                    <p class="text-sm text-slate-600">가장 먼저 사용자 PC가 AWS Client VPN 엔드포인트와 TLS 터널을 정상적으로 생성했는지 확인합니다.</p>
+                    <p class="text-sm text-slate-600">사용자 PC가 AWS Client VPN 엔드포인트와 TLS 터널을 정상적으로 생성했는지 확인합니다.</p>
                     <div class="test-box">
-                        <strong>확인 방법:</strong>
+                        <strong>정상 연결 시 확인되는 정보:</strong>
                         <ul class="list-disc pl-5 mt-2 space-y-2">
-                            <li><strong>인터페이스 확인:</strong> <code>ifconfig</code> (mac/linux) 또는 <code>ipconfig</code> (windows) 명령어로 <strong>172.16.x.x</strong> 대역의 IP가 할당된 가상 어댑터가 생겼는지 확인합니다.</li>
-                            <li><strong>라우팅 테이블 확인:</strong> <code>netstat -rn</code> 명령어로 <strong>10.x.x.x</strong> 대역의 게이트웨이가 VPN 어댑터로 지정되었는지 확인합니다.</li>
+                            <li><strong>인터페이스:</strong> Windows의 경우 'TUN/TAP Adapter', Mac/Linux의 경우 <code>utun</code> 인터페이스에 <strong>172.16.x.x</strong> IP가 할당됨.</li>
+                            <li><strong>라우팅:</strong> <code>10.0.0.0/16</code> 및 <code>10.251.0.0/16</code>으로 가는 경로가 가상 어댑터를 향함.</li>
                         </ul>
                     </div>
                 </div>
@@ -305,7 +335,7 @@ cd easy-rsa/easyrsa3
                     <h3 class="text-lg font-black flex items-center gap-2">
                         <span class="step-tag">Step 3-2</span> 접속 노드 ➔ Hub VPC (임시 EC2) 통신 테스트
                     </h3>
-                    <p class="text-sm text-slate-600">TGW를 타기 전, 엔드포인트가 연동된 Hub VPC 내의 자원과 통신이 되는지 먼저 점검합니다.</p>
+                    <p class="text-sm text-slate-600">TGW를 타기 전, 엔드포인트가 연동된 Hub VPC 내의 자원과 통신이 되는지 점검합니다.</p>
                     <div class="aws-console-card">
                         <div class="console-body">
                             <pre># Hub VPC 내 프라이빗 EC2(예: 10.0.1.50)로 핑 테스트
@@ -339,19 +369,19 @@ curl -I http://10.0.1.50</pre>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 <tr>
-                                    <td class="p-4 font-bold bg-slate-50 border-r">Client VPN Route</td>
+                                    <td class="p-4 font-bold bg-slate-50 border-r">Client VPN Route (엔드포인트 경로)</td>
                                     <td class="p-4"><code>10.251.0.0/16</code> ➔ <strong>Target: Subnet-Association-ID</strong></td>
                                 </tr>
                                 <tr>
-                                    <td class="p-4 font-bold bg-slate-50 border-r">Hub VPC Route Table</td>
+                                    <td class="p-4 font-bold bg-slate-50 border-r">Hub VPC Route Table (허브 라우팅)</td>
                                     <td class="p-4"><code>10.251.0.0/16</code> ➔ <strong>Target: tgw-xxxxxx</strong></td>
                                 </tr>
                                 <tr>
-                                    <td class="p-4 font-bold bg-slate-50 border-r">Spoke VPC Route Table</td>
-                                    <td class="p-4 font-black text-rose-600 italic"><code>172.16.0.0/22</code> ➔ <strong>Target: tgw-xxxxxx</strong> (응답용 경로)</td>
+                                    <td class="p-4 font-bold bg-slate-50 border-r">Spoke VPC Route Table (스포크 라우팅)</td>
+                                    <td class="p-4 font-black text-rose-600 italic"><code>172.16.0.0/22</code> ➔ <strong>Target: tgw-xxxxxx</strong> (응답용 반환 경로)</td>
                                 </tr>
                                 <tr>
-                                    <td class="p-4 font-bold bg-slate-50 border-r">TGW Route Table</td>
+                                    <td class="p-4 font-bold bg-slate-50 border-r">TGW Route Table (전송 게이트웨이 경로)</td>
                                     <td class="p-4">Propagation(전파) 상태 확인: Hub/Spoke 양쪽 CIDR이 등록되어 있어야 함</td>
                                 </tr>
                             </tbody>
@@ -366,7 +396,7 @@ curl -I http://10.0.1.50</pre>
                     </h3>
                     <p class="text-sm text-slate-600">최종 목적지인 Spoke VPC 내부 자원에 접근이 가능한지 확인합니다.</p>
                     <div class="test-box">
-                        <strong>최종 L3 테스트:</strong>
+                        <strong>최종 L3(네트워크 계층) 테스트:</strong>
                         <pre class="mt-2"># Spoke VPC 내 EKS 워커 노드(예: 10.251.10.20) 접근 확인
 ssh -i key.pem ec2-user@10.251.10.20
 
