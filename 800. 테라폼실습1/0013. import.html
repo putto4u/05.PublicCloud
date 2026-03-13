@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN 보안 그룹 구성 및 IaC 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; line-height: 1.6; }
+        .code-block { background-color: #1e1e1e; color: #d4d4d4; padding: 1.5rem; border-radius: 0.5rem; overflow-x: auto; font-family: 'Courier New', Courier, monospace; }
+        .highlight { color: #569cd6; }
+        .comment { color: #6a9955; }
+        .string { color: #ce9178; }
+        .important { border-left: 4px solid #e53e3e; padding-left: 1rem; background-color: #fff5f5; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 p-4 md:p-12">
+
+    <div class="max-w-4xl mx-auto bg-white p-8 shadow-lg rounded-lg border border-gray-200">
+        <header class="mb-12 border-b-2 border-blue-600 pb-4">
+            <h1 class="text-4xl font-bold text-blue-800 mb-2">VPN 전용 보안 그룹(SG) 구성 및 코드화</h1>
+            <p class="text-gray-600">AWS Console 설정부터 Terragrunt(테라그란트) Import 및 IaC 통합까지</p>
+        </header>
+
+        <!-- Section 1: AWS Console Setup -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold mb-4 border-l-4 border-blue-500 pl-3">1. AWS 콘솔 기반 보안 그룹 생성</h2>
+            <p class="mb-4 text-lg">
+                VPN(Virtual Private Network, 가상 사설망)을 통해 온프레미스(On-premise, 사내 구축형) 서버와 AWS VPC(Virtual Private Cloud, 가상 사설 클라우드)가 통신할 때, 인스턴스의 입구 역할을 하는 SG(Security Group, 보안 그룹) 설정이 필수적입니다.
+            </p>
+
+            <div class="bg-blue-50 p-6 rounded-lg mb-6">
+                <h3 class="font-bold mb-2">생성 절차 (Step-by-Step)</h3>
+                <ol class="list-decimal list-inside space-y-2">
+                    <li>AWS 콘솔에서 <strong>VPC</strong> 서비스 접속</li>
+                    <li>좌측 메뉴의 <strong>Security Groups(보안 그룹)</strong> 선택</li>
+                    <li><strong>Create security group(보안 그룹 생성)</strong> 클릭</li>
+                    <li><strong>Name tag(이름 태그)</strong>: <code class="bg-gray-200 px-1">SG-VPN-Common</code> 입력</li>
+                    <li><strong>VPC</strong>: VPN이 연결된 해당 VPC 선택</li>
+                </ol>
+            </div>
+
+            <h3 class="text-xl font-bold mb-3">핵심 인바운드 규칙(Inbound Rules) 설정</h3>
+            <table class="w-full text-left border-collapse mb-6">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="p-3 border">Type (유형)</th>
+                        <th class="p-3 border">Protocol (프로토콜)</th>
+                        <th class="p-3 border">Port (포트)</th>
+                        <th class="p-3 border">Source (소스)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="p-3 border text-blue-700">All ICMP - IPv4</td>
+                        <td class="p-3 border">ICMP</td>
+                        <td class="p-3 border">All</td>
+                        <td class="p-3 border font-mono">10.0.0.0/16</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 border text-blue-700">Custom TCP</td>
+                        <td class="p-3 border">TCP</td>
+                        <td class="p-3 border">22 (SSH)</td>
+                        <td class="p-3 border font-mono">10.0.0.0/16</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 border text-blue-700">Custom TCP</td>
+                        <td class="p-3 border">TCP</td>
+                        <td class="p-3 border">3389 (RDP)</td>
+                        <td class="p-3 border font-mono">10.0.0.0/16</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="text-sm text-gray-600 italic">
+                * Source(소스)의 CIDR(Classless Inter-Domain Routing, 무클래스 간 도메인 라우팅)은 실제 본사(On-premise) 대역으로 지정해야 보안이 유지됩니다.
+            </p>
+
+            <div class="important mt-6">
+                <h4 class="font-bold text-red-600">과금 및 주의사항</h4>
+                <p>보안 그룹 생성 자체는 <strong>무료</strong>입니다. 하지만 이와 연결된 <strong>Site-to-Site VPN</strong> 서비스는 연결 시간당 <strong>약 $0.05(리전별 상이)</strong>의 비용이 발생하며, 전송되는 데이터 양에 따른 데이터 전송 비용이 추가됩니다.</p>
+            </div>
+        </section>
+
+        <!-- Section 2: Terragrunt Import -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold mb-4 border-l-4 border-green-500 pl-3">2. 기존 자원을 Terragrunt로 Import 하기</h2>
+            <p class="mb-4">
+                이미 콘솔에서 생성한 보안 그룹을 관리 코드(IaC, Infrastructure as Code) 상태로 가져오려면 <strong>Import(임포트, 불러오기)</strong> 과정이 필요합니다.
+            </p>
+
+            <h3 class="font-bold mb-2">1단계: Terraform(테라폼) 리소스 선언</h3>
+            <p class="text-gray-700 mb-2">먼저 `main.tf` 파일에 콘솔 설정과 동일한 뼈대 코드를 작성합니다.</p>
+            <div class="code-block mb-6">
+<span class="highlight">resource</span> <span class="string">"aws_security_group"</span> <span class="string">"vpn_sg"</span> {
+  <span class="comment"># 콘솔에서 생성한 이름과 동일하게 설정</span>
+  <span class="highlight">name</span>        = <span class="string">"SG-VPN-Common"</span>
+  <span class="highlight">description</span> = <span class="string">"Security group for VPN traffic"</span>
+  <span class="highlight">vpc_id</span>      = <span class="string">"vpc-0abc123456789def0"</span> <span class="comment"># 실제 VPC ID</span>
+}
+</div>
+
+            <h3 class="font-bold mb-2">2단계: Terragrunt Import 실행</h3>
+            <p class="text-gray-700 mb-2">터미널에서 실제 AWS 상의 보안 그룹 ID(예: sg-0123...)를 이용해 실행합니다.</p>
+            <div class="code-block mb-4">
+<span class="comment"># 실행 위치: terragrunt.hcl 파일이 있는 디렉토리</span>
+terragrunt import aws_security_group.vpn_sg sg-0123456789abcdef0
+</div>
+            <p class="text-sm text-gray-600">
+                이 명령을 실행하면 AWS 실물 자원과 테라폼의 State(상태) 파일이 동기화됩니다. 이후 <code class="bg-gray-100">terragrunt plan</code>을 통해 코드와 실제 자원의 일치 여부를 확인하세요.
+            </p>
+        </section>
+
+        <!-- Section 3: IaC Integration -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold mb-4 border-l-4 border-purple-500 pl-3">3. IaC 코드 내 규칙 자동화</h2>
+            <p class="mb-4">
+                보안 그룹만 선언하는 것이 아니라, 인바운드 규칙(Inbound Rule, 들어오는 규칙)을 코드 내에서 동적으로 관리하는 완성형 예제입니다.
+            </p>
+
+            <div class="code-block">
+<span class="highlight">locals</span> {
+  <span class="highlight">on_prem_cidr</span> = <span class="string">"10.0.0.0/16"</span> <span class="comment"># 본사 대역 변수화</span>
+}
+
+<span class="highlight">resource</span> <span class="string">"aws_security_group"</span> <span class="string">"vpn_sg"</span> {
+  <span class="highlight">name</span>        = <span class="string">"SG-VPN-Common"</span>
+  <span class="highlight">vpc_id</span>      = <span class="highlight">var</span>.vpc_id
+
+  <span class="comment"># 인바운드 규칙: On-premise로부터의 ICMP 허용</span>
+  <span class="highlight">ingress</span> {
+    <span class="highlight">from_port</span>   = -1
+    <span class="highlight">to_port</span>     = -1
+    <span class="highlight">protocol</span>    = <span class="string">"icmp"</span>
+    <span class="highlight">cidr_blocks</span> = [local.on_prem_cidr]
+    <span class="highlight">description</span> = <span class="string">"Allow Ping from On-premise"</span>
+  }
+
+  <span class="comment"># 아웃바운드 규칙: 모든 트래픽 허용 (기본값)</span>
+  <span class="highlight">egress</span> {
+    <span class="highlight">from_port</span>   = 0
+    <span class="highlight">to_port</span>     = 0
+    <span class="highlight">protocol</span>    = <span class="string">"-1"</span>
+    <span class="highlight">cidr_blocks</span> = [<span class="string">"0.0.0.0/0"</span>]
+  }
+
+  <span class="highlight">tags</span> = {
+    <span class="highlight">Name</span> = <span class="string">"SG-VPN-Common"</span>
+    <span class="highlight">Environment</span> = <span class="string">"Production"</span>
+  }
+}
+</div>
+            <p class="mt-4 text-gray-700">
+                이렇게 작성된 코드는 <code class="bg-gray-100">terragrunt.hcl</code>의 <code class="bg-gray-100">inputs</code> 블록을 통해 리전별, 환경별로 VPC ID 등을 주입받아 재사용될 수 있습니다.
+            </p>
+        </section>
+
+        <footer class="mt-16 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
+            <p>© 2024 IT Architecture Master Class. All Rights Reserved.</p>
+            <p class="mt-2">전문 기술 용어 출처: <a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html" class="underline text-blue-500">AWS Official Documentation</a></p>
+        </footer>
+    </div>
+
+</body>
+</html>
